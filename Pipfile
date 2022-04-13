@@ -6,6 +6,9 @@ name = "pypi"
 [packages]
 google-auth = "*"
 google-auth-oauthlib = "*"
+google-api-python-client = "*"
+argparse = "*"
+jq = "*"
 
 [dev-packages]
 
