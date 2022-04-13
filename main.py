@@ -48,24 +48,23 @@ def get_subscriptions(credentials=None, nextPage=None):
         subscriptions_request = subscriptions_youtube.subscriptions().list(part="snippet,contentDetails", maxResults=50, mine=True, order="alphabetical", pageToken=nextPage)
 
     subscriptions_response = subscriptions_request.execute()
-    log.debug("subscriptions_response is of type %s and items count %s" % (type(subscriptions_response),len(subscriptions_response["items"])))
+    log.debug("subscriptions_response is of type %s and items count %s" % (type(subscriptions_response),len(subscriptions_response)))
+    sub_dict = subscriptions_response["items"]
+    log.debug("sub_dict is of type %s and items count %s" % (type(sub_dict),len(sub_dict)))
     if nextPage is None:
         log.info("Total amount of subscriptions: %s (from youtube API)" % subscriptions_response["pageInfo"]["totalResults"])
-    sub_dict = subscriptions_response
     
     if "nextPageToken" in subscriptions_response:
         log.info("nextPageToken detected!")
         nextPageToken = subscriptions_response.get("nextPageToken")
         subscriptions_response_nextpage = get_subscriptions(credentials, nextPage=nextPageToken)
-        log.debug("subscriptions_response_nextpage is of type %s and items count %s" % (type(subscriptions_response_nextpage),len(subscriptions_response_nextpage["items"])))
-    else:
-        subscriptions_response_nextpage = {}
+        sub_dict_nextpage = subscriptions_response_nextpage
+        log.error("sub_dict_nextpage is of type %s and items count %s" % (type(sub_dict_nextpage),len(sub_dict_nextpage)))
+        sub_dict = sub_dict + sub_dict_nextpage
 
-    sub_dict = subscriptions_response_nextpage | sub_dict
+    #sub_dict = jq.all('[ .[] | { "title": .snippet.title, "id": .snippet.resourceId.channelId } ]', json.dumps(sub_dict))
 
-    #sub_list = jq.all('[ .items[] | { "title": .snippet.title, "id": .snippet.resourceId.channelId } ]', json.dumps(subscriptions_response))
-
-    return subscriptions_response
+    return sub_dict
 
 
 def get_subscription_activity(credentials=None, channel=None, nextPage=None):
@@ -114,8 +113,8 @@ def main():
     credentials = authenticate(args.credentials_file, args.pickle_file, scopes=scopes)
     
     subscriptions = get_subscriptions(credentials=credentials)
-    #print(json.dumps(subscriptions))
-    log.info("Subscriptions in list count: %s" % len(subscriptions["items"]))
+    print(json.dumps(subscriptions))
+    log.info("Subscriptions in list count: %s" % len(subscriptions))
 
     #print(get_subscription_activity(credentials=credentials, channel="UCn7w-zvOSD3ADT-na6uOTZQ"))
     
