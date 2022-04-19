@@ -10,8 +10,12 @@ google-api-python-client = "*"
 argparse = "*"
 jq = "*"
 python-dateutil = "*"
+dateutils = "*"
 
 [dev-packages]
 
 [requires]
 python_version = "3.10"
+
+[pipenv]
+allow_prereleases = true
