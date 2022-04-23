@@ -11,6 +11,8 @@ argparse = "*"
 jq = "*"
 python-dateutil = "*"
 dateutils = "*"
+retrying = "*"
+tzlocal = "*"
 
 [dev-packages]
 
