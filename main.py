@@ -3,6 +3,7 @@ from ast import Subscript
 from datetime import timezone, datetime, timedelta
 from distutils.filelist import glob_to_re
 import json
+from lib2to3.pgen2.token import LESS
 import jq
 import logging
 from logging.handlers import RotatingFileHandler
@@ -21,25 +22,30 @@ from googleapiclient.errors import HttpError
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
 api_calls=0
+errors=0
 subscriptions_processed=0
 subscriptions_skipped=0
 videos_added=0
 videos_skipped=0
+
+# Time stuff...
+times = dict()
+times["local_timezone"] = get_localzone()
+times["date_format"] = '%Y-%m-%dT%H:%M:%S'
+times["now_datetime"] = datetime.now(tz=timezone.utc)
+times["now"] = datetime.now(times["local_timezone"])
+times["now_iso"] = times["now"].isoformat()
+times["now_format"] = times["now"].strftime(times["date_format"])
+times["yesterday"] = times["now"] - timedelta(days=1)
+times["yesterday_iso"] = times["yesterday"].isoformat()
+times["oneyearback"] = times["now"] - timedelta(weeks=52)
+times["oneyearback_iso"] = times["oneyearback"].isoformat()
+
+# Variables
 args = None
 log = None
-local_timezone = get_localzone()
 loggFormat = "%(asctime)5s %(levelname)10s %(message)s (%(name)s)"
-date_format = '%Y-%m-%dT%H:%M:%S'
-now_datetime = datetime.now(tz=timezone.utc)
-now = datetime.now(local_timezone)
-now_iso = now.isoformat()
-now_format = now.strftime(date_format)
-yesterday = now - timedelta(days=1)
-yesterday_iso = yesterday.isoformat()
-oneyearback = now - timedelta(weeks=52)
-oneyearback_iso = oneyearback.isoformat()
 sqlite_db = "my.db"
-errors=0
 criticals = [400, 401, 402, 403, 404, 405, 409, 410, 412, 413, 416, 417, 428, 429, 500, 501, 503]
 scopes = [
     'https://www.googleapis.com/auth/youtubepartner',
@@ -69,13 +75,13 @@ def get_arguments():
 def setup_logger():
     global errors
     global loggFormat
-    global date_format
+    global times
     global args
     global api_calls
     global log
     
     log = logging.getLogger('YouTube_SubLater')
-    format = logging.Formatter(fmt=loggFormat, datefmt=date_format)
+    format = logging.Formatter(fmt=loggFormat, datefmt=times["date_format"])
     
         
     if args.log_file == "stream":
@@ -211,44 +217,51 @@ def get_video_from_db(videoId=None, subscriptionId=None):
     global sqlite_db
     
     data = list()
-    
     con = sqlite3.connect(sqlite_db)
     
     log.info("get_video_from_db: Checking %s from %s in database" % (videoId, subscriptionId))
     try:
-        query = con.execute("SELECT videoId FROM videos WHERE videoId = ? AND subscriptionId = ? LIMIT 1", (videoId, subscriptionId))
-        
-        rows = query.fetchall()
-        con.close()
+        query = con.execute('SELECT videoId FROM videos WHERE videoId=\"%s\" AND subscriptionId=\"%s\" LIMIT 1' % (videoId, subscriptionId))
     except sqlite3.Error as err:
         log.error('get_video_from_db: Sql error: {}'.format(err.args))
+        
         return False
     
-    for row in rows:
-        data = '[ "id": "%s" ]' % (row[0])
-        data = json.loads(data)
+    rows = query.fetchall()
+    log.debug("get_video_from_db: content of rows: {}".format(rows))
+    log.info("get_video_from_db: count on rows: %s" % len(rows))
+    con.close()
     
-    log.debug("get_video_from_db: results {}".format(json.dumps(data, indent=4)))
-    log.info("get_video_from_db: count: %s" % len(data))
+    if len(rows) > 0:
+        for row in rows:
+            data = "{ \"id\": \"%s\" }" % row[0]
+            log.debug("get_video_from_db: content of data before json.loads(): {}".format(data))
+            data = json.loads(data)
     
     return data
 
 def insert_channel_to_db(channelId=None, channelTitle=None):
     global sqlite_db
+    global args
     
-    con = sqlite3.connect(sqlite_db)
+    if not args.local_json_files:
+        con = sqlite3.connect(sqlite_db)
 
-    sql = 'INSERT OR REPLACE INTO channel (id, title) VALUES(?, ?)'
-    data = [(channelId, channelTitle)]
-    with con:
-        try:
-            con.executemany(sql, data)
-            log.info("insert_channel_to_db: Channel %s with ID %s inserted into DB", channelId, channelTitle)
-        except sqlite3.Error as err:
-            log.error('insert_channel_to_db: Sql error: {}'.format(err.args))
-            return False
-        
-    con.close()
+        sql = 'INSERT OR REPLACE INTO channel (id, title) VALUES(?, ?)'
+        data = [(channelId, channelTitle)]
+        with con:
+            try:
+                con.executemany(sql, data)
+                log.info("insert_channel_to_db: Channel %s with ID %s inserted into DB", channelId, channelTitle)
+            except sqlite3.Error as err:
+                log.error('insert_channel_to_db: Sql error: {}'.format(err.args))
+                return False
+            
+        con.close()
+        return True
+    else:
+        log.info("insert_channel_to_db: INSERT OR REPLACE INTO channel (id, title) VALUES(%s, %s)", channelId, channelTitle)
+        return True
 
 def get_channel_from_db():
     global sqlite_db
@@ -325,7 +338,7 @@ def insert_subscription_to_db(subscriptionId=None, subscriptionTitle=None, subsc
     with con:
         try:
             con.executemany(sql, data)
-            log.info("insert_subscription_to_db: Subscription %s with ID %s and timestamp: %s inserted into DB", subscriptionId, subscriptionTitle, subscriptionTimestamp)
+            log.info("insert_subscription_to_db: Subscription %s with ID %s and timestamp: %s inserted into DB", subscriptionTitle, subscriptionId, subscriptionTimestamp)
         except sqlite3.Error as err:
             log.error('insert_subscription_to_db: Sql error: {}'.format(err.args))
             return False
@@ -647,11 +660,12 @@ def add_to_playlist(credentials=None, channelId=None, playlistId=None, subscript
                 log.error("add_to_playlist: Error: {}".format(err))
             return False
         
-        insert_video_to_db(videoId=videoId, timestamp=now_iso, title=videoTitle, subscriptionId=subscriptionId)
+        insert_video_to_db(videoId=videoId, timestamp=times["now_iso"], title=videoTitle, subscriptionId=subscriptionId)
 
     return playlist_response
 
 def main():
+    global times
     global errors
     global log
     global args
@@ -677,14 +691,17 @@ def main():
         if len(db_last_run) > 0:
             published_after = db_last_run[0]
         else:
-            published_after = oneyearback
+            published_after = times["oneyearback"]
     
-    log.debug("now: %s" % now_iso)
-    log.debug("yesterday: %s" % yesterday_iso)
-    log.debug("oneyearback: %s" % oneyearback_iso)
+    published_after = datetime.fromisoformat(published_after)
+    published_after_iso = published_after.isoformat()
+    
+    log.debug("now_iso: %s" % times["now_iso"])
+    log.debug("yesterday_iso: %s" % times["yesterday_iso"])
+    log.debug("oneyearback_iso: %s" % times["oneyearback_iso"])
     log.debug("db_last_run: %s" % db_last_run)
     log.debug("args.published_after: %s" % args.published_after)
-    log.debug("published_after: %s" % published_after)
+    log.debug("published_after_iso: %s" % published_after_iso)
 
     credentials = authenticate(credentials_file=args.credentials_file, pickle_credentials=args.pickle_file, scopes=scopes)
 
@@ -710,14 +727,6 @@ def main():
     
     log.info("Playlist selected: %s (%s)" % (user_playlist["title"], user_playlist["id"]))
     
-    # selected_playlist = get_playlist(credentials=credentials, channelId=channel["id"], playlistId=user_playlist["id"])
-    # selected_playlist_refined = jq.all('.[] | { "title": .snippet.title, "id": .snippet.resourceId.videoId }', selected_playlist)
-    # log.debug("Content of Playlist selected: {}".format(json.dumps(selected_playlist, indent=4)))
-    # log.info("Current item count on Selected playlist: %s", len(selected_playlist["items"]))
-    
-    # log.debug("Content of selected_playlist_refined: {}".format(json.dumps(selected_playlist_refined, indent=4)))
-    # log.info("Current item count on refined selected playlist: %s", len(selected_playlist_refined[0]))
-    
     subscriptions = get_subscriptions(credentials=credentials)
     subscriptions_refined = jq.all('.[] | { "title": .snippet.title, "id": .snippet.resourceId.channelId }', subscriptions)
 
@@ -731,25 +740,29 @@ def main():
         log.info("Processing subscription %s (%s), but sleeping for %s seconds first" % (subs["title"], subs["id"], args.youtube_subscription_sleep))
         subscription_from_db = get_subscription_from_db(subscriptionId=subs["id"])
         if not subscription_from_db:
-            insert_subscription_to_db(subscriptionId=subs["id"], subscriptionTitle=subs["title"], subscriptionTimestamp=oneyearback_iso)
-            subscription_last_run = oneyearback_iso
+            insert_subscription_to_db(subscriptionId=subs["id"], subscriptionTitle=subs["title"], subscriptionTimestamp=times["oneyearback_iso"])
+            subscription_last_run = times["oneyearback_iso"]
+            log.info("subscription_last_run was empty in DB, so setting it to one year back: %s", subscription_last_run)
         else:
             if not subscription_from_db[0].get("timestamp") or subscription_from_db[0].get("timestamp") != None:
-                subscription_last_run = oneyearback_iso
-                log.info("subscription_last_run was empty in DB, so setting it to one year back: %s", subscription_last_run)
+                if not published_after:
+                    subscription_last_run = times["oneyearback_iso"]
+                    log.info("subscription_last_run was empty in DB, so setting it to one year back: %s", subscription_last_run)
+                else:
+                    subscription_last_run = published_after_iso
+                    log.info("subscription_last_run was empty in DB but --published-after argument set, so setting it published_after: %s", subscription_last_run)
             else:
                 subscription_last_run = subscription_from_db[0].get("timestamp")
                 log.info("subscription_last_run had value in DB: %s", subscription_last_run)
         
-        if not datetime.fromisoformat(subscription_last_run) < yesterday:
+        if not datetime.fromisoformat(subscription_last_run) < times["now"]:
             subscriptions_skipped = subscriptions_skipped + 1
             log.info("This subscription was processed within 1 day. Skipping for now")
             continue
         
-        log.info("This subscription was processed %s" % (datetime.fromisoformat(subscription_last_run).strftime(date_format)))
-        time.sleep(args.youtube_subscription_sleep)
+        log.info("This subscription was last processed %s" % (datetime.fromisoformat(subscription_last_run).strftime(times["date_format"])))
         
-        sub_activity = get_subscription_activity(credentials=credentials, channel=subs["id"], publishedAfter=published_after)
+        sub_activity = get_subscription_activity(credentials=credentials, channel=subs["id"], publishedAfter=subscription_last_run)
         sub_activity_refined = jq.all('.[] | select(all(.snippet.type; contains("upload"))) | { "title": .snippet.title, "videoId": .contentDetails.upload.videoId, "publishedAt": .snippet.publishedAt }', sub_activity) if sub_activity != False else []
         sub_activity_refined.sort(key = lambda x:x['publishedAt'], reverse=True) if sub_activity != False else []
 
@@ -760,12 +773,10 @@ def main():
             log.info("%s - Processing %s (%s)" % (subs["title"], activity["title"], activity["videoId"]))
             
             results = get_video_from_db(videoId=activity["videoId"], subscriptionId=subs["id"])
-            count_in_database = len(results)
             
-            if not count_in_database > 0:
-                time.sleep(args.youtube_playlist_sleep)
+            if len(results) == 0:
                 add_to_playlist(credentials=credentials, channelId=channel["id"], playlistId=user_playlist["id"], subscriptionId=subs["id"], videoId=str(activity["videoId"]), videoTitle=str(activity["title"]))
-                log.info("%s - ADDING Video %s (%s) to playlist %s" % (subs["title"], activity["title"], activity["videoId"], user_playlist["title"]))
+                time.sleep(args.youtube_playlist_sleep)
             else:
                 videos_skipped = videos_skipped + 1
                 log.info("%s - Video %s (%s) already in database or playlist %s" % (subs["title"], activity["title"], activity["videoId"], user_playlist["title"]))
@@ -775,15 +786,17 @@ def main():
                 log.info("%s - YouTube activity limit reached! exiting activity loop" % (subs["title"]))
                 break
         
-        insert_subscription_to_db(subscriptionId=subs["id"], subscriptionTitle=subs["title"], subscriptionTimestamp=now_iso)
+        insert_subscription_to_db(subscriptionId=subs["id"], subscriptionTitle=subs["title"], subscriptionTimestamp=times["now_iso"])
         s=s + 1
         subscriptions_processed = s
         if args.youtube_subscription_limit != 0 and s >= args.youtube_subscription_limit:
             log.info("YouTube subscription limit reached! exiting subscription loop")
             break
+        if len(sub_activity_refined) > 0:
+            time.sleep(args.youtube_subscription_sleep)
     
     if errors == 0:
-        set_last_run(timestamp=now)
+        set_last_run(timestamp=times["now_iso"])
     else:
         log.error("Last run timestamp not set because of errors! (%s)" % errors)
     
