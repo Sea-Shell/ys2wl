@@ -1,0 +1,3 @@
+#!/bin/sh
+
+/usr/local/bin/pipenv run main.py
