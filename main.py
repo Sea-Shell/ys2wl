@@ -1,5 +1,5 @@
-import argparse
 from ast import Subscript
+import configargparse
 from datetime import timezone, datetime, timedelta
 from distutils.filelist import glob_to_re
 import json
@@ -55,20 +55,21 @@ scopes = [
     ]
 
 def get_arguments():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--pickle-file', default='credentials.pickle', help='File to store access token once authenticated')
-    parser.add_argument('--credentials-file', default='client_secret.json', help='JSON file with credentials to oAuth2 account')
-    parser.add_argument('--local-json-files', action="store_true", help='JSON file with credentials to oAuth2 account')
-    parser.add_argument('--max-results', default='50', type=int, help='JSON file with credentials to oAuth2 account')
-    parser.add_argument('--published-after', default=None, help='Timestamp in ISO8601 (YYYY-MM-DDThh:mm:ss.sZ) format.')
-    parser.add_argument('--youtube-channel', default='', help='Name of channel to do stuff with')
-    parser.add_argument('--youtube-playlist', default='', help='Name of channel to do stuff with')
-    parser.add_argument('--youtube-activity-limit', default='0', type=int, help='How much activity to process pr. subscription')
-    parser.add_argument('--youtube-subscription-limit', default='0', type=int, help='How much activity to process pr. subscription')
-    parser.add_argument('--youtube-playlist-sleep', default='10', type=int, help='how log to wait betwene playlist API insert-calls')
-    parser.add_argument('--youtube-subscription-sleep', default='30', type=int, help='how log to wait betwene playlist API insert-calls')
-    parser.add_argument('--log-level', default='warning', help='Set loglevel. debug,info,warning or error')
-    parser.add_argument('--log-file', dest='log_file', default='stream', help='file to cast logs to. if you want all output to stdout type "stream"')
+    parser = configargparse.ArgumentParser(description='Add latest activity from your subscriptions on YouTube to a playlist', default_config_files=['/etc/ysl/config.yml', '~/.ysl/config.yml'])
+    parser.add('--config', env_var='CONFIG', is_config_file=True, help='Path to yaml config file')
+    parser.add('--pickle-file', env_var="PICKE_FILE", default='credentials.pickle', help='File to store access token once authenticated')
+    parser.add('--credentials-file', env_var="CREDENTIALS_FILE", default='client_secret.json', help='JSON file with credentials to oAuth2 account')
+    parser.add('--local-json-files', env_var="LOCAL_JSON_FILES", action="store_true", help='JSON file with credentials to oAuth2 account')
+    parser.add('--max-results', env_var="MAX_RESULTS", default='50', type=int, help='JSON file with credentials to oAuth2 account')
+    parser.add('--published-after', env_var="PUBLISHED_AFTER", default=None, help='Timestamp in ISO8601 (YYYY-MM-DDThh:mm:ss.sZ) format.')
+    parser.add('--youtube-channel', env_var="YOUTUBE_CHANNEL", default='', help='Name of channel to do stuff with')
+    parser.add('--youtube-playlist', env_var="YOUTUBE_PLAYLIST", default='', help='Name of channel to do stuff with')
+    parser.add('--youtube-activity-limit', env_var="YOUTUBE_ACTIVITY_LIMIT", default='0', type=int, help='How much activity to process pr. subscription')
+    parser.add('--youtube-subscription-limit', env_var="YOUTUBE_SUBSCRIPTION_LIMIT", default='0', type=int, help='How much activity to process pr. subscription')
+    parser.add('--youtube-playlist-sleep', env_var="YOUTUBE_PLAYLIST_SLEEP", default='10', type=int, help='how log to wait betwene playlist API insert-calls')
+    parser.add('--youtube-subscription-sleep', env_var="YOUTUBE_SUBSCRIPTION_SLEEP", default='30', type=int, help='how log to wait betwene playlist API insert-calls')
+    parser.add('--log-level', env_var="LOG_LEVEL", default='warning', help='Set loglevel. debug,info,warning or error')
+    parser.add('--log-file', env_var="LOG_FILE", dest='log_file', default='stream', help='file to cast logs to. if you want all output to stdout type "stream"')
     
     return parser.parse_args()
 
