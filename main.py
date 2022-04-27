@@ -473,8 +473,6 @@ def get_subscription_activity(credentials=None, channel=None, publishedAfter=Non
         
         try:
             activity_response = activity_request.execute()
-            log.info("get_subscription_activity: activity_response is of type %s and items count %s" % (type(activity_response),len(activity_response)))
-            log.debug("get_subscription_activity: activity_respons content: {}".format(json.dumps(activity_response, indent=4)))
             api_calls = api_calls + 1
         except HttpError as err:
             errors = errors + 1
@@ -487,16 +485,12 @@ def get_subscription_activity(credentials=None, channel=None, publishedAfter=Non
             return False
         
     act_array = activity_response["items"]
-    log.info("get_subscription_activity: act_array is of type %s and items count %s" % (type(act_array),len(act_array)))
 
     if "nextPageToken" in activity_response:
         nextPageToken = activity_response.get("nextPageToken")
         activity_response_nextpage = get_subscription_activity(credentials=credentials, channel=channel, nextPage=nextPageToken)
         act_array = [*act_array, *activity_response_nextpage]
-        
-    log.info("get_subscription_activity: Total amount of activity: %s (from youtube API)" % activity_response["pageInfo"]["totalResults"])
-
-
+    
     return act_array
 
 def get_channel_id(credentials=None):
@@ -767,6 +761,7 @@ def main():
         sub_activity_refined = jq.all('.[] | select(all(.snippet.type; contains("upload"))) | { "title": .snippet.title, "videoId": .contentDetails.upload.videoId, "publishedAt": .snippet.publishedAt }', sub_activity) if sub_activity != False else []
         sub_activity_refined.sort(key = lambda x:x['publishedAt'], reverse=True) if sub_activity != False else []
 
+        log.debug("sub_activity_refined: activity total count: %s" % (len(sub_activity_refined)))
         log.debug("sub_activity_refined: {}".format(json.dumps(sub_activity_refined, indent=4)))
         
         a=0
