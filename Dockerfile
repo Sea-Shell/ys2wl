@@ -11,7 +11,7 @@ RUN apk add build-base libffi-dev openssl-dev libressl-dev musl-dev cargo # inst
 USER 1000
 COPY Pipfile /opt/ys2wl/
 WORKDIR /opt/ys2wl
-RUN  pipenv install
+RUN  pipenv install --three
 COPY run /opt/ys2wl/
 COPY *.py /opt/ys2wl/
 

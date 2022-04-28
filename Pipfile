@@ -3,6 +3,9 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
+[scripts]
+ys2wl = "python3 main.py"
+
 [packages]
 google-auth = "*"
 google-auth-oauthlib = "*"

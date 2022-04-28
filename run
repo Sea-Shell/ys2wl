@@ -1,3 +1,2 @@
 #!/bin/sh
-
-/usr/local/bin/pipenv run main.py
+pipenv --three -v run ys2wl
