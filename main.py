@@ -45,7 +45,6 @@ times["oneyearback_iso"] = times["oneyearback"].isoformat()
 args = None
 log = None
 loggFormat = "%(asctime)5s %(levelname)10s %(message)s (%(name)s)"
-sqlite_db = "my.db"
 criticals = [400, 401, 402, 403, 404, 405, 409, 410, 412, 413, 416, 417, 428, 429, 500, 501, 503]
 scopes = [
     'https://www.googleapis.com/auth/youtubepartner',
@@ -59,6 +58,7 @@ def get_arguments():
     parser.add('--config', env_var='CONFIG', is_config_file=True, help='Path to yaml config file')
     parser.add('--pickle-file', env_var="PICKE_FILE", default='credentials.pickle', help='File to store access token once authenticated')
     parser.add('--credentials-file', env_var="CREDENTIALS_FILE", default='client_secret.json', help='JSON file with credentials to oAuth2 account')
+    parser.add('--database-file', env_var="DATABASE_FILE", default='my.db', help='Location of sqlite database file. Will be created if not exists')
     parser.add('--local-json-files', env_var="LOCAL_JSON_FILES", action="store_true", help='JSON file with credentials to oAuth2 account')
     parser.add('--max-results', env_var="MAX_RESULTS", default='50', type=int, help='JSON file with credentials to oAuth2 account')
     parser.add('--published-after', env_var="PUBLISHED_AFTER", default=None, help='Timestamp in ISO8601 (YYYY-MM-DDThh:mm:ss.sZ) format.')
@@ -107,9 +107,9 @@ def setup_logger():
     return log
 
 def init_db():
-    global sqlite_db
+    global args
     
-    con = sqlite3.connect(sqlite_db)
+    con = sqlite3.connect(args.database_file)
     
     with con:
         try:
@@ -155,9 +155,9 @@ def init_db():
     return True
 
 def get_last_run():
-    global sqlite_db
+    global args
     
-    con = sqlite3.connect(sqlite_db)
+    con = sqlite3.connect(args.database_file)
     
     log.info("get_last_run: Checking last run in DB")
     with con:
@@ -176,10 +176,10 @@ def get_last_run():
     return data
 
 def set_last_run(timestamp=None):
-    global sqlite_db
+    global args
     
     if args.log_level != "debug":
-        con = sqlite3.connect(sqlite_db)
+        con = sqlite3.connect(args.database_file)
         
         sql = 'INSERT OR REPLACE INTO last_run (id, timestamp) VALUES(?, ?)'
         data = [(1, timestamp)]
@@ -196,10 +196,10 @@ def set_last_run(timestamp=None):
         log.info("set_last_run: NOT REALY! Last run updated in DB: %s" % (timestamp))
 
 def insert_video_to_db(videoId=None, timestamp=None, title=None, subscriptionId=None):
-    global sqlite_db
+    global args
     
     if args.log_level != "debug":
-        con = sqlite3.connect(sqlite_db)
+        con = sqlite3.connect(args.database_file)
         
         sql = 'INSERT OR REPLACE INTO videos (videoId, timestamp, title, subscriptionId) VALUES(?, ?, ?, ?)'
         data = [(videoId, timestamp, title, subscriptionId)]
@@ -215,10 +215,10 @@ def insert_video_to_db(videoId=None, timestamp=None, title=None, subscriptionId=
     log.info("Video %s (%s) from %s added to database" % (title, videoId, subscriptionId))
 
 def get_video_from_db(videoId=None, subscriptionId=None):
-    global sqlite_db
+    global args
     
     data = list()
-    con = sqlite3.connect(sqlite_db)
+    con = sqlite3.connect(args.database_file)
     
     log.info("get_video_from_db: Checking %s from %s in database" % (videoId, subscriptionId))
     try:
@@ -242,11 +242,10 @@ def get_video_from_db(videoId=None, subscriptionId=None):
     return data
 
 def insert_channel_to_db(channelId=None, channelTitle=None):
-    global sqlite_db
     global args
     
     if not args.local_json_files:
-        con = sqlite3.connect(sqlite_db)
+        con = sqlite3.connect(args.database_file)
 
         sql = 'INSERT OR REPLACE INTO channel (id, title) VALUES(?, ?)'
         data = [(channelId, channelTitle)]
@@ -265,9 +264,9 @@ def insert_channel_to_db(channelId=None, channelTitle=None):
         return True
 
 def get_channel_from_db():
-    global sqlite_db
+    global args
     
-    con = sqlite3.connect(sqlite_db)
+    con = sqlite3.connect(args.database_file)
     data = list()
     
     try:
@@ -289,9 +288,9 @@ def get_channel_from_db():
     return data
 
 def insert_playlist_to_db(playlistId=None, playlistTitle=None):
-    global sqlite_db
+    global args
     
-    con = sqlite3.connect(sqlite_db)
+    con = sqlite3.connect(args.database_file)
 
     sql = 'INSERT OR REPLACE INTO playlist (id, title) VALUES(?, ?)'
     data = [(playlistId, playlistTitle)]
@@ -306,9 +305,9 @@ def insert_playlist_to_db(playlistId=None, playlistTitle=None):
     con.close()
 
 def get_playlist_from_db():
-    global sqlite_db
+    global args
     
-    con = sqlite3.connect(sqlite_db)
+    con = sqlite3.connect(args.database_file)
     data = list()
     
     try:
@@ -330,9 +329,9 @@ def get_playlist_from_db():
     return data
 
 def insert_subscription_to_db(subscriptionId=None, subscriptionTitle=None, subscriptionTimestamp=None):
-    global sqlite_db
+    global args
     
-    con = sqlite3.connect(sqlite_db)
+    con = sqlite3.connect(args.database_file)
 
     sql = 'INSERT OR REPLACE INTO subscription (id, title, timestamp) VALUES(?, ?, ?)'
     data = [(subscriptionId, subscriptionTitle, subscriptionTimestamp)]
@@ -347,9 +346,9 @@ def insert_subscription_to_db(subscriptionId=None, subscriptionTitle=None, subsc
     con.close()
 
 def get_subscription_from_db(subscriptionId=None):
-    global sqlite_db
+    global args
 
-    con = sqlite3.connect(sqlite_db)
+    con = sqlite3.connect(args.database_file)
     data = list()
     
     try:
