@@ -56,7 +56,7 @@ scopes = [
 def get_arguments():
     parser = configargparse.ArgumentParser(description='Add latest activity from your subscriptions on YouTube to a playlist', default_config_files=['/etc/ysl/config.yml', '~/.ysl/config.yml'])
     parser.add('--config', env_var='CONFIG', is_config_file=True, help='Path to yaml config file')
-    parser.add('--pickle-file', env_var="PICKE_FILE", default='credentials.pickle', help='File to store access token once authenticated')
+    parser.add('--pickle-file', env_var="PICKLE_FILE", default='credentials.pickle', help='File to store access token once authenticated')
     parser.add('--credentials-file', env_var="CREDENTIALS_FILE", default='client_secret.json', help='JSON file with credentials to oAuth2 account')
     parser.add('--database-file', env_var="DATABASE_FILE", default='my.db', help='Location of sqlite database file. Will be created if not exists')
     parser.add('--local-json-files', env_var="LOCAL_JSON_FILES", action="store_true", help='JSON file with credentials to oAuth2 account')
