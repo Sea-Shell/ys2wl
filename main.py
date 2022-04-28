@@ -162,18 +162,18 @@ def get_last_run():
     log.info("get_last_run: Checking last run in DB")
     with con:
         try:
-            data = con.execute("SELECT timestamp FROM last_run WHERE id = 1")
+            query = con.execute("SELECT timestamp FROM last_run WHERE id = 1 LIMIT 1")
         except sqlite3.Error as err:
             log.error('get_last_run: Sql error: {}'.format(err.args))
             return False
         
-    data = data.fetchall()
+    data = query.fetchall()
     
     con.close()
     
     log.info("get_last_run: Last run in DB %s" % data[0])
     
-    return data
+    return data[0]
 
 def set_last_run(timestamp=None):
     global args
@@ -678,14 +678,17 @@ def main():
     init_db()
         
     db_last_run = get_last_run()
-        
+            
     if args.published_after is not None:
-        published_after = args.published_after
+        log.info("using --published-after value")
+        published_after = str(args.published_after)
     else: 
         if len(db_last_run) > 0:
             published_after = db_last_run[0]
+            log.info("using last run timestamp from database: %s" % db_last_run[0])
         else:
-            published_after = times["oneyearback"]
+            log.info("no timestamp pressent in argument or database. settings it to %s" % times["oneyearback_iso"])
+            published_after = str(times["oneyearback_iso"])
     
     published_after = datetime.fromisoformat(published_after)
     published_after_iso = published_after.isoformat()
