@@ -62,6 +62,7 @@ def get_arguments():
     parser.add('--local-json-files', env_var="LOCAL_JSON_FILES", action="store_true", help='JSON file with credentials to oAuth2 account')
     parser.add('--max-results', env_var="MAX_RESULTS", default='50', type=int, help='JSON file with credentials to oAuth2 account')
     parser.add('--published-after', env_var="PUBLISHED_AFTER", default=None, help='Timestamp in ISO8601 (YYYY-MM-DDThh:mm:ss.sZ) format.')
+    parser.add('--reprocess-days', env_var="REPROCESS_DAYS", default=2, type=int, help='Amount of days before subscription will be processed again.')
     parser.add('--youtube-channel', env_var="YOUTUBE_CHANNEL", default='', help='Name of channel to do stuff with')
     parser.add('--youtube-playlist', env_var="YOUTUBE_PLAYLIST", default='', help='Name of channel to do stuff with')
     parser.add('--youtube-activity-limit', env_var="YOUTUBE_ACTIVITY_LIMIT", default='0', type=int, help='How much activity to process pr. subscription')
@@ -212,7 +213,7 @@ def insert_video_to_db(videoId=None, timestamp=None, title=None, subscriptionId=
         
         con.close()
     
-    log.info("Video %s (%s) from %s added to database" % (title, videoId, subscriptionId))
+    log.info("insert_video_to_db: Video %s (%s) from %s added to database" % (title, videoId, subscriptionId))
 
 def get_video_from_db(videoId=None, subscriptionId=None):
     global args
@@ -390,22 +391,22 @@ def authenticate(credentials_file=None, pickle_credentials=None, scopes=None):
     credentials = None
 
     if os.path.exists(pickle_credentials):
-        log.info("Loading credentials from %s" % pickle_credentials)
+        log.info("authenticate: Loading credentials from %s" % pickle_credentials)
         with open(pickle_credentials, "rb") as token:
             credentials = pickle.load(token)
 
     if not credentials or not credentials.valid:
         if credentials and credentials.expired and credentials.refresh_token:
-            log.info("Refreshing access token")
+            log.info("authenticate: Refreshing access token")
             credentials.refresh(Request())
         else:
-            log.info("Fetching new tokens")
+            log.info("authenticate: Fetching new tokens")
             flow = InstalledAppFlow.from_client_secrets_file(credentials_file, scopes=scopes)
             flow.run_local_server(port=8080, prompt='consent')
             credentials = flow.credentials
 
             with open(pickle_credentials, "wb") as f:
-                log.info("Saving credentials to pickle file")
+                log.info("authenticate: Saving credentials to pickle file")
                 pickle.dump(credentials, f)
     return credentials
 
@@ -432,7 +433,7 @@ def get_subscriptions(credentials=None, nextPage=None):
         except HttpError as err:
             errors = errors + 1
             if err.resp.status in criticals:
-                log.critical("Critical error encountered! {}".format(err))
+                log.critical("get_subscriptions: Critical error encountered! {}".format(err))
                 exit_func()
                 raise SystemExit(-1)
             else:
@@ -450,7 +451,8 @@ def get_subscriptions(credentials=None, nextPage=None):
         sub_dict_nextpage = subscriptions_response_nextpage
         sub_dict = [*sub_dict, *sub_dict_nextpage]
     
-    log.info("get_subscriptions: Total amount of subscriptions: %s (from youtube API)" % subscriptions_response["pageInfo"]["totalResults"])
+    if nextPage is None:
+        log.warning("get_subscriptions: Total amount of subscriptions: %s (from youtube API)" % subscriptions_response["pageInfo"]["totalResults"])
 
     return sub_dict
 
@@ -476,7 +478,7 @@ def get_subscription_activity(credentials=None, channel=None, publishedAfter=Non
         except HttpError as err:
             errors = errors + 1
             if err.resp.status in criticals:
-                log.critical("Critical error encountered! {}".format(err))
+                log.critical("get_subscription_activity: Critical error encountered! {}".format(err))
                 exit_func()
                 raise SystemExit(-1)
             else:
@@ -489,6 +491,9 @@ def get_subscription_activity(credentials=None, channel=None, publishedAfter=Non
         nextPageToken = activity_response.get("nextPageToken")
         activity_response_nextpage = get_subscription_activity(credentials=credentials, channel=channel, nextPage=nextPageToken)
         act_array = [*act_array, *activity_response_nextpage]
+    
+    if nextPage is None:
+        log.warning("get_subscription_activity: Total amount of activity for subscription: %s (from youtube API)" % activity_response["pageInfo"]["totalResults"])
     
     return act_array
 
@@ -514,7 +519,7 @@ def get_channel_id(credentials=None):
         except HttpError as err:
             errors = errors + 1
             if err.resp.status in criticals:
-                log.critical("Critical error encountered! {}".format(err))
+                log.critical("get_channel_id: Critical error encountered! {}".format(err))
                 exit_func()
                 raise SystemExit(-1)
             else:
@@ -553,7 +558,7 @@ def get_user_playlists(credentials=None, channelId=None, nextPage=None):
         except HttpError as err:
             errors = errors + 1
             if err.resp.status in criticals:
-                log.critical("Critical error encountered! {}".format(err))
+                log.critical("get_user_playlists: Critical error encountered! {}".format(err))
                 exit_func()
                 raise SystemExit(-1)
             else:
@@ -568,8 +573,9 @@ def get_user_playlists(credentials=None, channelId=None, nextPage=None):
         user_playlists_response_nextpage = get_user_playlists(credentials=credentials, channelId=channelId, nextPage=nextPageToken)
         plists_dict_nextpage = user_playlists_response_nextpage
         plists_dict = [*plists_dict, *plists_dict_nextpage]
-        
-    log.info("get_user_playlists: Total amount of playlists: %s (from youtube API)" % user_playlists_response["pageInfo"]["totalResults"])
+    
+    if nextPage is None:
+        log.warning("get_user_playlists: Total amount of playlists: %s (from youtube API)" % user_playlists_response["pageInfo"]["totalResults"])
 
     return plists_dict
 
@@ -595,11 +601,11 @@ def get_playlist(credentials=None, channelId=None, playlistId=None, nextPage=Non
         except HttpError as err:
             errors = errors + 1
             if err.resp.status in criticals:
-                log.critical("Critical error encountered! {}".format(err))
+                log.critical("get_playlist: Critical error encountered! {}".format(err))
                 exit_func()
                 raise SystemExit(-1)
             else:
-                log.warning("httpError status: %s", err.resp.status)
+                log.warning("get_playlist: httpError status: %s", err.resp.status)
             return False
         
         
@@ -611,6 +617,9 @@ def get_playlist(credentials=None, channelId=None, playlistId=None, nextPage=Non
         playlist_response_nextpage = get_playlist(credentials=credentials, channelId=channelId, playlistId=playlistId, nextPage=nextPageToken)
         playlist_dict_nextpage = playlist_response_nextpage
         playlist_dict = [*playlist_dict, *playlist_dict_nextpage]
+    
+    if nextPage is None:
+        log.warning("get_playlist: Total amount of playlists: %s (from youtube API)" % playlist_response["pageInfo"]["totalResults"])
     
     return playlist_dict
 
@@ -640,14 +649,14 @@ def add_to_playlist(credentials=None, channelId=None, playlistId=None, subscript
         )
         try:
             playlist_response = playlist_request.execute()
-            log.debug("Playlist Insert respons: {}".format(json.dumps(playlist_response, indent=4)))
-            log.info("%s added to %s in position %s" % (videoId, playlistId, playlist_response["snippet"].get("position")))
+            log.debug("add_to_playlist: Playlist Insert respons: {}".format(json.dumps(playlist_response, indent=4)))
+            log.info("add_to_playlist: %s added to %s in position %s" % (videoId, playlistId, playlist_response["snippet"].get("position")))
             api_calls = api_calls + 1
             videos_added = videos_added + 1
         except HttpError as err:
             errors = errors + 1
             if err.resp.status in criticals:
-                log.critical("Critical error encountered! {}".format(err))
+                log.critical("add_to_playlist: Critical error encountered! {}".format(err))
                 exit_func()
                 raise SystemExit(-1)
             else:
@@ -682,16 +691,14 @@ def main():
     if args.published_after is not None:
         log.info("using --published-after value")
         published_after = str(args.published_after)
+        
+        published_after = datetime.fromisoformat(published_after)
+        published_after_iso = published_after.isoformat()
     else: 
-        if len(db_last_run) > 0:
-            published_after = db_last_run[0]
-            log.info("using last run timestamp from database: %s" % db_last_run[0])
-        else:
-            log.info("no timestamp pressent in argument or database. settings it to %s" % times["oneyearback_iso"])
-            published_after = str(times["oneyearback_iso"])
+        published_after = None
+        published_after_iso = None
     
-    published_after = datetime.fromisoformat(published_after)
-    published_after_iso = published_after.isoformat()
+
     
     log.debug("now_iso: %s" % times["now_iso"])
     log.debug("yesterday_iso: %s" % times["yesterday_iso"])
@@ -736,25 +743,31 @@ def main():
     for subs in subscriptions_refined:
         log.info("Processing subscription %s (%s), but sleeping for %s seconds first" % (subs["title"], subs["id"], args.youtube_subscription_sleep))
         subscription_from_db = get_subscription_from_db(subscriptionId=subs["id"])
+        log.debug("subscription_from_db: {}".format(subscription_from_db))
+        log.debug("subscription_from_db: timestamp: %s",subscription_from_db[0].get("timestamp"))
+        
         if not subscription_from_db:
             insert_subscription_to_db(subscriptionId=subs["id"], subscriptionTitle=subs["title"], subscriptionTimestamp=times["oneyearback_iso"])
             subscription_last_run = times["oneyearback_iso"]
             log.info("subscription_last_run was empty in DB, so setting it to one year back: %s", subscription_last_run)
         else:
-            if not subscription_from_db[0].get("timestamp") or subscription_from_db[0].get("timestamp") != None:
-                if not published_after:
-                    subscription_last_run = times["oneyearback_iso"]
-                    log.info("subscription_last_run was empty in DB, so setting it to one year back: %s", subscription_last_run)
-                else:
-                    subscription_last_run = published_after_iso
-                    log.info("subscription_last_run was empty in DB but --published-after argument set, so setting it published_after: %s", subscription_last_run)
+            if args.published_after is not None:
+                log.info("using --published-after value")
+                subscription_last_run = published_after_iso
             else:
-                subscription_last_run = subscription_from_db[0].get("timestamp")
-                log.info("subscription_last_run had value in DB: %s", subscription_last_run)
+                log.info("NOT using --published-after value")
+                if not subscription_from_db[0].get("timestamp") and subscription_from_db[0].get("timestamp") == None:
+                    subscription_last_run = times["oneyearback_iso"]
+                    log.info("subscription_last_run was empty in DB, and --published-after  was not set. Setting it to one year back: %s", subscription_last_run)
+                else:
+                    subscription_last_run = subscription_from_db[0].get("timestamp")
+                    log.info("subscription_last_run had value in DB: %s", subscription_last_run)
+                    
+        reprocess_days = times["now"] - timedelta(days=args.reprocess_days)
         
-        if not datetime.fromisoformat(subscription_last_run) < times["now"]:
+        if not datetime.fromisoformat(subscription_last_run) < reprocess_days:
             subscriptions_skipped = subscriptions_skipped + 1
-            log.info("This subscription was processed within 1 day. Skipping for now")
+            log.warning("This subscription was processed within %s. Skipping for now", reprocess_days)
             continue
         
         log.info("This subscription was last processed %s" % (datetime.fromisoformat(subscription_last_run).strftime(times["date_format"])))
@@ -777,18 +790,18 @@ def main():
                 time.sleep(args.youtube_playlist_sleep)
             else:
                 videos_skipped = videos_skipped + 1
-                log.info("%s - Video %s (%s) already in database or playlist %s" % (subs["title"], activity["title"], activity["videoId"], user_playlist["title"]))
+                log.warning("%s - Video %s (%s) already in database or playlist %s" % (subs["title"], activity["title"], activity["videoId"], user_playlist["title"]))
 
             a=a + 1
             if args.youtube_activity_limit != 0 and a >= args.youtube_activity_limit:
-                log.info("%s - YouTube activity limit reached! exiting activity loop" % (subs["title"]))
+                log.error("%s - YouTube activity limit reached! exiting activity loop" % (subs["title"]))
                 break
         
         insert_subscription_to_db(subscriptionId=subs["id"], subscriptionTitle=subs["title"], subscriptionTimestamp=times["now_iso"])
         s=s + 1
         subscriptions_processed = s
         if args.youtube_subscription_limit != 0 and s >= args.youtube_subscription_limit:
-            log.info("YouTube subscription limit reached! exiting subscription loop")
+            log.error("YouTube subscription limit reached! exiting subscription loop")
             break
         if len(sub_activity_refined) > 0:
             time.sleep(args.youtube_subscription_sleep)
