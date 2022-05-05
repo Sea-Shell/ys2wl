@@ -386,6 +386,7 @@ def exit_func():
     log.info("Number of videos added to playlist: %s", videos_added)
     log.info("Number of videos skipped: %s", videos_skipped)
     log.info("Number of Errors: %s", errors)
+    log.warning("------------------------[ Stop ]------------------------")
 
 def authenticate(credentials_file=None, pickle_credentials=None, scopes=None):
     credentials = None
@@ -467,7 +468,7 @@ def get_subscription_activity(credentials=None, channel=None, publishedAfter=Non
     else:
         activity_youtube = build("youtube", "v3", credentials=credentials)
         if nextPage is None:
-            log.info("get_subscription_activity: Getting activity for channelId: %s" % channel)
+            log.info("get_subscription_activity: Getting activity for channelId: %s with publishedAfter set to \"%s\"" % (channel, publishedAfter))
             activity_request = activity_youtube.activities().list(part="snippet,contentDetails", maxResults=50, publishedAfter=publishedAfter, uploadType="upload", channelId=channel)
         else:
             activity_request = activity_youtube.activities().list(part="snippet,contentDetails", maxResults=50, publishedAfter=publishedAfter, uploadType="upload", channelId=channel, pageToken=nextPage)
@@ -682,6 +683,7 @@ def main():
     
     setup_logger()
     
+    log.warning("------------------------[ Start ]------------------------")
     log.debug("Arguments: {}".format(args))
     
     init_db()
@@ -740,8 +742,10 @@ def main():
     log.info("Subscriptions on selected channel: %s" % len(subscriptions_refined))
 
     s=0
+    su=0
     for subs in subscriptions_refined:
-        log.info("Processing subscription %s (%s), but sleeping for %s seconds first" % (subs["title"], subs["id"], args.youtube_subscription_sleep))
+        su=su + 1
+        log.info("Processing subscription number %s  \"%s\" (%s), but sleeping for %s seconds first" % (su, subs["title"], subs["id"], args.youtube_subscription_sleep))
         subscription_from_db = get_subscription_from_db(subscriptionId=subs["id"])
         log.debug("subscription_from_db: {}".format(subscription_from_db))
         log.debug("subscription_from_db: timestamp: %s",subscription_from_db[0].get("timestamp"))
