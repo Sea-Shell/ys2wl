@@ -3,15 +3,14 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-    branches: [master]
+    branches: [main]
   workflow_dispatch:
-    branches: [master]
 
 env:
   DOCKER_REPO_NAME: bateau
-  DOCKER_IMAGE_NAME: ys2pl
+  DOCKER_IMAGE_NAME: ys2wl
 
 jobs:
   # Build application image
