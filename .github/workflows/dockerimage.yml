@@ -9,6 +9,7 @@ on:
   workflow_dispatch:
 
 env:
+  DOCKER_REGISTRY: registry.hub.docker.com
   DOCKER_REPO_NAME: bateau
   DOCKER_IMAGE_NAME: ys2wl
 
@@ -22,6 +23,7 @@ jobs:
       - name: Docker registry authentication
         uses: docker/login-action@v1
         with:
+          registry: ${{ DOCKER_REGISTRY }}
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_ACCESS_TOKEN }}
       - name: Set up Qemu
@@ -38,4 +40,4 @@ jobs:
           push: false
           pull: true
           tags: |
-            ${{ env.DOCKER_REPO_NAME }}/${{ env.DOCKER_IMAGE_NAME }}:latest
+            ${{DOCKER_REGISTRY}}/${{ env.DOCKER_REPO_NAME }}/${{ env.DOCKER_IMAGE_NAME }}:latest
