@@ -1,23 +1,24 @@
 from ast import Subscript
-import configargparse
 from datetime import timezone, datetime, timedelta
 from distutils.filelist import glob_to_re
-import json
-from lib2to3.pgen2.token import LESS
-import jq
-import logging
-from logging.handlers import RotatingFileHandler
-import os
-import pickle
-from retrying import retry
-import sqlite3
-import sys
-import time
-from tzlocal import get_localzone
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from lib2to3.pgen2.token import LESS
+from logging.handlers import RotatingFileHandler
+from retrying import retry
+from tzlocal import get_localzone
+import configargparse
+import jq
+import json
+import Levenshtein as lev
+import logging
+import os
+import pickle
+import regex as re
+import sqlite3
+import time
 
 os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
@@ -27,6 +28,8 @@ subscriptions_processed=0
 subscriptions_skipped=0
 videos_added=0
 videos_skipped=0
+dist_count=0
+dist_sum=0
 
 # Time stuff...
 times = dict()
@@ -52,6 +55,7 @@ scopes = [
     'https://www.googleapis.com/auth/youtube', 
     'https://www.googleapis.com/auth/youtube.readonly'
     ]
+get_subscription_ignore_list = list()
 
 def get_arguments():
     parser = configargparse.ArgumentParser(description='Add latest activity from your subscriptions on YouTube to a playlist', default_config_files=['/etc/ysl/config.yml', '~/.ysl/config.yml'])
@@ -60,13 +64,15 @@ def get_arguments():
     parser.add('--credentials-file', env_var="CREDENTIALS_FILE", default='client_secret.json', help='JSON file with credentials to oAuth2 account')
     parser.add('--database-file', env_var="DATABASE_FILE", default='my.db', help='Location of sqlite database file. Will be created if not exists')
     parser.add('--local-json-files', env_var="LOCAL_JSON_FILES", action="store_true", help='JSON file with credentials to oAuth2 account')
-    parser.add('--max-results', env_var="MAX_RESULTS", default='50', type=int, help='JSON file with credentials to oAuth2 account')
+    parser.add('--max-results', env_var="MAX_RESULTS", default='50', type=int, help='')
+    parser.add('--compare-distance-number', env_var="COMPARE_DISTANCE_NUMBER", default=12, type=int, help="Levenstein number to compare difference betwene existing videos and new.")
     parser.add('--published-after', env_var="PUBLISHED_AFTER", default=None, help='Timestamp in ISO8601 (YYYY-MM-DDThh:mm:ss.sZ) format.')
     parser.add('--reprocess-days', env_var="REPROCESS_DAYS", default=2, type=int, help='Amount of days before subscription will be processed again.')
     parser.add('--youtube-channel', env_var="YOUTUBE_CHANNEL", default='', help='Name of channel to do stuff with')
     parser.add('--youtube-playlist', env_var="YOUTUBE_PLAYLIST", default='', help='Name of channel to do stuff with')
     parser.add('--youtube-activity-limit', env_var="YOUTUBE_ACTIVITY_LIMIT", default='0', type=int, help='How much activity to process pr. subscription')
     parser.add('--youtube-subscription-limit', env_var="YOUTUBE_SUBSCRIPTION_LIMIT", default='0', type=int, help='How much activity to process pr. subscription')
+    parser.add('--youtube-subscription-ignore-file', env_var="YOUTUBE_SUBSCRIPTION_IGNORE_FILE", default=".subscription-ignore", help="File with newline separated list of subscriptions to ignore when proccessing")
     parser.add('--youtube-playlist-sleep', env_var="YOUTUBE_PLAYLIST_SLEEP", default='10', type=int, help='how log to wait betwene playlist API insert-calls')
     parser.add('--youtube-subscription-sleep', env_var="YOUTUBE_SUBSCRIPTION_SLEEP", default='30', type=int, help='how log to wait betwene playlist API insert-calls')
     parser.add('--log-level', env_var="LOG_LEVEL", default='warning', help='Set loglevel. debug,info,warning or error')
@@ -74,14 +80,14 @@ def get_arguments():
     
     return parser.parse_args()
 
-def setup_logger():
+def setup_logger():  
+    global api_calls
+    global args
     global errors
+    global log
     global loggFormat
     global times
-    global args
-    global api_calls
-    global log
-    
+
     log = logging.getLogger('YouTube_SubLater')
     format = logging.Formatter(fmt=loggFormat, datefmt=times["date_format"])
     
@@ -107,10 +113,21 @@ def setup_logger():
     
     return log
 
+def db_connect(database_file=None):
+    global args
+
+    try:
+        con = sqlite3.connect(database_file)
+
+        return con
+    except sqlite3.Error as err:
+        log.error('db_connect: Error: {}'.format(err.args))
+        return False
+
 def init_db():
     global args
     
-    con = sqlite3.connect(args.database_file)
+    con = db_connect(args.database_file)
     
     with con:
         try:
@@ -158,7 +175,7 @@ def init_db():
 def get_last_run():
     global args
     
-    con = sqlite3.connect(args.database_file)
+    con = db_connect(args.database_file)
     
     log.info("get_last_run: Checking last run in DB")
     with con:
@@ -180,7 +197,7 @@ def set_last_run(timestamp=None):
     global args
     
     if args.log_level != "debug":
-        con = sqlite3.connect(args.database_file)
+        con = db_connect(args.database_file)
         
         sql = 'INSERT OR REPLACE INTO last_run (id, timestamp) VALUES(?, ?)'
         data = [(1, timestamp)]
@@ -196,11 +213,71 @@ def set_last_run(timestamp=None):
     else:
         log.info("set_last_run: NOT REALY! Last run updated in DB: %s" % (timestamp))
 
+def distance(string1, string2):
+    global dist_count
+    global dist_sum
+
+    if string1 is None:
+        log.error('func: distance: string1 can not be nothing')
+        return -1
+    if string2 is None:
+        log.error('func: distance: string2 can not be nothing')
+        return -1
+    if string1 is string2:
+        return 0
+    if len(string1) == 0:
+       log.error('func: distance: string1s content length is 0')
+       return -1
+    if len(string2) == 0:
+       log.error('func: distance: string2s content length is 0')
+       return -1
+
+    distance = lev.distance(string1, string2)
+
+    dist_count = dist_count + 1
+    dist_sum = dist_sum + distance
+
+    return distance
+
+def compare_title_with_db_title(new_title=None, config_distance_number=None):
+    global args
+
+    data = list()
+
+    con = db_connect(args.database_file)
+
+    new_title = new_title.replace("_", " ").replace("-", " ").replace("(", " ").replace(")", " ").replace("   ", " ").replace("  ", " ").replace(" ", "").replace("'", "").lower()
+    
+    log.info("compare_title_with_db_title: Checking if %s or similar is in DB", new_title)
+    with con:
+        try:
+            query = con.execute('SELECT videoId,title FROM videos')
+        except sqlite3.Error as err:
+            log.error('compare_title_with_db_title: Sql error: {}'.format(err.args))
+            return False
+        
+    rows = query.fetchall()
+    log.info("compare_title_with_db_title: count on rows: %s" % len(rows))
+    con.close()
+    
+    for row in rows:
+        existing_title_before = row[1]
+        existing_title = existing_title_before.replace("_", " ").replace("-", " ").replace("(", " ").replace(")", " ").replace("   ", " ").replace("  ", " ").replace(" ", "").replace("'", "").lower()
+
+        dist = distance(existing_title, new_title)
+
+        if dist < config_distance_number and dist > 4:
+            log.debug("compare_title_with_db_title: dist result: %s", dist)
+            log.info("compare_title_with_db_title: %s was to close %s (distance: %s). Not adding to playlist", new_title, existing_title, dist)
+            return False
+
+    return True
+
 def insert_video_to_db(videoId=None, timestamp=None, title=None, subscriptionId=None):
     global args
     
     if args.log_level != "debug":
-        con = sqlite3.connect(args.database_file)
+        con = db_connect(args.database_file)
         
         sql = 'INSERT OR REPLACE INTO videos (videoId, timestamp, title, subscriptionId) VALUES(?, ?, ?, ?)'
         data = [(videoId, timestamp, title, subscriptionId)]
@@ -219,7 +296,7 @@ def get_video_from_db(videoId=None, subscriptionId=None):
     global args
     
     data = list()
-    con = sqlite3.connect(args.database_file)
+    con = db_connect(args.database_file)
     
     log.info("get_video_from_db: Checking %s from %s in database" % (videoId, subscriptionId))
     try:
@@ -246,7 +323,7 @@ def insert_channel_to_db(channelId=None, channelTitle=None):
     global args
     
     if not args.local_json_files:
-        con = sqlite3.connect(args.database_file)
+        con = db_connect(args.database_file)
 
         sql = 'INSERT OR REPLACE INTO channel (id, title) VALUES(?, ?)'
         data = [(channelId, channelTitle)]
@@ -267,7 +344,7 @@ def insert_channel_to_db(channelId=None, channelTitle=None):
 def get_channel_from_db():
     global args
     
-    con = sqlite3.connect(args.database_file)
+    con = db_connect(args.database_file)
     data = list()
     
     try:
@@ -291,7 +368,7 @@ def get_channel_from_db():
 def insert_playlist_to_db(playlistId=None, playlistTitle=None):
     global args
     
-    con = sqlite3.connect(args.database_file)
+    con = db_connect(args.database_file)
 
     sql = 'INSERT OR REPLACE INTO playlist (id, title) VALUES(?, ?)'
     data = [(playlistId, playlistTitle)]
@@ -308,7 +385,7 @@ def insert_playlist_to_db(playlistId=None, playlistTitle=None):
 def get_playlist_from_db():
     global args
     
-    con = sqlite3.connect(args.database_file)
+    con = db_connect(args.database_file)
     data = list()
     
     try:
@@ -332,7 +409,7 @@ def get_playlist_from_db():
 def insert_subscription_to_db(subscriptionId=None, subscriptionTitle=None, subscriptionTimestamp=None):
     global args
     
-    con = sqlite3.connect(args.database_file)
+    con = db_connect(args.database_file)
 
     sql = 'INSERT OR REPLACE INTO subscription (id, title, timestamp) VALUES(?, ?, ?)'
     data = [(subscriptionId, subscriptionTitle, subscriptionTimestamp)]
@@ -349,7 +426,7 @@ def insert_subscription_to_db(subscriptionId=None, subscriptionTitle=None, subsc
 def get_subscription_from_db(subscriptionId=None):
     global args
 
-    con = sqlite3.connect(args.database_file)
+    con = db_connect(args.database_file)
     data = list()
     
     try:
@@ -370,6 +447,22 @@ def get_subscription_from_db(subscriptionId=None):
     
     return data
 
+def get_subscription_ignore_list(subscription_ignore_file=None):
+    global args
+
+    try:
+        ignore_file = open(subscription_ignore_file, "r")
+
+        ignore_data = ignore_file.read()
+        ignore_list = ignore_data.split("\n")
+        ignore_file.close()
+
+    except:
+        log.error("could not open subscription ignore-file '%s'", subscription_ignore_file)
+        ignore_list=[]
+
+    return ignore_list
+
 def exit_func():
     global errors
     global criticals
@@ -386,6 +479,9 @@ def exit_func():
     log.info("Number of videos added to playlist: %s", videos_added)
     log.info("Number of videos skipped: %s", videos_skipped)
     log.info("Number of Errors: %s", errors)
+    log.info("Number of Distances calculated: %s", dist_count)
+    log.info("Total distance acumulated: %s", dist_sum)
+    log.info("Avarage distance: %s", (dist_sum // dist_count))
 
 def authenticate(credentials_file=None, pickle_credentials=None, scopes=None):
     credentials = None
@@ -734,6 +830,10 @@ def main():
     subscriptions = get_subscriptions(credentials=credentials)
     subscriptions_refined = jq.all('.[] | { "title": .snippet.title, "id": .snippet.resourceId.channelId }', subscriptions)
 
+    ignore_subscriptions_list = get_subscription_ignore_list(args.youtube_subscription_ignore_file)
+    log.info("Subscriptions on ignore-list: %s", len(ignore_subscriptions_list))
+    log.debug("Subscripotions on ignore-list: {}".format(ignore_subscriptions_list))
+
     log.debug("Last script run: %s" % (db_last_run))
     log.debug("Subscriptions: "+json.dumps(subscriptions_refined, indent=4, sort_keys=True))
     
@@ -741,16 +841,22 @@ def main():
 
     s=0
     for subs in subscriptions_refined:
+
+        if subs["title"] in ignore_subscriptions_list:
+            log.info("Subscription %s is in ignore list. Skipping", subs["title"])
+            continue
+
         log.info("Processing subscription %s (%s), but sleeping for %s seconds first" % (subs["title"], subs["id"], args.youtube_subscription_sleep))
         subscription_from_db = get_subscription_from_db(subscriptionId=subs["id"])
-        log.debug("subscription_from_db: {}".format(subscription_from_db))
-        log.debug("subscription_from_db: timestamp: %s",subscription_from_db[0].get("timestamp"))
         
-        if not subscription_from_db:
+        if len(subscription_from_db) == 0:
+            log.debug("Adding subscription %s to db", subs["title"])
             insert_subscription_to_db(subscriptionId=subs["id"], subscriptionTitle=subs["title"], subscriptionTimestamp=times["oneyearback_iso"])
             subscription_last_run = times["oneyearback_iso"]
             log.info("subscription_last_run was empty in DB, so setting it to one year back: %s", subscription_last_run)
         else:
+            log.debug("subscription_from_db: {}".format(subscription_from_db))
+            log.debug("subscription_from_db: timestamp: %s",subscription_from_db[0].get("timestamp"))
             if args.published_after is not None:
                 log.info("using --published-after value")
                 subscription_last_run = published_after_iso
@@ -786,8 +892,14 @@ def main():
             results = get_video_from_db(videoId=activity["videoId"], subscriptionId=subs["id"])
             
             if len(results) == 0:
-                add_to_playlist(credentials=credentials, channelId=channel["id"], playlistId=user_playlist["id"], subscriptionId=subs["id"], videoId=str(activity["videoId"]), videoTitle=str(activity["title"]))
-                time.sleep(args.youtube_playlist_sleep)
+                compare = compare_title_with_db_title(activity["title"], args.compare_distance_number)
+
+                if compare:
+                    add_to_playlist(credentials=credentials, channelId=channel["id"], playlistId=user_playlist["id"], subscriptionId=subs["id"], videoId=str(activity["videoId"]), videoTitle=str(activity["title"]))
+                    time.sleep(args.youtube_playlist_sleep)
+                else:
+                    videos_skipped = videos_skipped + 1
+                    log.warning("COMPARE: %s - Video %s (%s) already in database or playlist" % (subs["title"], activity["title"], activity["videoId"]))
             else:
                 videos_skipped = videos_skipped + 1
                 log.warning("%s - Video %s (%s) already in database or playlist %s" % (subs["title"], activity["title"], activity["videoId"], user_playlist["title"]))
