@@ -1,4 +1,4 @@
-FROM python:3.10-alpine as base
+FROM python:3.11-alpine as base
 
 RUN apk update && \
     apk add dumb-init && \
@@ -7,11 +7,12 @@ RUN apk update && \
 
 FROM base as build
 
-RUN apk add build-base libffi-dev openssl-dev libressl-dev musl-dev cargo # install pipenv dependencies
+ # install pipenv dependencies # removed libressl-dev
+RUN apk add build-base libffi-dev openssl-dev musl-dev cargo
 USER 1000
 COPY Pipfile /opt/ys2wl/
 WORKDIR /opt/ys2wl
-RUN  pipenv install --three
+RUN  pipenv install
 COPY run /opt/ys2wl/
 COPY *.py /opt/ys2wl/
 
