@@ -1,2 +1,2 @@
 #!/bin/sh
-pipenv --three -v run ys2wl
+pipenv -v run ys2wl
