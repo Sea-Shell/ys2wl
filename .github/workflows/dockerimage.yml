@@ -54,5 +54,5 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max,ignore-error=true
           tags: |
-            ${{ env.IAMGE_REGISTRY }}/${{ env.IMAGE_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ needs.release.outputs.release-version }}
-            ${{ env.IAMGE_REGISTRY }}/${{ env.IMAGE_REPOSITORY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ needs.release.outputs.release-version }}
+            ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_REPOSITORY }}/${{ env.IMAGE_NAME }}:latest
