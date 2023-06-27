@@ -266,9 +266,9 @@ def compare_title_with_db_title(new_title=None, config_distance_number=None):
 
         dist = distance(existing_title, new_title)
 
-        if dist < config_distance_number and dist > 4:
-            log.debug("compare_title_with_db_title: dist result: %s", dist)
-            log.info("compare_title_with_db_title: %s was to close %s (distance: %s). Not adding to playlist", new_title, existing_title, dist)
+        if dist >= config_distance_number:
+            log.debug("compare_title_with_db_title: dist result: %s which is less than %s", dist, config_distance_number)
+            log.info("compare_title_with_db_title: %s was to close %s (distance: %s <= %s). Not adding to playlist", new_title, existing_title, dist, config_distance_number)
             return False
 
     return True
