@@ -11,6 +11,7 @@ FROM base as build
 RUN apk add build-base libffi-dev openssl-dev musl-dev cargo
 USER 1000
 COPY Pipfile /opt/ys2wl/
+COPY Pipfile.lock /opt/ys2wl/
 WORKDIR /opt/ys2wl
 RUN  pipenv install
 COPY run /opt/ys2wl/
