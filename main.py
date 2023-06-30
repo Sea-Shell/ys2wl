@@ -266,7 +266,7 @@ def compare_title_with_db_title(new_title=None, config_distance_number=None):
 
         dist = distance(existing_title, new_title)
 
-        if dist >= config_distance_number:
+        if dist < config_distance_number:
             log.debug("compare_title_with_db_title: dist result: %s which is less than %s", dist, config_distance_number)
             log.info("compare_title_with_db_title: %s was to close %s (distance: %s <= %s). Not adding to playlist", new_title, existing_title, dist, config_distance_number)
             return False
@@ -472,6 +472,12 @@ def exit_func():
     global subscriptions_skipped
     global videos_added
     global videos_skipped
+
+    try:
+        avg_dist = (dist_sum // dist_count)
+    except:
+        avg_dist = 0
+
     
     log.info("Number of API calls made: %s", api_calls)
     log.info("Number of subscriptions processed: %s", subscriptions_processed)
@@ -481,7 +487,7 @@ def exit_func():
     log.info("Number of Errors: %s", errors)
     log.info("Number of Distances calculated: %s", dist_count)
     log.info("Total distance acumulated: %s", dist_sum)
-    log.info("Avarage distance: %s", (dist_sum // dist_count))
+    log.info("Avarage distance: %s", avg_dist)
 
 def authenticate(credentials_file=None, pickle_credentials=None, scopes=None):
     credentials = None
