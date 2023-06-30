@@ -115,11 +115,11 @@
         },
         "configargparse": {
             "hashes": [
-                "sha256:18f6535a2db9f6e02bd5626cc7455eac3e96b9ab3d969d366f9aafd5c5c00fe7",
-                "sha256:1b0b3cbf664ab59dada57123c81eff3d9737e0d11d8cf79e3d6eb10823f1739f"
+                "sha256:363d80a6d35614bd446e2f2b1b216f3b33741d03ac6d0a92803306f40e555b58",
+                "sha256:541360ddc1b15c517f95c0d02d1fca4591266628f3667acdc5d13dccc78884ca"
             ],
             "index": "pypi",
-            "version": "==1.5.3"
+            "version": "==1.5.5"
         },
         "dateutils": {
             "hashes": [
