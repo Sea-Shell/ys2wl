@@ -246,7 +246,8 @@ def compare_title_with_db_title(new_title=None, config_distance_number=None):
 
     con = db_connect(args.database_file)
 
-    new_title = new_title.replace("_", " ").replace("-", " ").replace("(", " ").replace(")", " ").replace("   ", " ").replace("  ", " ").replace(" ", "").replace("'", "").lower()
+    #new_title = new_title.replace("_", " ").replace("-", " ").replace("(", " ").replace(")", " ").replace("   ", " ").replace("  ", " ").replace(" ", "").replace("'", "").lower()
+    new_title = new_title.replace("_", " ").replace("(", " ").replace(")", " ").replace("   ", " ").replace("  ", " ").replace("'", "").lower()
     
     log.info("compare_title_with_db_title: Checking if %s or similar is in DB", new_title)
     with con:
