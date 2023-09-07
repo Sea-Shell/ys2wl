@@ -139,11 +139,11 @@
         },
         "google-api-python-client": {
             "hashes": [
-                "sha256:48277291894876a1ca7ed4127e055e81f81e6343ced1b544a7200ae2c119dcd7",
-                "sha256:5215f4cd577753fc4192ccfbe0bb8b55d4bb5fd68fa6268ac5cf271b6305de31"
+                "sha256:6e4f50cb103d6bd5399b2f94ecec13a70033554cfbd7cc9c7a4f8fa2aacb3536",
+                "sha256:93d4f7dc70f6c8349b9dcce20b7d1610aede50af01f4cae2505596bff6bb76c7"
             ],
             "index": "pypi",
-            "version": "==2.97.0"
+            "version": "==2.98.0"
         },
         "google-auth": {
             "hashes": [
@@ -441,10 +441,10 @@
         },
         "pytz": {
             "hashes": [
-                "sha256:1d8ce29db189191fb55338ee6d0387d82ab59f3d00eac103412d64e0ebd0c588",
-                "sha256:a151b3abb88eda1d4e34a9814df37de2a80e301e68ba0fd856fb9b46bfbbbffb"
+                "sha256:7b4fddbeb94a1eba4b557da24f19fdf9db575192544270a9101d8509f9f43d7b",
+                "sha256:ce42d816b81b68506614c11e8937d3aa9e41007ceb50bfdcb0749b921bf646c7"
             ],
-            "version": "==2023.3"
+            "version": "==2023.3.post1"
         },
         "rapidfuzz": {
             "hashes": [
