@@ -217,19 +217,13 @@ def distance(string1, string2):
     global dist_count
     global dist_sum
 
-    if string1 is None:
+    if string1 is None or string2 is None:
         log.error('func: distance: string1 can not be nothing')
-        return -1
-    if string2 is None:
-        log.error('func: distance: string2 can not be nothing')
         return -1
     if string1 is string2:
         return 0
-    if len(string1) == 0:
+    if len(string1) == 0 or len(string2) == 0:
        log.error('func: distance: string1s content length is 0')
-       return -1
-    if len(string2) == 0:
-       log.error('func: distance: string2s content length is 0')
        return -1
 
     distance = lev.distance(string1, string2)
@@ -239,6 +233,13 @@ def distance(string1, string2):
 
     return distance
 
+def normalize_string(string):
+    #new_title = new_title.replace("_", " ").replace("-", " ").replace("(", " ").replace(")", " ").replace("   ", " ").replace("  ", " ").replace(" ", "").replace("'", "").lower()
+    new_string = string.replace("_", " ").replace("(", " ").replace(")", " ").replace("   ", " ").replace("  ", " ").replace("'", "").lower()
+    
+    return new_string
+
+
 def compare_title_with_db_title(new_title=None, config_distance_number=None):
     global args
 
@@ -246,8 +247,7 @@ def compare_title_with_db_title(new_title=None, config_distance_number=None):
 
     con = db_connect(args.database_file)
 
-    #new_title = new_title.replace("_", " ").replace("-", " ").replace("(", " ").replace(")", " ").replace("   ", " ").replace("  ", " ").replace(" ", "").replace("'", "").lower()
-    new_title = new_title.replace("_", " ").replace("(", " ").replace(")", " ").replace("   ", " ").replace("  ", " ").replace("'", "").lower()
+    new_title = normalize_string(new_title)
     
     log.info("compare_title_with_db_title: Checking if %s or similar is in DB", new_title)
     with con:
@@ -263,7 +263,7 @@ def compare_title_with_db_title(new_title=None, config_distance_number=None):
     
     for row in rows:
         existing_title_before = row[1]
-        existing_title = existing_title_before.replace("_", " ").replace("-", " ").replace("(", " ").replace(")", " ").replace("   ", " ").replace("  ", " ").replace(" ", "").replace("'", "").lower()
+        existing_title = normalize_string(existing_title_before)
 
         dist = distance(existing_title, new_title)
 
