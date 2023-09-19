@@ -16,7 +16,8 @@ import Levenshtein as lev
 import logging
 import os
 import pickle
-import regex as re
+import re
+# import regex as re
 import sqlite3
 import time
 
@@ -75,10 +76,61 @@ def get_arguments():
     parser.add('--youtube-subscription-ignore-file', env_var="YOUTUBE_SUBSCRIPTION_IGNORE_FILE", default=".subscription-ignore", help="File with newline separated list of subscriptions to ignore when proccessing")
     parser.add('--youtube-playlist-sleep', env_var="YOUTUBE_PLAYLIST_SLEEP", default='10', type=int, help='how log to wait betwene playlist API insert-calls')
     parser.add('--youtube-subscription-sleep', env_var="YOUTUBE_SUBSCRIPTION_SLEEP", default='30', type=int, help='how log to wait betwene playlist API insert-calls')
+    parser.add('--youtube-minimum-length', env_var="YOUTUBE_MINIMUM_LENGTH", default='0s', help='Minimum lenght of tracks to add')
+    parser.add('--youtube-maximum-length', env_var="YOUTUBE_MAXIMUM_LENGTH", default='0s', help='Maximum lenght of tracks to add')
     parser.add('--log-level', env_var="LOG_LEVEL", default='warning', help='Set loglevel. debug,info,warning or error')
     parser.add('--log-file', env_var="LOG_FILE", dest='log_file', default='stream', help='file to cast logs to. if you want all output to stdout type "stream"')
     
     return parser.parse_args()
+
+def time_to_seconds(time_str):
+    # Regular expression to match time expressions like "3m" or "6h"
+    pattern = r'(\d+)([smhd])'
+    
+    # Dictionary to map units to seconds
+    units = {
+        's': 1,    # 1 minute = 60 seconds
+        'm': 60,    # 1 minute = 60 seconds
+        'h': 3600,  # 1 hour = 3600 seconds
+        'd': 86400  # 1 day = 86400 seconds
+    }
+    
+    # Find all matches in the input string
+    matches = re.findall(pattern, time_str)
+    
+    total_seconds = 0
+    
+    # Iterate through matches and calculate the total seconds
+    for match in matches:
+        value, unit = int(match[0]), match[1]
+        total_seconds += value * units[unit]
+    
+    return total_seconds
+
+def iso8601_to_seconds(duration_str):
+    # Regular expression to match time components
+    pattern = r'P(?:(?P<days>\d+)D)?T?(?:(?P<hours>\d+)H)?(?:(?P<minutes>\d+)M)?(?:(?P<seconds>\d+)S)?'
+    
+    # Match the components in the duration string
+    match = re.match(pattern, duration_str)
+    
+    if not match:
+        raise ValueError("Invalid ISO 8601 duration format")
+    
+    # Extract the matched components and convert them to seconds
+    days = int(match.group('days')) if match.group('days') else 0
+    hours = int(match.group('hours')) if match.group('hours') else 0
+    minutes = int(match.group('minutes')) if match.group('minutes') else 0
+    seconds = int(match.group('seconds')) if match.group('seconds') else 0
+    
+    total_seconds = (
+        days * 24 * 3600 +  # Convert days to seconds
+        hours * 3600 +      # Convert hours to seconds
+        minutes * 60 +      # Convert minutes to seconds
+        seconds             # Add seconds
+    )
+    
+    return total_seconds
 
 def setup_logger():  
     global api_calls
@@ -238,7 +290,6 @@ def normalize_string(string):
     new_string = string.replace("_", " ").replace("(", " ").replace(")", " ").replace("   ", " ").replace("  ", " ").replace("'", "").lower()
     
     return new_string
-
 
 def compare_title_with_db_title(new_title=None, config_distance_number=None):
     global args
@@ -600,6 +651,38 @@ def get_subscription_activity(credentials=None, channel=None, publishedAfter=Non
     
     return act_array
 
+def get_video_duration(credentials=None, videoId=None):
+    global errors
+    global criticals
+    global args
+    global api_calls
+
+    if args.local_json_files:
+        activity_response = json.loads(open('debug/video.json').read().strip())
+    else:
+        activity_youtube = build("youtube", "v3", credentials=credentials)
+
+        log.debug("get_video_duration: Getting video info for videoID: %s" % videoId)
+        video_request = activity_youtube.videos().list(part="contentDetails", maxResults=50, id=videoId)
+            
+        try:
+            video_response = video_request.execute()
+            api_calls = api_calls + 1
+        except HttpError as err:
+            errors = errors + 1
+            if err.resp.status in criticals:
+                log.critical("get_video_duration: Critical error encountered! {}".format(err))
+                exit_func()
+                raise SystemExit(-1)
+            else:
+                log.error("get_video_duration: Error: {}".format(err))
+            return False
+    
+    video_time = iso8601_to_seconds(video_response["items"][0]["contentDetails"]["duration"])
+    log.info("get_video_duration: {}".format(video_time))
+    
+    return video_time
+
 def get_channel_id(credentials=None):
     global errors
     global criticals
@@ -800,7 +883,9 @@ def main():
     else: 
         published_after = None
         published_after_iso = None
-    
+
+    youtube_minimum_length = time_to_seconds(args.youtube_minimum_length)
+    youtube_maximum_length = time_to_seconds(args.youtube_maximum_length)
 
     
     log.debug("now_iso: %s" % times["now_iso"])
@@ -809,6 +894,8 @@ def main():
     log.debug("db_last_run: %s" % db_last_run)
     log.debug("args.published_after: %s" % args.published_after)
     log.debug("published_after_iso: %s" % published_after_iso)
+    log.debug("youtube_minimum_length: %s" % youtube_minimum_length)
+    log.debug("youtube_maximum_length: %s" % youtube_maximum_length)
 
     credentials = authenticate(credentials_file=args.credentials_file, pickle_credentials=args.pickle_file, scopes=scopes)
 
@@ -895,13 +982,24 @@ def main():
         a=0
         for activity in sub_activity_refined:
             log.info("%s - Processing %s (%s)" % (subs["title"], activity["title"], activity["videoId"]))
+            minimum_length = False
+            maximum_length = False
             
             results = get_video_from_db(videoId=activity["videoId"], subscriptionId=subs["id"])
             
             if len(results) == 0:
                 compare = compare_title_with_db_title(activity["title"], args.compare_distance_number)
 
-                if compare:
+                video_length = get_video_duration(credentials=credentials, videoId=activity["videoId"])
+                if youtube_minimum_length != 0 and video_length <= youtube_minimum_length:
+                    log.info("Video minimum lenght looks good (duration: %s, minimum length: %s)" % (video_length, youtube_minimum_length))
+                    minimum_length = True
+                
+                if youtube_maximum_length != 0 and video_length >= youtube_maximum_length:
+                    log.warning("Video maximum lenght looks good (duration: %s, maximum length: %s)" % (video_length, youtube_maximum_length))
+                    maximum_length = True
+                
+                if compare and minimum_length and maximum_length:
                     add_to_playlist(credentials=credentials, channelId=channel["id"], playlistId=user_playlist["id"], subscriptionId=subs["id"], videoId=str(activity["videoId"]), videoTitle=str(activity["title"]))
                     time.sleep(args.youtube_playlist_sleep)
                 else:
