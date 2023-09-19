@@ -17,7 +17,6 @@ import logging
 import os
 import pickle
 import re
-# import regex as re
 import sqlite3
 import time
 

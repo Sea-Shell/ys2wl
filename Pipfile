@@ -15,7 +15,6 @@ google-auth-oauthlib = "*"
 jq = "*"
 Levenshtein = "*"
 python-dateutil = "*"
-regex = "*"
 retrying = "*"
 tzlocal = "*"
 
