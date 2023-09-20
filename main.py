@@ -988,19 +988,23 @@ def main():
             
             if len(results) == 0:
                 compare = compare_title_with_db_title(activity["title"], args.compare_distance_number)
-
-                video_length = get_video_duration(credentials=credentials, videoId=activity["videoId"])
-                if youtube_minimum_length != 0 and video_length <= youtube_minimum_length:
-                    log.info("Video minimum lenght looks good (duration: %s, minimum length: %s)" % (video_length, youtube_minimum_length))
-                    minimum_length = True
-                
-                if youtube_maximum_length != 0 and video_length >= youtube_maximum_length:
-                    log.warning("Video maximum lenght looks good (duration: %s, maximum length: %s)" % (video_length, youtube_maximum_length))
-                    maximum_length = True
                 
                 if compare and minimum_length and maximum_length:
-                    add_to_playlist(credentials=credentials, channelId=channel["id"], playlistId=user_playlist["id"], subscriptionId=subs["id"], videoId=str(activity["videoId"]), videoTitle=str(activity["title"]))
-                    time.sleep(args.youtube_playlist_sleep)
+                    video_length = get_video_duration(credentials=credentials, videoId=activity["videoId"])
+
+                    if youtube_minimum_length != 0 and video_length <= youtube_minimum_length:
+
+                        if youtube_maximum_length != 0 and video_length >= youtube_maximum_length:
+                            add_to_playlist(credentials=credentials, channelId=channel["id"], playlistId=user_playlist["id"], subscriptionId=subs["id"], videoId=str(activity["videoId"]), videoTitle=str(activity["title"]))
+                            time.sleep(args.youtube_playlist_sleep)
+                        else:
+                            videos_skipped = videos_skipped + 1
+                            log.warning("Video maximum lenght is to long (duration: %s, maximum length: %s)" % (video_length, youtube_maximum_length))
+                        
+                    else:
+                        videos_skipped = videos_skipped + 1
+                        log.warning("Video minimum lenght to short (duration: %s, minimum length: %s)" % (video_length, youtube_minimum_length))
+                    
                 else:
                     videos_skipped = videos_skipped + 1
                     log.warning("COMPARE: %s - Video %s (%s) already in database or playlist" % (subs["title"], activity["title"], activity["videoId"]))
