@@ -1,13 +1,9 @@
-from ast import Subscript
 from datetime import timezone, datetime, timedelta
-from distutils.filelist import glob_to_re
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from lib2to3.pgen2.token import LESS
 from logging.handlers import RotatingFileHandler
-from retrying import retry
 from tzlocal import get_localzone
 import configargparse
 import jq
@@ -286,9 +282,34 @@ def distance(string1, string2):
 
 def normalize_string(string):
     #new_title = new_title.replace("_", " ").replace("-", " ").replace("(", " ").replace(")", " ").replace("   ", " ").replace("  ", " ").replace(" ", "").replace("'", "").lower()
+    new_string = remove_emojis(string)
     new_string = string.replace("_", " ").replace("(", " ").replace(")", " ").replace("   ", " ").replace("  ", " ").replace("'", "").lower()
     
+    log.debug("normalize_string: old [%s] new [%s] ", string, new_string)
+    
     return new_string
+
+def remove_emojis(data):
+    emoj = re.compile("["
+        u"\U0001F600-\U0001F64F"  # emoticons
+        u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+        u"\U0001F680-\U0001F6FF"  # transport & map symbols
+        u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
+        u"\U00002500-\U00002BEF"  # chinese char
+        u"\U00002702-\U000027B0"
+        u"\U000024C2-\U0001F251"
+        u"\U0001f926-\U0001f937"
+        u"\U00010000-\U0010ffff"
+        u"\u2640-\u2642" 
+        u"\u2600-\u2B55"
+        u"\u200d"
+        u"\u23cf"
+        u"\u23e9"
+        u"\u231a"
+        u"\ufe0f"  # dingbats
+        u"\u3030"
+                      "]+", re.UNICODE)
+    return re.sub(emoj, '', data)
 
 def compare_title_with_db_title(new_title=None, config_distance_number=None):
     global args
@@ -997,6 +1018,7 @@ def main():
                         if youtube_maximum_length != 0 and video_length >= youtube_maximum_length:
                             add_to_playlist(credentials=credentials, channelId=channel["id"], playlistId=user_playlist["id"], subscriptionId=subs["id"], videoId=str(activity["videoId"]), videoTitle=str(activity["title"]))
                             time.sleep(args.youtube_playlist_sleep)
+                        
                         else:
                             videos_skipped = videos_skipped + 1
                             log.warning("Video maximum lenght is to long (duration: %s, maximum length: %s)" % (video_length, youtube_maximum_length))
