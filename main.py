@@ -51,7 +51,7 @@ scopes = [
     'https://www.googleapis.com/auth/youtube', 
     'https://www.googleapis.com/auth/youtube.readonly'
     ]
-get_subscription_ignore_list = list()
+ignore_subscriptions_list = list()
 
 def get_arguments():
     parser = configargparse.ArgumentParser(description='Add latest activity from your subscriptions on YouTube to a playlist', default_config_files=['/etc/ysl/config.yml', '~/.ysl/config.yml'])
