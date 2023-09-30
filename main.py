@@ -282,8 +282,12 @@ def distance(string1, string2):
 
 def normalize_string(string):
     #new_title = new_title.replace("_", " ").replace("-", " ").replace("(", " ").replace(")", " ").replace("   ", " ").replace("  ", " ").replace(" ", "").replace("'", "").lower()
-    new_string = remove_emojis(string)
-    new_string = string.replace("_", " ").replace("(", " ").replace(")", " ").replace("   ", " ").replace("  ", " ").replace("'", "").lower()
+    #new_string = remove_emojis(string)
+    #new_string = string.replace("_", " ").replace("(", " ").replace(")", " ").replace("   ", " ").replace("  ", " ").replace("'", "").lower()
+    
+    pattern = r'[^a-zA-Z0-9\-\_]+'
+    
+    new_string = re.sub(pattern, ' ', string)
     
     log.debug("normalize_string: old [%s] new [%s] ", string, new_string)
     
@@ -682,7 +686,7 @@ def get_video_duration(credentials=None, videoId=None):
     else:
         activity_youtube = build("youtube", "v3", credentials=credentials)
 
-        log.debug("get_video_duration: Getting video info for videoID: %s" % videoId)
+        log.info("get_video_duration: Getting video info for videoID: %s" % videoId)
         video_request = activity_youtube.videos().list(part="contentDetails", maxResults=50, id=videoId)
             
         try:
