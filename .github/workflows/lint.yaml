@@ -6,9 +6,28 @@ on:
 
 name: Commit lint
 jobs:
-  lint:
+  commit-lint:
     uses: nrkno/github-workflow-semantic-release/.github/workflows/workflow.yaml@v2.1.0
     with:
       runs-on: ubuntu-latest
       release-enabled: false
       lint-enabled: true
+
+  docker-lint:
+    runs-on: ubuntu-latest
+    steps: 
+    - name: lint
+      uses: luke142367/Docker-Lint-Action@v1.0.0
+      with:
+        target: Dockerfile
+  py-lint:
+    runs-on: ubuntu-latest
+    steps:  
+      - name: Python Linter
+        uses: sunnysid3up/python-linter@master
+        with:
+          source: "src"
+          mypy-options: "--ignore-missing-imports --show-error-codes"
+          pylint-options: "--rcfile=setup.cfg"
+          isort-options: "-w 100"
+          django: true
