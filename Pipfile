@@ -17,6 +17,7 @@ Levenshtein = "*"
 python-dateutil = "*"
 retrying = "*"
 tzlocal = "*"
+fuzzywuzzy = "*"
 
 [dev-packages]
 
