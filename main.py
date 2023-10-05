@@ -61,7 +61,7 @@ def get_arguments():
     parser.add('--database-file', env_var="DATABASE_FILE", default='my.db', help='Location of sqlite database file. Will be created if not exists')
     parser.add('--local-json-files', env_var="LOCAL_JSON_FILES", action="store_true", help='JSON file with credentials to oAuth2 account')
     parser.add('--max-results', env_var="MAX_RESULTS", default='50', type=int, help='')
-    parser.add('--compare-distance-number', env_var="COMPARE_DISTANCE_NUMBER", default=12, type=int, help="Levenstein number to compare difference betwene existing videos and new.")
+    parser.add('--compare-distance-number', env_var="COMPARE_DISTANCE_NUMBER", default=80, type=int, help="Levenstein number to compare difference betwene existing videos and new.")
     parser.add('--published-after', env_var="PUBLISHED_AFTER", default=None, help='Timestamp in ISO8601 (YYYY-MM-DDThh:mm:ss.sZ) format.')
     parser.add('--reprocess-days', env_var="REPROCESS_DAYS", default=2, type=int, help='Amount of days before subscription will be processed again.')
     parser.add('--youtube-channel', env_var="YOUTUBE_CHANNEL", default='', help='Name of channel to do stuff with')
@@ -282,7 +282,7 @@ def normalize_string(string):
     
     new_string = re.sub(pattern, ' ', string)
     
-    log.debug("normalize_string: old [%s] new [%s] ", string, new_string)
+    # log.debug("normalize_string: old [%s] new [%s] ", string, new_string)
     
     return new_string
 
@@ -312,8 +312,8 @@ def compare_title_with_db_title(new_title=None):
         dist = distance(existing_title, new_title)
 
         if dist >= args.compare_distance_number:
-            log.debug("compare_title_with_db_title: dist result: %s which is more than %s", dist, config_distance_number)
-            log.info("compare_title_with_db_title: %s was to close %s (distance: %s <= %s). Not adding to playlist", new_title, existing_title, dist, config_distance_number)
+            log.debug("compare_title_with_db_title: dist result: %s which is more than %s", dist, args.compare_distance_number)
+            log.info("compare_title_with_db_title: %s was to close %s (distance: %s <= %s). Not adding to playlist", new_title, existing_title, dist, args.compare_distance_number)
             return False
 
     return True
@@ -456,19 +456,24 @@ def get_playlist_from_db():
 def insert_subscription_to_db(subscriptionId=None, subscriptionTitle=None, subscriptionTimestamp=None):
     global args
     
-    con = db_connect(args.database_file)
+    if args.log_level != "debug":
+        con = db_connect(args.database_file)
 
-    sql = 'INSERT OR REPLACE INTO subscription (id, title, timestamp) VALUES(?, ?, ?)'
-    data = [(subscriptionId, subscriptionTitle, subscriptionTimestamp)]
-    with con:
-        try:
-            con.executemany(sql, data)
-            log.info("insert_subscription_to_db: Subscription %s with ID %s and timestamp: %s inserted into DB", subscriptionTitle, subscriptionId, subscriptionTimestamp)
-        except sqlite3.Error as err:
-            log.error('insert_subscription_to_db: Sql error: {}'.format(err.args))
-            return False
+        sql = 'INSERT OR REPLACE INTO subscription (id, title, timestamp) VALUES(?, ?, ?)'
+        data = [(subscriptionId, subscriptionTitle, subscriptionTimestamp)]
+        with con:
+            try:
+                con.executemany(sql, data)
+                log.info("insert_subscription_to_db: Subscription %s with ID %s and timestamp: %s inserted into DB", subscriptionTitle, subscriptionId, subscriptionTimestamp)
+            except sqlite3.Error as err:
+                log.error('insert_subscription_to_db: Sql error: {}'.format(err.args))
+                return False
         
-    con.close()
+        con.close()
+    else:
+        log.debug("insert_subscription_to_db: NOT REALY!! Subscription %s with ID %s and timestamp: %s inserted into DB", subscriptionTitle, subscriptionId, subscriptionTimestamp)        
+    
+    
 
 def get_subscription_from_db(subscriptionId=None):
     global args
