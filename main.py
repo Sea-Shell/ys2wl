@@ -1,4 +1,5 @@
 from datetime import timezone, datetime, timedelta
+from fuzzywuzzy import fuzz
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
@@ -8,7 +9,6 @@ from tzlocal import get_localzone
 import configargparse
 import jq
 import json
-import Levenshtein as lev
 import logging
 import os
 import pickle
@@ -273,18 +273,11 @@ def distance(string1, string2):
        log.error('func: distance: string1s content length is 0')
        return -1
 
-    distance = lev.distance(string1, string2)
-
-    dist_count = dist_count + 1
-    dist_sum = dist_sum + distance
+    distance = fuzz.ratio(string1.lower(), string2.lower())
 
     return distance
 
-def normalize_string(string):
-    #new_title = new_title.replace("_", " ").replace("-", " ").replace("(", " ").replace(")", " ").replace("   ", " ").replace("  ", " ").replace(" ", "").replace("'", "").lower()
-    #new_string = remove_emojis(string)
-    #new_string = string.replace("_", " ").replace("(", " ").replace(")", " ").replace("   ", " ").replace("  ", " ").replace("'", "").lower()
-    
+def normalize_string(string):    
     pattern = r'[^a-zA-Z0-9\-\_]+'
     
     new_string = re.sub(pattern, ' ', string)
@@ -293,32 +286,8 @@ def normalize_string(string):
     
     return new_string
 
-def remove_emojis(data):
-    emoj = re.compile("["
-        u"\U0001F600-\U0001F64F"  # emoticons
-        u"\U0001F300-\U0001F5FF"  # symbols & pictographs
-        u"\U0001F680-\U0001F6FF"  # transport & map symbols
-        u"\U0001F1E0-\U0001F1FF"  # flags (iOS)
-        u"\U00002500-\U00002BEF"  # chinese char
-        u"\U00002702-\U000027B0"
-        u"\U000024C2-\U0001F251"
-        u"\U0001f926-\U0001f937"
-        u"\U00010000-\U0010ffff"
-        u"\u2640-\u2642" 
-        u"\u2600-\u2B55"
-        u"\u200d"
-        u"\u23cf"
-        u"\u23e9"
-        u"\u231a"
-        u"\ufe0f"  # dingbats
-        u"\u3030"
-                      "]+", re.UNICODE)
-    return re.sub(emoj, '', data)
-
-def compare_title_with_db_title(new_title=None, config_distance_number=None):
+def compare_title_with_db_title(new_title=None):
     global args
-
-    data = list()
 
     con = db_connect(args.database_file)
 
@@ -342,8 +311,8 @@ def compare_title_with_db_title(new_title=None, config_distance_number=None):
 
         dist = distance(existing_title, new_title)
 
-        if dist < config_distance_number:
-            log.debug("compare_title_with_db_title: dist result: %s which is less than %s", dist, config_distance_number)
+        if dist >= args.compare_distance_number:
+            log.debug("compare_title_with_db_title: dist result: %s which is more than %s", dist, config_distance_number)
             log.info("compare_title_with_db_title: %s was to close %s (distance: %s <= %s). Not adding to playlist", new_title, existing_title, dist, config_distance_number)
             return False
 
@@ -364,19 +333,21 @@ def insert_video_to_db(videoId=None, timestamp=None, title=None, subscriptionId=
                 log.error('insert_video_to_db: Sql error: {}'.format(err.args))
                 return False
         
-        con.close()
-    
-    log.info("insert_video_to_db: Video %s (%s) from %s added to database" % (title, videoId, subscriptionId))
+        log.info("insert_video_to_db: Video %s (%s) from %s added to database" % (title, videoId, subscriptionId))
 
-def get_video_from_db(videoId=None, subscriptionId=None):
+        con.close()
+    else:
+        log.info("insert_video_to_db: NOT REALY!! Video %s (%s) from %s added to database" % (title, videoId, subscriptionId))
+
+def get_video_from_db(videoId=None):
     global args
     
     data = list()
     con = db_connect(args.database_file)
     
-    log.info("get_video_from_db: Checking %s from %s in database" % (videoId, subscriptionId))
+    log.info("get_video_from_db: Checking %s in database" % (videoId))
     try:
-        query = con.execute('SELECT videoId FROM videos WHERE videoId=\"%s\" AND subscriptionId=\"%s\" LIMIT 1' % (videoId, subscriptionId))
+        query = con.execute('SELECT videoId FROM videos WHERE videoId=\"%s\" LIMIT 1' % (videoId))
     except sqlite3.Error as err:
         log.error('get_video_from_db: Sql error: {}'.format(err.args))
         
@@ -857,21 +828,25 @@ def add_to_playlist(credentials=None, channelId=None, playlistId=None, subscript
             }
             }
         )
-        try:
-            playlist_response = playlist_request.execute()
-            log.debug("add_to_playlist: Playlist Insert respons: {}".format(json.dumps(playlist_response, indent=4)))
-            log.info("add_to_playlist: %s added to %s in position %s" % (videoId, playlistId, playlist_response["snippet"].get("position")))
-            api_calls = api_calls + 1
-            videos_added = videos_added + 1
-        except HttpError as err:
-            errors = errors + 1
-            if err.resp.status in criticals:
-                log.critical("add_to_playlist: Critical error encountered! {}".format(err))
-                exit_func()
-                raise SystemExit(-1)
-            else:
-                log.error("add_to_playlist: Error: {}".format(err))
-            return False
+        if args.log_level != "debug":
+            try:
+                playlist_response = playlist_request.execute()
+                log.debug("add_to_playlist: Playlist Insert respons: {}".format(json.dumps(playlist_response, indent=4)))
+                log.info("add_to_playlist: %s added to %s in position %s" % (videoId, playlistId, playlist_response["snippet"].get("position")))
+                api_calls = api_calls + 1
+                videos_added = videos_added + 1
+            except HttpError as err:
+                errors = errors + 1
+                if err.resp.status in criticals:
+                    log.critical("add_to_playlist: Critical error encountered! {}".format(err))
+                    exit_func()
+                    raise SystemExit(-1)
+                else:
+                    log.error("add_to_playlist: Error: {}".format(err))
+                return False
+        else:
+            log.debug("add_to_playlist: NOT REALY!!! %s added to %s in position None" % (videoId, playlistId))
+            playlist_response = None
         
         insert_video_to_db(videoId=videoId, timestamp=times["now_iso"], title=videoTitle, subscriptionId=subscriptionId)
 
@@ -1009,10 +984,10 @@ def main():
             minimum_length = False
             maximum_length = False
             
-            results = get_video_from_db(videoId=activity["videoId"], subscriptionId=subs["id"])
+            results = get_video_from_db(videoId=activity["videoId"])
             
             if len(results) == 0:
-                compare = compare_title_with_db_title(activity["title"], args.compare_distance_number)
+                compare = compare_title_with_db_title(activity["title"])
                 
                 if compare and minimum_length and maximum_length:
                     video_length = get_video_duration(credentials=credentials, videoId=activity["videoId"])
