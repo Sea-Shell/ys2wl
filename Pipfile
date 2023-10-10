@@ -9,6 +9,7 @@ ys2wl = "python3 main.py"
 [packages]
 configargparse = "*"
 dateutils = "*"
+fuzzywuzzy = "*"
 google-api-python-client = "*"
 google-auth = "*"
 google-auth-oauthlib = "*"
@@ -16,7 +17,6 @@ jq = "*"
 python-dateutil = "*"
 retrying = "*"
 tzlocal = "*"
-fuzzywuzzy = "*"
 
 [dev-packages]
 
