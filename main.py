@@ -311,8 +311,8 @@ def compare_title_with_db_title(new_title=None):
 
         dist = distance(existing_title, new_title)
 
-        if dist >= args.compare_distance_number:
-            log.debug("compare_title_with_db_title: dist result: %s which is more than %s", dist, args.compare_distance_number)
+        if dist > args.compare_distance_number:
+            log.debug("compare_title_with_db_title: dist result: %s which is less than %s", dist, args.compare_distance_number)
             log.info("compare_title_with_db_title: %s was to close %s (distance: %s <= %s). Not adding to playlist", new_title, existing_title, dist, args.compare_distance_number)
             return False
 
@@ -339,32 +339,37 @@ def insert_video_to_db(videoId=None, timestamp=None, title=None, subscriptionId=
     else:
         log.info("insert_video_to_db: NOT REALY!! Video %s (%s) from %s added to database" % (title, videoId, subscriptionId))
 
-def get_video_from_db(videoId=None):
+def get_videoId_from_db(videoId=None):
     global args
     
     data = list()
     con = db_connect(args.database_file)
     
-    log.info("get_video_from_db: Checking %s in database" % (videoId))
+    log.info("get_videoId_from_db: Checking %s in database" % (videoId))
     try:
         query = con.execute('SELECT videoId FROM videos WHERE videoId=\"%s\" LIMIT 1' % (videoId))
     except sqlite3.Error as err:
-        log.error('get_video_from_db: Sql error: {}'.format(err.args))
+        log.error('get_videoId_from_db: Sql error: {}'.format(err.args))
         
-        return False
+        return 0
     
     rows = query.fetchall()
-    log.debug("get_video_from_db: content of rows: {}".format(rows))
-    log.info("get_video_from_db: count on rows: %s" % len(rows))
+    log.debug("get_videoId_from_db: count of rows in DB: %s" % len(rows))
     con.close()
     
     if len(rows) > 0:
         for row in rows:
             data = "{ \"id\": \"%s\" }" % row[0]
-            log.debug("get_video_from_db: content of data before json.loads(): {}".format(data))
-            data = json.loads(data)
-    
-    return data
+            log.debug("get_videoId_from_db: content of data before json.loads(): {}".format(data))
+            try:
+                data = json.loads(data)
+            except json.JSONDecodeError as err:
+                log.error("get_videoId_from_db: json error: {}".format(err))
+                return 0
+        
+        return len(rows)
+    else:
+        return 0
 
 def insert_channel_to_db(channelId=None, channelTitle=None):
     global args
@@ -989,17 +994,21 @@ def main():
             minimum_length = False
             maximum_length = False
             
-            results = get_video_from_db(videoId=activity["videoId"])
+            results = get_videoId_from_db(videoId=activity["videoId"])
             
-            if len(results) == 0:
+            if results == 0:
                 compare = compare_title_with_db_title(activity["title"])
+                log.debug("COMPARE RESULTS: %s" % compare)
                 
-                if compare and minimum_length and maximum_length:
+                if compare:
                     video_length = get_video_duration(credentials=credentials, videoId=activity["videoId"])
+                    log.debug("Got past COMPARE, lenght is up!: %s" % video_length)
 
-                    if youtube_minimum_length != 0 and video_length <= youtube_minimum_length:
+                    if youtube_minimum_length != 0 and video_length >= youtube_minimum_length:
+                        log.debug("Got past YOUTUBE_MINIMUM_LENGTH, lenght is up!: %s >= %s" % (youtube_minimum_length, video_length))
 
-                        if youtube_maximum_length != 0 and video_length >= youtube_maximum_length:
+                        if youtube_maximum_length != 0 and video_length <= youtube_maximum_length:
+                            log.debug("Got past YOUTUBE_MAXIMUM_LENGTH, lenght is up!: %s <= %s" % (youtube_maximum_length, video_length))
                             add_to_playlist(credentials=credentials, channelId=channel["id"], playlistId=user_playlist["id"], subscriptionId=subs["id"], videoId=str(activity["videoId"]), videoTitle=str(activity["title"]))
                             time.sleep(args.youtube_playlist_sleep)
                         
