@@ -236,7 +236,7 @@ def get_last_run():
     
     con.close()
     
-    log.info("get_last_run: Last run in DB %s" % data[0])
+    log.debug("get_last_run: Last run in DB %s" % data[0])
     
     return data[0]
 
@@ -251,14 +251,14 @@ def set_last_run(timestamp=None):
         with con:
             try:
                 con.executemany(sql, data)
-                log.info("set_last_run: Last run updated in DB: %s" % timestamp)
+                log.debug("set_last_run: Last run updated in DB: %s" % timestamp)
             except sqlite3.Error as err:
                 log.error('set_last_run: Sql error: {}'.format(err.args))
                 return False
         
         con.close()
     else:
-        log.info("set_last_run: NOT REALY! Last run updated in DB: %s" % (timestamp))
+        log.debug("set_last_run: NOT REALY! Last run updated in DB: %s" % (timestamp))
 
 def distance(string1, string2):
     global dist_count
@@ -293,7 +293,7 @@ def compare_title_with_db_title(new_title=None):
 
     new_title = normalize_string(new_title)
     
-    log.info("compare_title_with_db_title: Checking if %s or similar is in DB", new_title)
+    log.debug("compare_title_with_db_title: Checking if %s or similar is in DB", new_title)
     with con:
         try:
             query = con.execute('SELECT videoId,title FROM videos')
@@ -302,7 +302,7 @@ def compare_title_with_db_title(new_title=None):
             return False
         
     rows = query.fetchall()
-    log.info("compare_title_with_db_title: count on rows: %s" % len(rows))
+    log.debug("compare_title_with_db_title: count on rows: %s" % len(rows))
     con.close()
     
     for row in rows:
@@ -382,15 +382,17 @@ def insert_channel_to_db(channelId=None, channelTitle=None):
         with con:
             try:
                 con.executemany(sql, data)
-                log.info("insert_channel_to_db: Channel %s with ID %s inserted into DB", channelId, channelTitle)
+                log.debug("insert_channel_to_db: Channel %s with ID %s inserted into DB", channelId, channelTitle)
             except sqlite3.Error as err:
                 log.error('insert_channel_to_db: Sql error: {}'.format(err.args))
                 return False
             
         con.close()
+        
+        log.info("insert_channel_to_db: Channel %s (%s) inserted into DB", channelTitle, channelId)
         return True
     else:
-        log.info("insert_channel_to_db: INSERT OR REPLACE INTO channel (id, title) VALUES(%s, %s)", channelId, channelTitle)
+        log.debug("insert_channel_to_db: INSERT OR REPLACE INTO channel (id, title) VALUES(%s, %s)", channelId, channelTitle)
         return True
 
 def get_channel_from_db():
@@ -506,6 +508,8 @@ def get_subscription_from_db(subscriptionId=None):
 
 def get_subscription_ignore_list(subscription_ignore_file=None):
     global args
+    
+    log.debug("get_subscription_ignore_list: loading subscription ignore-file '%s'", subscription_ignore_file)
 
     try:
         ignore_file = open(subscription_ignore_file, "r")
@@ -513,6 +517,8 @@ def get_subscription_ignore_list(subscription_ignore_file=None):
         ignore_data = ignore_file.read()
         ignore_list = ignore_data.split("\n")
         ignore_file.close()
+        log.debug("get_subscription_ignore_list: ignore list loaded from subscription ignore-file {}".format(ignore_list))
+        log.info("get_subscription_ignore_list: Ignore file loaded successfully")
 
     except:
         log.error("could not open subscription ignore-file '%s'", subscription_ignore_file)
@@ -556,16 +562,16 @@ def authenticate(credentials_file=None, pickle_credentials=None, scopes=None):
 
     if not credentials or not credentials.valid:
         if credentials and credentials.expired and credentials.refresh_token:
-            log.info("authenticate: Refreshing access token")
+            log.debug("authenticate: Refreshing access token")
             credentials.refresh(Request())
         else:
-            log.info("authenticate: Fetching new tokens")
+            log.debug("authenticate: Fetching new tokens")
             flow = InstalledAppFlow.from_client_secrets_file(credentials_file, scopes=scopes)
             flow.run_local_server(port=8080, prompt='consent')
             credentials = flow.credentials
 
             with open(pickle_credentials, "wb") as f:
-                log.info("authenticate: Saving credentials to pickle file")
+                log.debug("authenticate: Saving credentials to pickle file")
                 pickle.dump(credentials, f)
     return credentials
 
@@ -587,7 +593,7 @@ def get_subscriptions(credentials=None, nextPage=None):
 
         try:
             subscriptions_response = subscriptions_request.execute()
-            log.info("get_subscriptions: subscriptions_response is of type %s and items count %s" % (type(subscriptions_response),len(subscriptions_response)))
+            log.debug("get_subscriptions: subscriptions_response is of type %s and items count %s" % (type(subscriptions_response),len(subscriptions_response)))
             api_calls = api_calls + 1
         except HttpError as err:
             errors = errors + 1
@@ -604,7 +610,7 @@ def get_subscriptions(credentials=None, nextPage=None):
     log.info("get_subscriptions: sub_dict is of type %s and items count %s" % (type(sub_dict),len(sub_dict)))
     
     if "nextPageToken" in subscriptions_response:
-        log.info("get_subscriptions: nextPageToken detected!")
+        log.debug("get_subscriptions: nextPageToken detected!")
         nextPageToken = subscriptions_response.get("nextPageToken")
         subscriptions_response_nextpage = get_subscriptions(credentials=credentials, nextPage=nextPageToken)
         sub_dict_nextpage = subscriptions_response_nextpage
@@ -666,8 +672,7 @@ def get_video_duration(credentials=None, videoId=None):
         activity_response = json.loads(open('debug/video.json').read().strip())
     else:
         activity_youtube = build("youtube", "v3", credentials=credentials)
-
-        log.info("get_video_duration: Getting video info for videoID: %s" % videoId)
+        
         video_request = activity_youtube.videos().list(part="contentDetails", maxResults=50, id=videoId)
             
         try:
@@ -684,7 +689,7 @@ def get_video_duration(credentials=None, videoId=None):
             return False
     
     video_time = iso8601_to_seconds(video_response["items"][0]["contentDetails"]["duration"])
-    log.info("get_video_duration: {}".format(video_time))
+    log.info("get_video_duration: %s duration is %s" % (videoId, video_time))
     
     return video_time
 
@@ -697,7 +702,7 @@ def get_channel_id(credentials=None):
     if args.local_json_files:
         channel_response = json.loads(open('debug/channels_list.json').read().strip())
     else:
-        log.info("get_channel_id: Geting list of channels")
+        log.debug("get_channel_id: Geting list of channels")
         channel_youtube = build("youtube", "v3", credentials=credentials)
         channel_request = channel_youtube.channels().list(
             part="snippet,contentDetails",
@@ -744,7 +749,7 @@ def get_user_playlists(credentials=None, channelId=None, nextPage=None):
 
         try:
             user_playlists_response = user_playlists_request.execute()
-            log.info("get_user_playlists: playlists_response is of type %s and items count %s" % (type(user_playlists_response),len(user_playlists_response)))
+            log.debug("get_user_playlists: playlists_response is of type %s and items count %s" % (type(user_playlists_response),len(user_playlists_response)))
             api_calls = api_calls + 1
         except HttpError as err:
             errors = errors + 1
@@ -766,7 +771,7 @@ def get_user_playlists(credentials=None, channelId=None, nextPage=None):
         plists_dict = [*plists_dict, *plists_dict_nextpage]
     
     if nextPage is None:
-        log.warning("get_user_playlists: Total amount of playlists: %s (from youtube API)" % user_playlists_response["pageInfo"]["totalResults"])
+        log.info("get_user_playlists: Total amount of playlists: %s (from youtube API)" % user_playlists_response["pageInfo"]["totalResults"])
 
     return plists_dict
 
@@ -781,7 +786,7 @@ def get_playlist(credentials=None, channelId=None, playlistId=None, nextPage=Non
     else:
         playlist_youtube = build("youtube", "v3", credentials=credentials)
         if nextPage is None:
-            log.info("get_playlist: Getting playlist %s" % playlistId)
+            log.debug("get_playlist: Getting playlist %s" % playlistId)
             playlist_request = playlist_youtube.playlistItems().list(part="snippet,contentDetails", playlistId=playlistId, maxResults=50)
         else:
             playlist_request = playlist_youtube.playlistItems().list(part="snippet,contentDetails", playlistId=playlistId, maxResults=50, pageToken=nextPage)
@@ -810,7 +815,7 @@ def get_playlist(credentials=None, channelId=None, playlistId=None, nextPage=Non
         playlist_dict = [*playlist_dict, *playlist_dict_nextpage]
     
     if nextPage is None:
-        log.warning("get_playlist: Total amount of playlists: %s (from youtube API)" % playlist_response["pageInfo"]["totalResults"])
+        log.info("get_playlist: Total amount of playlists: %s (from youtube API)" % playlist_response["pageInfo"]["totalResults"])
     
     return playlist_dict
 
@@ -1015,17 +1020,21 @@ def main():
                         else:
                             videos_skipped = videos_skipped + 1
                             log.warning("Video maximum lenght is to long (duration: %s, maximum length: %s)" % (video_length, youtube_maximum_length))
+                            continue
                         
                     else:
                         videos_skipped = videos_skipped + 1
                         log.warning("Video minimum lenght to short (duration: %s, minimum length: %s)" % (video_length, youtube_minimum_length))
+                        continue
                     
                 else:
                     videos_skipped = videos_skipped + 1
                     log.warning("COMPARE: %s - Video %s (%s) already in database or playlist" % (subs["title"], activity["title"], activity["videoId"]))
+                    continue
             else:
                 videos_skipped = videos_skipped + 1
-                log.warning("%s - Video %s (%s) already in database or playlist %s" % (subs["title"], activity["title"], activity["videoId"], user_playlist["title"]))
+                log.warning("get_videoId_from_db: %s - Video %s (%s) already in database or playlist %s" % (subs["title"], activity["title"], activity["videoId"], user_playlist["title"]))
+                continue
 
             a=a + 1
             if args.youtube_activity_limit != 0 and a >= args.youtube_activity_limit:
