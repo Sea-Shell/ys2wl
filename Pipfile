@@ -23,7 +23,7 @@ tzlocal = "*"
 [dev-packages]
 
 [requires]
-python_version = "3.13"
+python_version = "3.12"
 
 [pipenv]
 allow_prereleases = true
