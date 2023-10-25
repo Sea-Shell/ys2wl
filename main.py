@@ -1051,7 +1051,10 @@ def main():
             time.sleep(args.youtube_subscription_sleep)
     
     if errors == 0:
-        set_last_run(timestamp=times["now_iso"])
+        if len(sub_activity_refined) > 0:
+            set_last_run(timestamp=times["now_iso"])
+        else:
+            log.warning("Last run timestamp not set because of no activity. (%s)" % errors)
     else:
         log.error("Last run timestamp not set because of errors! (%s)" % errors)
     
