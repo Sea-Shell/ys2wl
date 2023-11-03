@@ -1,0 +1,41 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  annotations:
+  name: ys2wl
+  namespace: seashell
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      parallelism: 1
+      ttlSecondsAfterFinished: 162000
+      template:
+        spec:
+          containers:
+          - env:
+            - name: TZ
+              value: Europe/Oslo
+            - name: OAUTHLIB_INSECURE_TRANSPORT
+              value: "0"
+            - name: CONFIG
+              value: /home/abc/.ys2wl/config.yaml
+            image: registry.hub.docker.com/bateau/ys2wl:v1.2.1@sha256:42b80e97b67fafff26fd9fe02539e9faf65ad1e795e1df5a5d29ed913f8edf85
+            imagePullPolicy: Always
+            name: ys2wl
+            volumeMounts:
+            - mountPath: /home/abc/.ys2wl
+              name: config
+          restartPolicy: Never
+          terminationGracePeriodSeconds: 480
+          volumes:
+          - hostPath:
+              path: /data/disk2/opt/ys2wl
+              type: ""
+            name: config
+  schedule: 0 */10 * * *
+  startingDeadlineSeconds: 360000
+  successfulJobsHistoryLimit: 3
+  suspend: false
