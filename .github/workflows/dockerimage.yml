@@ -89,9 +89,10 @@ jobs:
         timeout-minutes: 15
         with:
           action: deploy
+          manifests: |
+            kubernetes-manifests/ys2wl.yaml
           annotate-namespace: false
           images: |
             ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ needs.release.outputs.git-tag }}@${{ needs.build.outputs.digest }}
-          manifests: kubernetes-manifests/
           namespace: seashell
           strategy: basic
