@@ -1,6 +1,7 @@
 name: "Release build and push"
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: '0 0 * * *'
   push:
@@ -57,3 +58,40 @@ jobs:
           tags: |
             ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ needs.release.outputs.release-version }}
             ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_REPOSITORY }}/${{ env.IMAGE_NAME }}:latest
+  deploy:
+    runs-on: [ubuntu-latest]
+    needs: [release, build ]
+    permissions:
+      id-token: write
+      actions: read
+      contents: read
+    steps:
+      # Checkout repo code
+      - name: Checkout repo
+        uses: actions/checkout@v4.1.1
+        with:
+          ref: refs/tags/${{ needs.release.outputs.git-tag }}
+          fetch-depth: 0
+      - name: Kubeconfig context
+        uses: azure/k8s-set-context@v3.1
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.K8S_KONFIG }}
+      - name: Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          oauth-client-id: ${{ secrets.TS_ACTION_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_ACTION_CLIENT_SECRET }}
+          tags: tag:github
+      # Do the deploy on K8s cluster set in the above context
+      - name: Deply manifests to k8s
+        uses: azure/k8s-deploy@v4.10
+        timeout-minutes: 15
+        with:
+          action: deploy
+          annotate-namespace: false
+          images: |
+            ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ needs.release.outputs.git-tag }}@${{ needs.build.outputs.digest }}
+          manifests: kubernetes-manifests
+          namespace: seashell
+          strategy: basic
