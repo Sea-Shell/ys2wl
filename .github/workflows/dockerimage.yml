@@ -67,10 +67,14 @@ jobs:
       contents: read
     steps:
       # Checkout repo code
-      - name: Checkout repo
+      - name: Checkout repo with tag
         uses: actions/checkout@v4.1.1
+        if: ${{ needs.release.outputs.new-release-published == 'true' }}
         with:
-          ref: ${{ needs.release.outputs.new-release-published == 'true' ? 'refs/tags/' + ${{ needs.release.outputs.git-tag }} : '' }}
+          ref: refs/tags/${{ needs.release.outputs.git-tag }}
+      - name: Checkout repo without tag
+        uses: actions/checkout@v4.1.1
+        if: ${{ needs.release.outputs.new-release-published != 'true' }}
       - name: Kubeconfig context
         uses: azure/k8s-set-context@v3.1
         with:
