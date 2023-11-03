@@ -70,12 +70,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4.1.1
         with:
-          ref: {{ needs.release.outputs.new-release-published == 'true' ? 'refs/tags/${{ needs.release.outputs.git-tag }}' : '' }}
-      - name: Checkout repo
-        uses: actions/checkout@v4.1.1
-        if: ${{ needs.release.outputs.new-release-published != 'true' }}
-        with:
-          fetch-depth: 0
+          ref: ${{ needs.release.outputs.new-release-published == 'true' ? 'refs/tags/' + ${{ needs.release.outputs.git-tag }} : '' }}
       - name: Kubeconfig context
         uses: azure/k8s-set-context@v3.1
         with:
