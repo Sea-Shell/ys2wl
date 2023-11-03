@@ -22,3 +22,10 @@ updates:
       time: "09:00"
       timezone: "Europe/Oslo"
     open-pull-requests-limit: 5
+  - package-ecosystem: docker
+    directory: "kubernetes-manifests/"
+    schedule:
+      interval: daily
+      time: "09:00"
+      timezone: "Europe/Oslo"
+    open-pull-requests-limit: 5
