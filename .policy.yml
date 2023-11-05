@@ -1,0 +1,61 @@
+---
+policy:
+  approval:
+    - and:
+      - status checks
+      - or:
+        - seashell-auto-approval
+        - dependabot-patch
+        - dependabot-minor
+  disapproval:
+    requires:
+      teams:
+        - "Sea-Shell/owners"
+
+approval_rules:
+  - name: status checks
+    description: A rule that requires status checks to be green
+    if:
+      has_successful_status:
+        - "Commit lint / Commit lint"
+  
+  - name: seashell-auto-approval
+    description: A rule that dont require approvals if from seashell
+    if:
+      only_has_contributors_in:
+        teams:  
+          - "Sea-Shell/seashell"
+      author_is_only_contributor: true
+    requires:
+      count: 0
+    options:
+      allow_author: false
+      allow_contributor: false
+
+  - name: dependabot-patch
+    description: Rule to approve PR when label is patch, author is dependabot
+    if:
+      has_author_in:
+        users:
+          - "dependabot[bot]"
+      author_is_only_contributor: true
+      has_labels:
+        - "dependencies"
+        - "patch"
+      has_valid_signatures: true
+    requires:
+      count: 0
+
+  - name: dependabot-minor
+    description: Rule to approve PR when label is minor, author is dependabot
+    if:
+      has_author_in:
+        users:
+          - "dependabot[bot]"
+      author_is_only_contributor: true
+      has_labels:
+        - "dependencies"
+        - "minor"
+      has_valid_signatures: true
+    requires:
+      count: 0

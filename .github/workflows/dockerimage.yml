@@ -1,4 +1,4 @@
-name: "Release build and push"
+name: "Release, build, push and deploy"
 
 on:
   workflow_dispatch:
@@ -12,7 +12,6 @@ env:
   IMAGE_REGISTRY: registry.hub.docker.com
   IMAGE_REPOSITORY: bateau
   IMAGE_NAME: ys2wl
-  GITHUB_REPO_NAME: plattform-workflow-dispatcher
 
 permissions:
   contents: read
@@ -92,10 +91,10 @@ jobs:
         timeout-minutes: 15
         with:
           action: deploy
-          manifests: |
-            kubernetes-manifests/ys2wl.yaml
+          namespace: seashell
           annotate-namespace: false
+          strategy: basic
+          manifests: |
+            kubernetes-manifests/cronjob.yaml
           images: |
             ${{ env.IMAGE_REGISTRY }}/${{ env.IMAGE_REPOSITORY }}/${{ env.IMAGE_NAME }}:${{ needs.release.outputs.git-tag }}@${{ needs.build.outputs.digest }}
-          namespace: seashell
-          strategy: basic
