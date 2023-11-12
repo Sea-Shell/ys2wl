@@ -479,8 +479,6 @@ def insert_subscription_to_db(subscriptionId=None, subscriptionTitle=None, subsc
         con.close()
     else:
         log.debug("insert_subscription_to_db: NOT REALY!! Subscription %s with ID %s and timestamp: %s inserted into DB", subscriptionTitle, subscriptionId, subscriptionTimestamp)        
-    
-    
 
 def get_subscription_from_db(subscriptionId=None):
     global args
@@ -986,8 +984,20 @@ def main():
         
         log.info("This subscription was last processed %s" % (datetime.fromisoformat(subscription_last_run).strftime(times["date_format"])))
         
+        sub_activity_refined = []
         sub_activity = get_subscription_activity(credentials=credentials, channel=subs["id"], publishedAfter=subscription_last_run)
-        sub_activity_refined = jq.all('.[] | select(all(.snippet.type; contains("upload"))) | { "title": .snippet.title, "videoId": .contentDetails.upload.videoId, "publishedAt": .snippet.publishedAt }', sub_activity) if sub_activity != False else []
+
+        for item in sub_activity:
+            if item["snippet"]["type"] in ["upload", "playlistItem"]:
+                sub_activity_refined.append(
+                    {
+                        "title": item["snippet"]["title"],
+                        "videoId": (item["snippet"]["type"] == "upload") and item["contentDetails"]["upload"]["videoId"] or item["contentDetails"]["playlistItem"]["resourceId"]["videoId"],
+                        "publishedAt": item["snippet"]["publishedAt"],
+                        "type": item["snippet"]["type"]
+                    }
+                )
+        
         sub_activity_refined.sort(key = lambda x:x['publishedAt'], reverse=True) if sub_activity != False else []
 
         log.debug("sub_activity_refined: activity total count: %s" % (len(sub_activity_refined)))
