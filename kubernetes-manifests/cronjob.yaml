@@ -35,7 +35,7 @@ spec:
               path: /data/disk2/opt/ys2wl
               type: ""
             name: config
-  schedule: 0 */10 * * *
+  schedule: 0 */6 * * *
   startingDeadlineSeconds: 360000
   successfulJobsHistoryLimit: 3
   suspend: false
