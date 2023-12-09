@@ -817,7 +817,7 @@ def get_playlist(credentials=None, channelId=None, playlistId=None, nextPage=Non
     
     return playlist_dict
 
-def add_to_playlist(credentials=None, channelId=None, playlistId=None, subscriptionId=None, videoId=None, videoTitle=None):
+def add_to_playlist(credentials=None, channelId=None, playlistId=None, subscriptionId=None, videoId=None, videoTitle=None, videoType=None):
     global errors
     global criticals
     global args
@@ -845,7 +845,7 @@ def add_to_playlist(credentials=None, channelId=None, playlistId=None, subscript
             try:
                 playlist_response = playlist_request.execute()
                 log.debug("add_to_playlist: Playlist Insert respons: {}".format(json.dumps(playlist_response, indent=4)))
-                log.info("add_to_playlist: %s added to %s in position %s" % (videoId, playlistId, playlist_response["snippet"].get("position")))
+                log.info("add_to_playlist: %s (type: %s) added to %s in position %s" % (videoId, videoType, playlistId, playlist_response["snippet"].get("position")))
                 api_calls = api_calls + 1
                 videos_added = videos_added + 1
             except HttpError as err:
@@ -858,7 +858,7 @@ def add_to_playlist(credentials=None, channelId=None, playlistId=None, subscript
                     log.error("add_to_playlist: Error: {}".format(err))
                 return False
         else:
-            log.debug("add_to_playlist: NOT REALY!!! %s added to %s in position None" % (videoId, playlistId))
+            log.debug("add_to_playlist: NOT REALY!!! %s (type: %s) added to %s in position None" % (videoId, videoType, playlistId))
             playlist_response = None
         
         insert_video_to_db(videoId=videoId, timestamp=times["now_iso"], title=videoTitle, subscriptionId=subscriptionId)
@@ -1024,7 +1024,7 @@ def main():
 
                         if youtube_maximum_length != 0 and video_length <= youtube_maximum_length:
                             log.debug("Got past YOUTUBE_MAXIMUM_LENGTH, lenght is up!: %s <= %s" % (youtube_maximum_length, video_length))
-                            add_to_playlist(credentials=credentials, channelId=channel["id"], playlistId=user_playlist["id"], subscriptionId=subs["id"], videoId=str(activity["videoId"]), videoTitle=str(activity["title"]))
+                            add_to_playlist(credentials=credentials, channelId=channel["id"], playlistId=user_playlist["id"], subscriptionId=subs["id"], videoId=str(activity["videoId"]), videoTitle=str(activity["title"]), videoType=str(activity["type"]))
                             time.sleep(args.youtube_playlist_sleep)
                         
                         else:
