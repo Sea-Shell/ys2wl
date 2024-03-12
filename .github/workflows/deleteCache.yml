@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v4.1.1
 
       - name: Node
-        uses: actions/setup-node@v4.0.1
+        uses: actions/setup-node@v4.0.2
 
       - name: install requirements
         run: npm install @actions/core @actions/github @octokit/rest moment
