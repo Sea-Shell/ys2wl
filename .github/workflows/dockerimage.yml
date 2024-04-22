@@ -87,7 +87,7 @@ jobs:
           tags: tag:github
       # Do the deploy on K8s cluster set in the above context
       - name: Deply manifests to k8s
-        uses: azure/k8s-deploy@v4.10
+        uses: azure/k8s-deploy@v5
         timeout-minutes: 15
         with:
           action: deploy
