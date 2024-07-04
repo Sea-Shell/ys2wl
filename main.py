@@ -69,6 +69,7 @@ def get_arguments():
     parser.add('--youtube-activity-limit', env_var="YOUTUBE_ACTIVITY_LIMIT", default='0', type=int, help='How much activity to process pr. subscription')
     parser.add('--youtube-subscription-limit', env_var="YOUTUBE_SUBSCRIPTION_LIMIT", default='0', type=int, help='How much activity to process pr. subscription')
     parser.add('--youtube-subscription-ignore-file', env_var="YOUTUBE_SUBSCRIPTION_IGNORE_FILE", default=".subscription-ignore", help="File with newline separated list of subscriptions to ignore when proccessing")
+    parser.add('--youtube-video-ignore-file', env_var="YOUTUBE_VIDEO_IGNORE_FILE", default=".video-ignore", help="File with newline separated list of video-ids to ignore when proccessing")
     parser.add('--youtube-playlist-sleep', env_var="YOUTUBE_PLAYLIST_SLEEP", default='10', type=int, help='how log to wait betwene playlist API insert-calls')
     parser.add('--youtube-subscription-sleep', env_var="YOUTUBE_SUBSCRIPTION_SLEEP", default='30', type=int, help='how log to wait betwene playlist API insert-calls')
     parser.add('--youtube-minimum-length', env_var="YOUTUBE_MINIMUM_LENGTH", default='0s', help='Minimum lenght of tracks to add')
@@ -524,6 +525,26 @@ def get_subscription_ignore_list(subscription_ignore_file=None):
 
     return ignore_list
 
+def get_video_ignore_list(video_ignore_file=None):
+    global args
+
+    log.debug("get_video_ignore_list: loading video ignore-file '%s'", video_ignore_file)
+
+    try:
+        ignore_file = open(video_ignore_file, "r")
+
+        ignore_data = ignore_file.read()
+        ignore_list = ignore_data.split("\n")
+        ignore_file.close()
+        log.debug("get_video_ignore_list: ignore list loaded from video ignore-file {}".format(ignore_list))
+        log.info("get_video_ignore_list: Video ignore file loaded successfully")
+
+    except:
+        log.error("could not open video ignore-file '%s'", video_ignore_file)
+        ignore_list=[]
+
+    return ignore_list
+
 def exit_func():
     global errors
     global criticals
@@ -937,8 +958,11 @@ def main():
     subscriptions_refined = jq.all('.[] | { "title": .snippet.title, "id": .snippet.resourceId.channelId }', subscriptions)
 
     ignore_subscriptions_list = get_subscription_ignore_list(args.youtube_subscription_ignore_file)
+    ignore_video_list = get_video_ignore_list(args.youtube_video_ignore_file)
     log.info("Subscriptions on ignore-list: %s", len(ignore_subscriptions_list))
     log.debug("Subscripotions on ignore-list: {}".format(ignore_subscriptions_list))
+    log.info("Videos on ignore-list: %s", len(ignore_video_list))
+    log.debug("Videos on ignore-list: {}".format(ignore_video_list))
 
     log.debug("Last script run: %s" % (db_last_run))
     log.debug("Subscriptions: "+json.dumps(subscriptions_refined, indent=4, sort_keys=True))
@@ -1010,6 +1034,9 @@ def main():
             maximum_length = False
             
             results = get_videoId_from_db(videoId=activity["videoId"])
+            if activity["videoId"] in ignore_video_list:
+                log.info("Video %s is in video ignore list. Skipping", activity["videoId"])
+                continue
             
             if results == 0:
                 compare = compare_title_with_db_title(activity["title"])
