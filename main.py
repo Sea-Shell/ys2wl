@@ -707,8 +707,12 @@ def get_video_duration(credentials=None, videoId=None):
                 log.error("get_video_duration: Error: {}".format(err))
             return False
     
-    video_time = iso8601_to_seconds(video_response["items"][0]["contentDetails"]["duration"])
-    log.info("get_video_duration: %s duration is %s" % (videoId, video_time))
+    if "duration" in video_response["items"][0]["contentDetails"]:
+        video_time = iso8601_to_seconds(video_response["items"][0]["contentDetails"]["duration"])
+        log.info("get_video_duration: %s duration is %s" % (videoId, video_time))
+    else:
+        video_time = 0
+        log.warning("get_video_duration: %s has no duration" % videoId)
     
     return video_time
 
