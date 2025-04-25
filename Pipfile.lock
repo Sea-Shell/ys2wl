@@ -156,20 +156,20 @@
         },
         "google-api-core": {
             "hashes": [
-                "sha256:810a63ac95f3c441b7c0e43d344e372887f62ce9071ba972eacf32672e072de9",
-                "sha256:81718493daf06d96d6bc76a91c23874dbf2fac0adbbf542831b805ee6e974696"
+                "sha256:38d9d6a67673473457adbbef1ccca27d9ebb755e377c05e8a9b88f89eecab9ad",
+                "sha256:ace58c6ddd3685b102c7f7f4e88f586cddb19a651267f2a9345e3b6d9e9ccb6e"
             ],
             "markers": "python_version >= '3.7'",
-            "version": "==2.24.2"
+            "version": "==2.25.0rc0"
         },
         "google-api-python-client": {
             "hashes": [
-                "sha256:a458d402572e1c2caf9db090d8e7b270f43ff326bd9349c731a86b19910e3995",
-                "sha256:ce25290cc229505d770ca5c8d03850e0ae87d8e998fc6dd743ecece018baa396"
+                "sha256:10759c3c8f5bbb17752b349ff336963ab215db150f34594a5581d5cd9b5add41",
+                "sha256:ebf27fc318a3cf682dc994cefc46b6794eafee91d91fc659d46e018155ace530"
             ],
             "index": "pypi",
             "markers": "python_version >= '3.7'",
-            "version": "==2.167.0"
+            "version": "==2.168.0"
         },
         "google-auth": {
             "hashes": [
@@ -441,18 +441,18 @@
         },
         "protobuf": {
             "hashes": [
-                "sha256:0eb523c550a66a09a0c20f86dd554afbf4d32b02af34ae53d93268c1f73bc65b",
-                "sha256:35c859ae076d8c56054c25b59e5e59638d86545ed6e2b6efac6be0b6ea3ba048",
-                "sha256:4f6c687ae8efae6cf6093389a596548214467778146b7245e886f35e1485315d",
-                "sha256:50f32cc9fd9cb09c783ebc275611b4f19dfdfb68d1ee55d2f0c7fa040df96815",
-                "sha256:524afedc03b31b15586ca7f64d877a98b184f007180ce25183d1a5cb230ee72b",
-                "sha256:7653c99774f73fe6b9301b87da52af0e69783a2e371e8b599b3e9cb4da4b12b9",
-                "sha256:acec579c39c88bd8fbbacab1b8052c793efe83a0a5bd99db4a31423a25c0a0e2",
-                "sha256:ae86b030e69a98e08c77beab574cbcb9fff6d031d57209f574a5aea1445f4b51",
-                "sha256:b12ef7df7b9329886e66404bef5e9ce6a26b54069d7f7436a0853ccdeb91c103"
+                "sha256:323fcb4bbc536cd600bb99a62f4aa9ebe4a73df9ca5932974979b2556476322f",
+                "sha256:5740686af798df55330b818f62a4666095f7215ee1cecdc1797a76e8437bb26b",
+                "sha256:60c03961ad1486012c5e660fd51d2a815846f22f25fb23482eef51dbaa3af37d",
+                "sha256:6c7def9de98263f79c12271c0adef68c581f2a507065787951658e6e26911beb",
+                "sha256:7f8f2b88de7dff2385865bc80a914b65780e776141e3eb9b3a331736e4c51447",
+                "sha256:93ed910f2bdb10a145eeea222ff6e4fde1dcfca0df13913c336934eee6ce377c",
+                "sha256:b0076a928a972f5293429b76b108be9b8ecc9a7e4249cccf47053767d2f0be75",
+                "sha256:cef34c9f85187fe3b2db3d61ab123a0b299cf2e136a2600a674f7dbb49a2bfba",
+                "sha256:e215bdc5eec41ad427335446ec01a3db4098fb595e0809ebb4024ec9c862d3d0"
             ],
             "markers": "python_version >= '3.9'",
-            "version": "==6.30.2"
+            "version": "==6.31.0rc1"
         },
         "pyasn1": {
             "hashes": [
