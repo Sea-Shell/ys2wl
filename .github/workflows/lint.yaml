@@ -7,7 +7,7 @@ on:
 name: Commit lint
 jobs:
   lint:
-    uses: nrkno/github-workflow-semantic-release/.github/workflows/workflow.yaml@v4.2.0
+    uses: nrkno/github-workflow-semantic-release/.github/workflows/workflow.yaml@v4.2.1
     with:
       runs-on: ubuntu-latest
       release-enabled: false
