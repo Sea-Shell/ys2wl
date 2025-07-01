@@ -15,7 +15,7 @@ credentials-file: ""                  # JSON file with credentials to oAuth2 acc
 database-file: ""                     # Location of sqlite database file. Will be created if not exists
 local-json-files: ""                  # JSON file with credentials to oAuth2 account
 compare-distance-number: 0            # Levenstein number to compare difference between existing videos and new
-published-after: ""                   # Timestamp in ISO8601 (YYYY-MM-DDThh:mm:ss.sZ) format in which only videos from after this date will be added
+published-after: ""                   # Only videos from after this date will be added. Timestamp in ISO8601 (YYYY-MM-DDThh:mm:ss.sZ) format
 reprocess-days: ""                    # Amount of days before subscription will be processed again
 youtube-channel: ""                   # Name of your channel with destination playlist
 youtube-playlist: ""                  # Name of playlist to add videos to
