@@ -1,4 +1,4 @@
-FROM python:3.13.3-alpine as base
+FROM python:3.13.5-alpine as base
 
 RUN apk update && \
   apk add dumb-init && \
