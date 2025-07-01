@@ -1,29 +1,33 @@
 # Youtube Subscription to playlist
 
 This script will take activity from your subscribers and add them to a playlist.
-If you want to add these videos to watch-later you need to move them there yourself.  
+If you want to add these videos to the special "watch-later" playlist you need to move them there yourself.  
 
 The script uses pickle to save session betweene runs. it will create a picke file on first run.  
+You need to create a application in youtube to be able to populate this picke-file
 After some time this file will need to be re-created.
 
 
 example config-file (config.yaml):
+```yaml
+pickle-file: ""                       # File to store access token once authenticated
+credentials-file: ""                  # JSON file with credentials to oAuth2 account
+database-file: ""                     # Location of sqlite database file. Will be created if not exists
+local-json-files: ""                  # JSON file with credentials to oAuth2 account
+compare-distance-number: 0            # Levenstein number to compare difference between existing videos and new
+published-after: ""                   # Timestamp in ISO8601 (YYYY-MM-DDThh:mm:ss.sZ) format in which only videos from after this date will be added
+reprocess-days: ""                    # Amount of days before subscription will be processed again
+youtube-channel: ""                   # Name of your channel with destination playlist
+youtube-playlist: ""                  # Name of playlist to add videos to
+youtube-activity-limit: 0             # How much activity to process per subscription per run
+youtube-subscription-limit: 0         # How many subscriptions to process per run
+youtube-subscription-ignore-file: ""  # File with newline separated list of subscriptions to ignore when processing
+youtube-video-ignore-file: ""         # File with newline separated list of video-ids to ignore when processing
+youtube-words-ignore-file: ""         # File with newline separated list of words to ignore when processing
+youtube-playlist-sleep: 0             # How long to wait between playlist API insert-calls
+youtube-subscription-sleep: 0         # How long to wait between subscription API insert-calls
+youtube-minimum-length: ""            # Minimum length of tracks to add. 1s, 2m, 1h format
+youtube-maximum-length: ""            # Maximum length of tracks to add. 1s, 2m, 1h format
+log-level: ""                         # Set loglevel: debug, info, warning, or error
+log-file: ""                          # File to cast logs to. If you want all output to stdout type "stream"
 ```
-log-level: info
-log-file: stream   # Will output all logs to stdout
-pickle-file: /home/abc/.ys2wl/credentials.pickle   # if this file does not exist, it will be created when promted for authorization
-credentials-file: /home/abc/.ys2wl/client_secret.json   # This file needs to contain credentials related to the app you create in youtube for this application
-database-file: /home/abc/.ys2wl/my.db   # if this file does not exist, it will be created an empty database
-reprocess-days: 0   # How many days betwene subscription will be processed
-#published-after: 2023-11-01T00:00:00.000000+02:00   # dont add videos prior to this date
-compare-distance-number: 97   # distance in "a number" a video title needs to be apart from another for it to be registered as a new video
-youtube-channel: Bateau   # your channel name
-youtube-playlist: TBL   # name of playlist to add videos to
-youtube-playlist-sleep: 30   # delay betwene api calls for videos. can be good to avoid rate limiting
-youtube-subscription-sleep: 60   # delay betwene api calls for subscriptions. can be good to avoid rate limiting
-youtube-subscription-ignore-file: /home/abc/.ys2wl/.subscription-ignore   # new line delimited list of subscriptions to ignore when processing
-youtube-video-ignore-file: /home/abc/.ys2wl/.video-ignore   # spesific video-ids to avoid. in case a video is acting up
-youtube-minimum-length: 75s   # minimum length a video must be to be added to your playlist
-youtube-maximum-length: 8m   # maximum length a video can be to be added to your playlist
-```
-

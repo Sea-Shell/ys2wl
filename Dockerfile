@@ -1,13 +1,13 @@
 FROM python:3.13.3-alpine as base
 
 RUN apk update && \
-    apk add dumb-init && \
-    adduser --disabled-password --uid 1000 --home /opt/ys2wl ys2wl && \
-    pip install -qqq pipenv
+  apk add dumb-init && \
+  adduser --disabled-password --uid 1000 --home /opt/ys2wl ys2wl && \
+  pip install -qqq pipenv
 
 FROM base as build
 
- # install pipenv dependencies # removed libressl-dev
+# install pipenv dependencies # removed libressl-dev
 RUN apk add build-base libffi-dev openssl-dev musl-dev cargo
 USER 1000
 COPY Pipfile /opt/ys2wl/
