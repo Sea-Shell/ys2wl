@@ -6,7 +6,7 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from logging.handlers import RotatingFileHandler
 from tzlocal import get_localzone
-import configargparse
+from configargparse import ArgumentParser
 import jq
 import json
 import logging
@@ -23,7 +23,7 @@ errors=0
 subscriptions_processed=0
 subscriptions_skipped=0
 videos_added=0
-videos_skipped=0
+videos_skipped_count=0
 dist_count=0
 dist_sum=0
 
@@ -54,28 +54,28 @@ scopes = [
 ignore_subscriptions_list = list()
 
 def get_arguments():
-    parser = configargparse.ArgumentParser(description='Add latest activity from your subscriptions on YouTube to a playlist', default_config_files=['/etc/ysl/config.yml', '~/.ysl/config.yml'])
-    parser.add('--config', env_var='CONFIG', is_config_file=True, help='Path to yaml config file')
-    parser.add('--pickle-file', env_var="PICKLE_FILE", default='credentials.pickle', help='File to store access token once authenticated')
-    parser.add('--credentials-file', env_var="CREDENTIALS_FILE", default='client_secret.json', help='JSON file with credentials to oAuth2 account')
-    parser.add('--database-file', env_var="DATABASE_FILE", default='my.db', help='Location of sqlite database file. Will be created if not exists')
-    parser.add('--local-json-files', env_var="LOCAL_JSON_FILES", action="store_true", help='JSON file with credentials to oAuth2 account')
-    parser.add('--max-results', env_var="MAX_RESULTS", default='50', type=int, help='')
-    parser.add('--compare-distance-number', env_var="COMPARE_DISTANCE_NUMBER", default=80, type=int, help="Levenstein number to compare difference betwene existing videos and new.")
-    parser.add('--published-after', env_var="PUBLISHED_AFTER", default=None, help='Timestamp in ISO8601 (YYYY-MM-DDThh:mm:ss.sZ) format.')
-    parser.add('--reprocess-days', env_var="REPROCESS_DAYS", default=2, type=int, help='Amount of days before subscription will be processed again.')
-    parser.add('--youtube-channel', env_var="YOUTUBE_CHANNEL", default='', help='Name of channel to do stuff with')
-    parser.add('--youtube-playlist', env_var="YOUTUBE_PLAYLIST", default='', help='Name of channel to do stuff with')
-    parser.add('--youtube-activity-limit', env_var="YOUTUBE_ACTIVITY_LIMIT", default='0', type=int, help='How much activity to process pr. subscription')
-    parser.add('--youtube-subscription-limit', env_var="YOUTUBE_SUBSCRIPTION_LIMIT", default='0', type=int, help='How much activity to process pr. subscription')
-    parser.add('--youtube-subscription-ignore-file', env_var="YOUTUBE_SUBSCRIPTION_IGNORE_FILE", default=".subscription-ignore", help="File with newline separated list of subscriptions to ignore when proccessing")
-    parser.add('--youtube-video-ignore-file', env_var="YOUTUBE_VIDEO_IGNORE_FILE", default=".video-ignore", help="File with newline separated list of video-ids to ignore when proccessing")
-    parser.add('--youtube-playlist-sleep', env_var="YOUTUBE_PLAYLIST_SLEEP", default='10', type=int, help='how log to wait betwene playlist API insert-calls')
-    parser.add('--youtube-subscription-sleep', env_var="YOUTUBE_SUBSCRIPTION_SLEEP", default='30', type=int, help='how log to wait betwene playlist API insert-calls')
-    parser.add('--youtube-minimum-length', env_var="YOUTUBE_MINIMUM_LENGTH", default='0s', help='Minimum lenght of tracks to add')
-    parser.add('--youtube-maximum-length', env_var="YOUTUBE_MAXIMUM_LENGTH", default='0s', help='Maximum lenght of tracks to add')
-    parser.add('--log-level', env_var="LOG_LEVEL", default='warning', help='Set loglevel. debug,info,warning or error')
-    parser.add('--log-file', env_var="LOG_FILE", dest='log_file', default='stream', help='file to cast logs to. if you want all output to stdout type "stream"')
+    parser = ArgumentParser(description='Add latest activity from your subscriptions on YouTube to a playlist of your choice.', default_config_files=['/etc/ysl/config.yml', '~/.ysl/config.yml'])
+    parser.add('--config',                           env_var='CONFIG', is_config_file=True,                                      help='Path to config file in yaml format')
+    parser.add('--pickle-file',                      env_var="PICKLE_FILE",                      default='credentials.pickle',   help='File to store access token once authenticated')
+    parser.add('--credentials-file',                 env_var="CREDENTIALS_FILE",                 default='client_secret.json',   help='JSON file with credentials to oAuth2 account (https://console.developers.google.com/apis/credentials)')
+    parser.add('--database-file',                    env_var="DATABASE_FILE",                    default='my.db',                help='Location of sqlite database file. Will be created if assigned file does not exists')
+    parser.add('--local-json-files',                 env_var="LOCAL_JSON_FILES", action="store_true",                            help='Use local JSON files for testing instead of the YouTube API')
+    parser.add('--compare-distance-number',          env_var="COMPARE_DISTANCE_NUMBER",          default=80, type=int,           help="Levenstein number to compare difference betwene existing videos and new to avoid adding similar titled videos.")
+    parser.add('--published-after',                  env_var="PUBLISHED_AFTER",                  default=None,                   help='Add videos only after this timestamp. Timestamp in ISO8601 (YYYY-MM-DDThh:mm:ss.sZ) format.')
+    parser.add('--reprocess-days',                   env_var="REPROCESS_DAYS",                   default=2, type=int,            help='Amount of days before subscription will be processed again. will skip subscription if within reprocess days.')
+    parser.add('--youtube-channel',                  env_var="YOUTUBE_CHANNEL",                  default='',                     help='Name of your channel to add to playlist.')
+    parser.add('--youtube-playlist',                 env_var="YOUTUBE_PLAYLIST",                 default='',                     help='Name of playlist to add videos to.')
+    parser.add('--youtube-activity-limit',           env_var="YOUTUBE_ACTIVITY_LIMIT",           default='0', type=int,          help='How much activity to process pr. subscription')
+    parser.add('--youtube-subscription-limit',       env_var="YOUTUBE_SUBSCRIPTION_LIMIT",       default='0', type=int,          help='How may subscriptions to process')
+    parser.add('--youtube-subscription-ignore-file', env_var="YOUTUBE_SUBSCRIPTION_IGNORE_FILE", default=".subscription-ignore", help="File with newline separated list of subscriptions (channel names) to ignore when proccessing")
+    parser.add('--youtube-video-ignore-file',        env_var="YOUTUBE_VIDEO_IGNORE_FILE",        default=".video-ignore",        help="File with newline separated list of video-ids to ignore when proccessing")
+    parser.add('--youtube-words-ignore-file',        env_var="YOUTUBE_WORDS_IGNORE_FILE",        default=".ignore-words",        help="File with newline separated list of words to ignore when proccessing")
+    parser.add('--youtube-playlist-sleep',           env_var="YOUTUBE_PLAYLIST_SLEEP",           default='10', type=int,         help='how long to wait betwene playlist API insert-calls')
+    parser.add('--youtube-subscription-sleep',       env_var="YOUTUBE_SUBSCRIPTION_SLEEP",       default='30', type=int,         help='how long to wait betwene subscription API calls')
+    parser.add('--youtube-minimum-length',           env_var="YOUTUBE_MINIMUM_LENGTH",           default='0s',                   help='Minimum lenght of tracks to add. in format "3m" or "6h" or "1d" or "0s" for no minimum')
+    parser.add('--youtube-maximum-length',           env_var="YOUTUBE_MAXIMUM_LENGTH",           default='0s',                   help='Maximum lenght of tracks to add. in format "3m" or "6h" or "1d" or "0s" for no maximum')
+    parser.add('--log-level',                        env_var="LOG_LEVEL",                        default='warning',              help='Set loglevel. debug,info,warning or error. when debug is selected, no database changes will be made')
+    parser.add('--log-file',                         env_var="LOG_FILE", dest='log_file',        default='stream',               help='file to cast logs to. if you want all output to stdout use "stream" as value. steam is default value')
     
     return parser.parse_args()
 
@@ -520,7 +520,7 @@ def get_subscription_ignore_list(subscription_ignore_file=None):
         log.info("get_subscription_ignore_list: Ignore file loaded successfully")
 
     except:
-        log.error("could not open subscription ignore-file '%s'", subscription_ignore_file)
+        log.error("get_subscription_ignore_list: could not open subscription ignore-file '%s'", subscription_ignore_file)
         ignore_list=[]
 
     return ignore_list
@@ -540,7 +540,27 @@ def get_video_ignore_list(video_ignore_file=None):
         log.info("get_video_ignore_list: Video ignore file loaded successfully")
 
     except:
-        log.error("could not open video ignore-file '%s'", video_ignore_file)
+        log.error("get_video_ignore_list: could not open video ignore-file '%s'", video_ignore_file)
+        ignore_list=[]
+
+    return ignore_list
+
+def get_word_ignore_list(word_ignore_file=None):
+    global args
+
+    log.debug("get_word_ignore_list: loading word ignore-file '%s'", word_ignore_file)
+
+    try:
+        ignore_file = open(word_ignore_file, "r")
+
+        ignore_data = ignore_file.read()
+        ignore_list = ignore_data.split("\n")
+        ignore_file.close()
+        log.debug("get_word_ignore_list: ignore list loaded from video ignore-file {}".format(ignore_list))
+        log.info("get_word_ignore_list: Video ignore file loaded successfully")
+
+    except:
+        log.error("get_word_ignore_list: could not open video ignore-file '%s'", word_ignore_file)
         ignore_list=[]
 
     return ignore_list
@@ -553,7 +573,7 @@ def exit_func():
     global subscriptions_processed
     global subscriptions_skipped
     global videos_added
-    global videos_skipped
+    global videos_skipped_count
 
     try:
         avg_dist = (dist_sum // dist_count)
@@ -565,7 +585,7 @@ def exit_func():
     log.info("Number of subscriptions processed: %s", subscriptions_processed)
     log.info("Number of subscriptions skiped: %s", subscriptions_skipped)
     log.info("Number of videos added to playlist: %s", videos_added)
-    log.info("Number of videos skipped: %s", videos_skipped)
+    log.info("Number of videos skipped: %s", videos_skipped_count)
     log.info("Number of Errors: %s", errors)
     log.info("Number of Distances calculated: %s", dist_count)
     log.info("Total distance acumulated: %s", dist_sum)
@@ -898,6 +918,7 @@ def main():
     global api_calls
     global videos_added
     global videos_skipped
+    global videos_skipped_count
     global subscriptions_processed
     global subscriptions_skipped
     
@@ -963,10 +984,13 @@ def main():
 
     ignore_subscriptions_list = get_subscription_ignore_list(args.youtube_subscription_ignore_file)
     ignore_video_list = get_video_ignore_list(args.youtube_video_ignore_file)
+    ignore_word_list = get_word_ignore_list(args.youtube_words_ignore_file)
     log.info("Subscriptions on ignore-list: %s", len(ignore_subscriptions_list))
     log.debug("Subscripotions on ignore-list: {}".format(ignore_subscriptions_list))
     log.info("Videos on ignore-list: %s", len(ignore_video_list))
     log.debug("Videos on ignore-list: {}".format(ignore_video_list))
+    log.info("Words on ignore-list: %s", len(ignore_word_list))
+    log.debug("Words on ignore-list: {}".format(ignore_word_list))
 
     log.debug("Last script run: %s" % (db_last_run))
     log.debug("Subscriptions: "+json.dumps(subscriptions_refined, indent=4, sort_keys=True))
@@ -1036,6 +1060,14 @@ def main():
             log.info("%s - Processing %s (%s)" % (subs["title"], activity["title"], activity["videoId"]))
             minimum_length = False
             maximum_length = False
+
+            for word in args.youtube_words_ignore:
+                regex = re.compile(r'\b%s\b' % word, re.IGNORECASE)
+                if regex.search(activity["title"]):
+                    log.info("Video %s (%s) title contains word '%s' which is in word-ignore list. Skipping", activity["title"], activity["videoId"], word)
+                    videos_skipped.append(f"activity['title'] contains word '{word}' which is in word-ignore list. Skipping")
+                    videos_skipped_count = videos_skipped_count + 1
+                    continue
             
             results = get_videoId_from_db(videoId=activity["videoId"])
             if activity["videoId"] in ignore_video_list:
@@ -1059,21 +1091,21 @@ def main():
                             time.sleep(args.youtube_playlist_sleep)
                         
                         else:
-                            videos_skipped = videos_skipped + 1
+                            videos_skipped_count = videos_skipped_count + 1
                             log.warning("Video maximum lenght is to long (duration: %s, maximum length: %s)" % (video_length, youtube_maximum_length))
                             continue
                         
                     else:
-                        videos_skipped = videos_skipped + 1
+                        videos_skipped_count = videos_skipped_count + 1
                         log.warning("Video minimum lenght to short (duration: %s, minimum length: %s)" % (video_length, youtube_minimum_length))
                         continue
                     
                 else:
-                    videos_skipped = videos_skipped + 1
+                    videos_skipped_count = videos_skipped_count + 1
                     log.warning("COMPARE: %s - Video %s (%s) already in database or playlist" % (subs["title"], activity["title"], activity["videoId"]))
                     continue
             else:
-                videos_skipped = videos_skipped + 1
+                videos_skipped_count = videos_skipped_count + 1
                 log.warning("get_videoId_from_db: %s - Video %s (%s) already in database or playlist %s" % (subs["title"], activity["title"], activity["videoId"], user_playlist["title"]))
                 continue
 

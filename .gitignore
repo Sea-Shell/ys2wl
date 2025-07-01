@@ -1,4 +1,6 @@
 debug
+config.yaml
+config.yml
 **.json
 *.pickle
 *.db
