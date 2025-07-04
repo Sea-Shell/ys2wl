@@ -581,15 +581,15 @@ def exit_func():
         avg_dist = 0
 
     
-    log.debug("Number of API calls made: %s", api_calls)
-    log.debug("Number of subscriptions processed: %s", subscriptions_processed)
-    log.debug("Number of subscriptions skiped: %s", subscriptions_skipped)
-    log.debug("Number of videos added to playlist: %s", videos_added)
-    log.debug("Number of videos skipped: %s", videos_skipped_count)
-    log.debug("Number of Errors: %s", errors)
-    log.debug("Number of Distances calculated: %s", dist_count)
-    log.debug("Total distance acumulated: %s", dist_sum)
-    log.debug("Avarage distance: %s", avg_dist)
+    log.info("Number of API calls made: %s", api_calls)
+    log.info("Number of subscriptions processed: %s", subscriptions_processed)
+    log.info("Number of subscriptions skiped: %s", subscriptions_skipped)
+    log.info("Number of videos added to playlist: %s", videos_added)
+    log.info("Number of videos skipped: %s", videos_skipped_count)
+    log.info("Number of Errors: %s", errors)
+    log.info("Number of Distances calculated: %s", dist_count)
+    log.info("Total distance acumulated: %s", dist_sum)
+    log.info("Avarage distance: %s", avg_dist)
 
 def authenticate(credentials_file=None, pickle_credentials=None, scopes=None):
     credentials = None
@@ -992,7 +992,7 @@ def main():
     log.debug("Words on ignore-list: %s", len(ignore_word_list))
     log.debug("Words on ignore-list: {}".format(ignore_word_list))
 
-    log.debug("Last script run: %s" % (db_last_run))
+    log.info("Last script run: %s" % (db_last_run))
     log.debug("Subscriptions: "+json.dumps(subscriptions_refined, indent=4, sort_keys=True))
     
     log.debug("Subscriptions on selected channel: %s" % len(subscriptions_refined))
@@ -1001,7 +1001,7 @@ def main():
     for subs in subscriptions_refined:
 
         if subs["title"] in ignore_subscriptions_list:
-            log.debug("Subscription %s is in ignore list. Skipping", subs["title"])
+            log.warning("Subscription %s is in ignore list. Skipping", subs["title"])
             continue
 
         log.debug("Processing subscription %s (%s), but sleeping for %s seconds first" % (subs["title"], subs["id"], args.youtube_subscription_sleep))
