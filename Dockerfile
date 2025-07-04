@@ -1,10 +1,10 @@
-FROM python:3.13.5-alpine as base
+FROM python:3.13.5-alpine AS base
 
 RUN apk update && \
   apk add dumb-init && \
   adduser --disabled-password --uid 1000 --home /opt/ys2wl ys2wl
 
-FROM base as build
+FROM base AS build
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 ENV UV_PYTHON_INSTALL_DIR=/opt/uv/python
 USER 1000
@@ -16,9 +16,9 @@ RUN uv sync --locked --no-install-project --no-dev
 COPY run /opt/ys2wl/
 COPY *.py /opt/ys2wl/
 
-FROM base as prod
-ENV LC_ALL C.UTF-8
-ENV PYTHONUNBUFFERED 1
+FROM base AS prod
+ENV LC_ALL=C.UTF-8
+ENV PYTHONUNBUFFERED=1
 WORKDIR /opt/ys2wl
 USER 1000
 COPY --from=build /opt/ys2wl /opt/ys2wl
