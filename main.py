@@ -1061,7 +1061,7 @@ def main():
             minimum_length = False
             maximum_length = False
 
-            for word in args.youtube_words_ignore:
+            for word in ignore_word_list:
                 regex = re.compile(r'\b%s\b' % word, re.IGNORECASE)
                 if regex.search(activity["title"]):
                     log.info("Video %s (%s) title contains word '%s' which is in word-ignore list. Skipping", activity["title"], activity["videoId"], word)
