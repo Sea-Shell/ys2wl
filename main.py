@@ -992,7 +992,7 @@ def main():
     log.debug("Words on ignore-list: %s", len(ignore_word_list))
     log.debug("Words on ignore-list: {}".format(ignore_word_list))
 
-    log.debug("Last script run: %s" % (db_last_run))
+    log.info("Last script run: %s" % (db_last_run))
     log.debug("Subscriptions: "+json.dumps(subscriptions_refined, indent=4, sort_keys=True))
     
     log.debug("Subscriptions on selected channel: %s" % len(subscriptions_refined))
@@ -1001,7 +1001,7 @@ def main():
     for subs in subscriptions_refined:
 
         if subs["title"] in ignore_subscriptions_list:
-            log.debug("Subscription %s is in ignore list. Skipping", subs["title"])
+            log.warning("Subscription %s is in ignore list. Skipping", subs["title"])
             continue
 
         log.debug("Processing subscription %s (%s), but sleeping for %s seconds first" % (subs["title"], subs["id"], args.youtube_subscription_sleep))
