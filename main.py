@@ -225,7 +225,7 @@ def get_last_run():
     
     con = db_connect(args.database_file)
     
-    log.info("get_last_run: Checking last run in DB")
+    log.debug("get_last_run: Checking last run in DB")
     with con:
         try:
             query = con.execute("SELECT timestamp FROM last_run WHERE id = 1 LIMIT 1")
@@ -314,7 +314,7 @@ def compare_title_with_db_title(new_title=None):
 
         if dist > args.compare_distance_number:
             log.debug("compare_title_with_db_title: dist result: %s which is less than %s", dist, args.compare_distance_number)
-            log.info("compare_title_with_db_title: %s was to close %s (distance: %s <= %s). Not adding to playlist", new_title, existing_title, dist, args.compare_distance_number)
+            log.debug("compare_title_with_db_title: %s was to close %s (distance: %s <= %s). Not adding to playlist", new_title, existing_title, dist, args.compare_distance_number)
             return False
 
     return True
@@ -334,11 +334,11 @@ def insert_video_to_db(videoId=None, timestamp=None, title=None, subscriptionId=
                 log.error('insert_video_to_db: Sql error: {}'.format(err.args))
                 return False
         
-        log.info("insert_video_to_db: Video %s (%s) from %s added to database" % (title, videoId, subscriptionId))
+        log.debug("insert_video_to_db: Video %s (%s) from %s added to database" % (title, videoId, subscriptionId))
 
         con.close()
     else:
-        log.info("insert_video_to_db: NOT REALY!! Video %s (%s) from %s added to database" % (title, videoId, subscriptionId))
+        log.debug("insert_video_to_db: NOT REALY!! Video %s (%s) from %s added to database" % (title, videoId, subscriptionId))
 
 def get_videoId_from_db(videoId=None):
     global args
@@ -346,7 +346,7 @@ def get_videoId_from_db(videoId=None):
     data = list()
     con = db_connect(args.database_file)
     
-    log.info("get_videoId_from_db: Checking %s in database" % (videoId))
+    log.debug("get_videoId_from_db: Checking %s in database" % (videoId))
     try:
         query = con.execute('SELECT videoId FROM videos WHERE videoId=\"%s\" LIMIT 1' % (videoId))
     except sqlite3.Error as err:
@@ -390,7 +390,7 @@ def insert_channel_to_db(channelId=None, channelTitle=None):
             
         con.close()
         
-        log.info("insert_channel_to_db: Channel %s (%s) inserted into DB", channelTitle, channelId)
+        log.debug("insert_channel_to_db: Channel %s (%s) inserted into DB", channelTitle, channelId)
         return True
     else:
         log.debug("insert_channel_to_db: INSERT OR REPLACE INTO channel (id, title) VALUES(%s, %s)", channelId, channelTitle)
@@ -416,7 +416,7 @@ def get_channel_from_db():
         data = json.loads(data)
     
     log.debug("get_channel_from_db: results {}".format(json.dumps(data, indent=4)))
-    log.info("get_channel_from_db: count: %s" % len(data))
+    log.debug("get_channel_from_db: count: %s" % len(data))
     
     return data
 
@@ -430,7 +430,7 @@ def insert_playlist_to_db(playlistId=None, playlistTitle=None):
     with con:
         try:
             con.executemany(sql, data)
-            log.info("insert_playlist_to_db: Channel %s with ID %s inserted into DB", playlistTitle, playlistId)
+            log.debug("insert_playlist_to_db: Channel %s with ID %s inserted into DB", playlistTitle, playlistId)
         except sqlite3.Error as err:
             log.error('insert_playlist_to_db: Sql error: {}'.format(err.args))
             return False
@@ -457,7 +457,7 @@ def get_playlist_from_db():
         data = json.loads(data)
     
     log.debug("get_playlist_from_db: results {}".format(json.dumps(data, indent=4)))
-    log.info("get_playlist_from_db: count: %s" % len(data))
+    log.debug("get_playlist_from_db: count: %s" % len(data))
     
     return data
 
@@ -472,7 +472,7 @@ def insert_subscription_to_db(subscriptionId=None, subscriptionTitle=None, subsc
         with con:
             try:
                 con.executemany(sql, data)
-                log.info("insert_subscription_to_db: Subscription %s with ID %s and timestamp: %s inserted into DB", subscriptionTitle, subscriptionId, subscriptionTimestamp)
+                log.debug("insert_subscription_to_db: Subscription %s with ID %s and timestamp: %s inserted into DB", subscriptionTitle, subscriptionId, subscriptionTimestamp)
             except sqlite3.Error as err:
                 log.error('insert_subscription_to_db: Sql error: {}'.format(err.args))
                 return False
@@ -501,7 +501,7 @@ def get_subscription_from_db(subscriptionId=None):
         data = json.loads(data)
     
     log.debug("get_subscription_from_db: results {}".format(json.dumps(data, indent=4)))
-    log.info("get_subscription_from_db: count: %s" % len(data))
+    log.debug("get_subscription_from_db: count: %s" % len(data))
     
     return data
 
@@ -517,7 +517,7 @@ def get_subscription_ignore_list(subscription_ignore_file=None):
         ignore_list = ignore_data.split("\n")
         ignore_file.close()
         log.debug("get_subscription_ignore_list: ignore list loaded from subscription ignore-file {}".format(ignore_list))
-        log.info("get_subscription_ignore_list: Ignore file loaded successfully")
+        log.debug("get_subscription_ignore_list: Ignore file loaded successfully")
 
     except:
         log.error("get_subscription_ignore_list: could not open subscription ignore-file '%s'", subscription_ignore_file)
@@ -537,7 +537,7 @@ def get_video_ignore_list(video_ignore_file=None):
         ignore_list = ignore_data.split("\n")
         ignore_file.close()
         log.debug("get_video_ignore_list: ignore list loaded from video ignore-file {}".format(ignore_list))
-        log.info("get_video_ignore_list: Video ignore file loaded successfully")
+        log.debug("get_video_ignore_list: Video ignore file loaded successfully")
 
     except:
         log.error("get_video_ignore_list: could not open video ignore-file '%s'", video_ignore_file)
@@ -557,7 +557,7 @@ def get_word_ignore_list(word_ignore_file=None):
         ignore_list = ignore_data.split("\n")
         ignore_file.close()
         log.debug("get_word_ignore_list: ignore list loaded from video ignore-file {}".format(ignore_list))
-        log.info("get_word_ignore_list: Video ignore file loaded successfully")
+        log.debug("get_word_ignore_list: Video ignore file loaded successfully")
 
     except:
         log.error("get_word_ignore_list: could not open video ignore-file '%s'", word_ignore_file)
@@ -581,21 +581,21 @@ def exit_func():
         avg_dist = 0
 
     
-    log.info("Number of API calls made: %s", api_calls)
-    log.info("Number of subscriptions processed: %s", subscriptions_processed)
-    log.info("Number of subscriptions skiped: %s", subscriptions_skipped)
-    log.info("Number of videos added to playlist: %s", videos_added)
-    log.info("Number of videos skipped: %s", videos_skipped_count)
-    log.info("Number of Errors: %s", errors)
-    log.info("Number of Distances calculated: %s", dist_count)
-    log.info("Total distance acumulated: %s", dist_sum)
-    log.info("Avarage distance: %s", avg_dist)
+    log.debug("Number of API calls made: %s", api_calls)
+    log.debug("Number of subscriptions processed: %s", subscriptions_processed)
+    log.debug("Number of subscriptions skiped: %s", subscriptions_skipped)
+    log.debug("Number of videos added to playlist: %s", videos_added)
+    log.debug("Number of videos skipped: %s", videos_skipped_count)
+    log.debug("Number of Errors: %s", errors)
+    log.debug("Number of Distances calculated: %s", dist_count)
+    log.debug("Total distance acumulated: %s", dist_sum)
+    log.debug("Avarage distance: %s", avg_dist)
 
 def authenticate(credentials_file=None, pickle_credentials=None, scopes=None):
     credentials = None
 
     if os.path.exists(pickle_credentials):
-        log.info("authenticate: Loading credentials from %s" % pickle_credentials)
+        log.debug("authenticate: Loading credentials from %s" % pickle_credentials)
         with open(pickle_credentials, "rb") as token:
             credentials = pickle.load(token)
 
@@ -625,7 +625,7 @@ def get_subscriptions(credentials=None, nextPage=None):
     else:
         subscriptions_youtube = build("youtube", "v3", credentials=credentials)
         if nextPage is None:
-            log.info("get_subscriptions: Getting all your subscription")
+            log.debug("get_subscriptions: Getting all your subscription")
             subscriptions_request = subscriptions_youtube.subscriptions().list(part="snippet,contentDetails", maxResults=50, mine=True, order="alphabetical")
         else:
             subscriptions_request = subscriptions_youtube.subscriptions().list(part="snippet,contentDetails", maxResults=50, mine=True, order="alphabetical", pageToken=nextPage)
@@ -646,7 +646,7 @@ def get_subscriptions(credentials=None, nextPage=None):
             return False
     
     sub_dict = subscriptions_response["items"]
-    log.info("get_subscriptions: sub_dict is of type %s and items count %s" % (type(sub_dict),len(sub_dict)))
+    log.debug("get_subscriptions: sub_dict is of type %s and items count %s" % (type(sub_dict),len(sub_dict)))
     
     if "nextPageToken" in subscriptions_response:
         log.debug("get_subscriptions: nextPageToken detected!")
@@ -671,7 +671,7 @@ def get_subscription_activity(credentials=None, channel=None, publishedAfter=Non
     else:
         activity_youtube = build("youtube", "v3", credentials=credentials)
         if nextPage is None:
-            log.info("get_subscription_activity: Getting activity for channelId: %s" % channel)
+            log.debug("get_subscription_activity: Getting activity for channelId: %s" % channel)
             activity_request = activity_youtube.activities().list(part="snippet,contentDetails", maxResults=50, publishedAfter=publishedAfter, uploadType="upload", channelId=channel)
         else:
             activity_request = activity_youtube.activities().list(part="snippet,contentDetails", maxResults=50, publishedAfter=publishedAfter, uploadType="upload", channelId=channel, pageToken=nextPage)
@@ -729,7 +729,7 @@ def get_video_duration(credentials=None, videoId=None):
     
     if "duration" in video_response["items"][0]["contentDetails"]:
         video_time = iso8601_to_seconds(video_response["items"][0]["contentDetails"]["duration"])
-        log.info("get_video_duration: %s duration is %s" % (videoId, video_time))
+        log.debug("get_video_duration: %s duration is %s" % (videoId, video_time))
     else:
         video_time = 0
         log.warning("get_video_duration: %s has no duration" % videoId)
@@ -770,7 +770,7 @@ def get_channel_id(credentials=None):
 
     channel_list = jq.all('.[] | { "title": .snippet.title, "id": .id }', channel_list)
     log.debug("get_channel_id: Final channel list: {}".format(json.dumps(channel_list, indent=4)))
-    log.info("get_channel_id: Final channel list count: %s" % len(channel_list))
+    log.debug("get_channel_id: Final channel list count: %s" % len(channel_list))
 
     return channel_list
 
@@ -785,7 +785,7 @@ def get_user_playlists(credentials=None, channelId=None, nextPage=None):
     else:
         user_playlists_youtube = build("youtube", "v3", credentials=credentials)
         if nextPage is None:
-            log.info("get_user_playlists: Getting all your playlists")
+            log.debug("get_user_playlists: Getting all your playlists")
             user_playlists_request = user_playlists_youtube.playlists().list(part="snippet,contentDetails", channelId=channelId, maxResults=50)
         else:
             user_playlists_request = user_playlists_youtube.subscriptions().list(part="snippet,contentDetails", channelId=channelId, maxResults=50, pageToken=nextPage)
@@ -814,7 +814,7 @@ def get_user_playlists(credentials=None, channelId=None, nextPage=None):
         plists_dict = [*plists_dict, *plists_dict_nextpage]
     
     if nextPage is None:
-        log.info("get_user_playlists: Total amount of playlists: %s (from youtube API)" % user_playlists_response["pageInfo"]["totalResults"])
+        log.debug("get_user_playlists: Total amount of playlists: %s (from youtube API)" % user_playlists_response["pageInfo"]["totalResults"])
 
     return plists_dict
 
@@ -858,7 +858,7 @@ def get_playlist(credentials=None, channelId=None, playlistId=None, nextPage=Non
         playlist_dict = [*playlist_dict, *playlist_dict_nextpage]
     
     if nextPage is None:
-        log.info("get_playlist: Total amount of playlists: %s (from youtube API)" % playlist_response["pageInfo"]["totalResults"])
+        log.debug("get_playlist: Total amount of playlists: %s (from youtube API)" % playlist_response["pageInfo"]["totalResults"])
     
     return playlist_dict
 
@@ -933,7 +933,7 @@ def main():
     db_last_run = get_last_run()
             
     if args.published_after is not None:
-        log.info("using --published-after value")
+        log.debug("using --published-after value")
         published_after = str(args.published_after)
         
         published_after = datetime.fromisoformat(published_after)
@@ -965,19 +965,19 @@ def main():
     else:
         channel = channel_from_db[0]
     
-    log.info("Channel selected: %s (%s)" % (channel["title"], channel["id"]))
+    log.debug("Channel selected: %s (%s)" % (channel["title"], channel["id"]))
 
     playlist_from_db = get_playlist_from_db()
     if not playlist_from_db:
         user_playlists = get_user_playlists(credentials=credentials, channelId=channel["id"])
         user_playlists_refined = jq.all('.[] | { "title": .snippet.title, "id": .id }', user_playlists)
-        log.info("Playlists on channel: %s" % len(user_playlists_refined))
+        log.debug("Playlists on channel: %s" % len(user_playlists_refined))
         user_playlist = jq.all('.[]|select(all(.title; contains("%s")))|{ "id": .id, "title": .title }' % (args.youtube_playlist), user_playlists_refined)[0]
         insert_playlist_to_db(playlistId=user_playlist["id"], playlistTitle=user_playlist["title"])
     else:
         user_playlist = playlist_from_db[0]
     
-    log.info("Playlist selected: %s (%s)" % (user_playlist["title"], user_playlist["id"]))
+    log.debug("Playlist selected: %s (%s)" % (user_playlist["title"], user_playlist["id"]))
     
     subscriptions = get_subscriptions(credentials=credentials)
     subscriptions_refined = jq.all('.[] | { "title": .snippet.title, "id": .snippet.resourceId.channelId }', subscriptions)
@@ -985,47 +985,47 @@ def main():
     ignore_subscriptions_list = get_subscription_ignore_list(args.youtube_subscription_ignore_file)
     ignore_video_list = get_video_ignore_list(args.youtube_video_ignore_file)
     ignore_word_list = get_word_ignore_list(args.youtube_words_ignore_file)
-    log.info("Subscriptions on ignore-list: %s", len(ignore_subscriptions_list))
+    log.debug("Subscriptions on ignore-list: %s", len(ignore_subscriptions_list))
     log.debug("Subscripotions on ignore-list: {}".format(ignore_subscriptions_list))
-    log.info("Videos on ignore-list: %s", len(ignore_video_list))
+    log.debug("Videos on ignore-list: %s", len(ignore_video_list))
     log.debug("Videos on ignore-list: {}".format(ignore_video_list))
-    log.info("Words on ignore-list: %s", len(ignore_word_list))
+    log.debug("Words on ignore-list: %s", len(ignore_word_list))
     log.debug("Words on ignore-list: {}".format(ignore_word_list))
 
     log.debug("Last script run: %s" % (db_last_run))
     log.debug("Subscriptions: "+json.dumps(subscriptions_refined, indent=4, sort_keys=True))
     
-    log.info("Subscriptions on selected channel: %s" % len(subscriptions_refined))
+    log.debug("Subscriptions on selected channel: %s" % len(subscriptions_refined))
 
     s=0
     for subs in subscriptions_refined:
 
         if subs["title"] in ignore_subscriptions_list:
-            log.info("Subscription %s is in ignore list. Skipping", subs["title"])
+            log.debug("Subscription %s is in ignore list. Skipping", subs["title"])
             continue
 
-        log.info("Processing subscription %s (%s), but sleeping for %s seconds first" % (subs["title"], subs["id"], args.youtube_subscription_sleep))
+        log.debug("Processing subscription %s (%s), but sleeping for %s seconds first" % (subs["title"], subs["id"], args.youtube_subscription_sleep))
         subscription_from_db = get_subscription_from_db(subscriptionId=subs["id"])
         
         if len(subscription_from_db) == 0:
             log.debug("Adding subscription %s to db", subs["title"])
             insert_subscription_to_db(subscriptionId=subs["id"], subscriptionTitle=subs["title"], subscriptionTimestamp=times["oneyearback_iso"])
             subscription_last_run = times["oneyearback_iso"]
-            log.info("subscription_last_run was empty in DB, so setting it to one year back: %s", subscription_last_run)
+            log.debug("subscription_last_run was empty in DB, so setting it to one year back: %s", subscription_last_run)
         else:
             log.debug("subscription_from_db: {}".format(subscription_from_db))
             log.debug("subscription_from_db: timestamp: %s",subscription_from_db[0].get("timestamp"))
             if args.published_after is not None:
-                log.info("using --published-after value")
+                log.debug("using --published-after value")
                 subscription_last_run = published_after_iso
             else:
-                log.info("NOT using --published-after value")
+                log.debug("NOT using --published-after value")
                 if not subscription_from_db[0].get("timestamp") and subscription_from_db[0].get("timestamp") == None:
                     subscription_last_run = times["oneyearback_iso"]
-                    log.info("subscription_last_run was empty in DB, and --published-after  was not set. Setting it to one year back: %s", subscription_last_run)
+                    log.debug("subscription_last_run was empty in DB, and --published-after  was not set. Setting it to one year back: %s", subscription_last_run)
                 else:
                     subscription_last_run = subscription_from_db[0].get("timestamp")
-                    log.info("subscription_last_run had value in DB: %s", subscription_last_run)
+                    log.debug("subscription_last_run had value in DB: %s", subscription_last_run)
                     
         reprocess_days = times["now"] - timedelta(days=args.reprocess_days)
         
@@ -1034,7 +1034,7 @@ def main():
             log.warning("This subscription was processed within %s. Skipping for now", reprocess_days)
             continue
         
-        log.info("This subscription was last processed %s" % (datetime.fromisoformat(subscription_last_run).strftime(times["date_format"])))
+        log.debug("This subscription was last processed %s" % (datetime.fromisoformat(subscription_last_run).strftime(times["date_format"])))
         
         sub_activity_refined = []
         sub_activity = get_subscription_activity(credentials=credentials, channel=subs["id"], publishedAfter=subscription_last_run)
@@ -1057,21 +1057,21 @@ def main():
         
         a=0
         for activity in sub_activity_refined:
-            log.info("%s - Processing %s (%s)" % (subs["title"], activity["title"], activity["videoId"]))
+            log.debug("%s - Processing %s (%s)" % (subs["title"], activity["title"], activity["videoId"]))
             minimum_length = False
             maximum_length = False
 
             for word in ignore_word_list:
                 regex = re.compile(r'\b%s\b' % word, re.IGNORECASE)
                 if regex.search(activity["title"]):
-                    log.info("Video %s (%s) title contains word '%s' which is in word-ignore list. Skipping", activity["title"], activity["videoId"], word)
+                    log.warning("Video %s (%s) title contains word '%s' which is in word-ignore list. Skipping", activity["title"], activity["videoId"], word)
                     videos_skipped.append(f"activity['title'] contains word '{word}' which is in word-ignore list. Skipping")
                     videos_skipped_count = videos_skipped_count + 1
                     continue
             
             results = get_videoId_from_db(videoId=activity["videoId"])
             if activity["videoId"] in ignore_video_list:
-                log.info("Video %s is in video ignore list. Skipping", activity["videoId"])
+                log.warning("Video %s is in video ignore list. Skipping", activity["videoId"])
                 continue
             
             if results == 0:
@@ -1080,13 +1080,10 @@ def main():
                 
                 if compare:
                     video_length = get_video_duration(credentials=credentials, videoId=activity["videoId"])
-                    log.debug("Got past COMPARE, lenght is up!: %s" % video_length)
 
                     if youtube_minimum_length != 0 and video_length >= youtube_minimum_length:
-                        log.debug("Got past YOUTUBE_MINIMUM_LENGTH, lenght is up!: %s >= %s" % (youtube_minimum_length, video_length))
 
                         if youtube_maximum_length != 0 and video_length <= youtube_maximum_length:
-                            log.debug("Got past YOUTUBE_MAXIMUM_LENGTH, lenght is up!: %s <= %s" % (youtube_maximum_length, video_length))
                             add_to_playlist(credentials=credentials, channelId=channel["id"], playlistId=user_playlist["id"], subscriptionId=subs["id"], videoId=str(activity["videoId"]), videoTitle=str(activity["title"]), videoType=str(activity["type"]))
                             time.sleep(args.youtube_playlist_sleep)
                         
