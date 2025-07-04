@@ -581,15 +581,15 @@ def exit_func():
         avg_dist = 0
 
     
-    log.debug("Number of API calls made: %s", api_calls)
-    log.debug("Number of subscriptions processed: %s", subscriptions_processed)
-    log.debug("Number of subscriptions skiped: %s", subscriptions_skipped)
-    log.debug("Number of videos added to playlist: %s", videos_added)
-    log.debug("Number of videos skipped: %s", videos_skipped_count)
-    log.debug("Number of Errors: %s", errors)
-    log.debug("Number of Distances calculated: %s", dist_count)
-    log.debug("Total distance acumulated: %s", dist_sum)
-    log.debug("Avarage distance: %s", avg_dist)
+    log.info("Number of API calls made: %s", api_calls)
+    log.info("Number of subscriptions processed: %s", subscriptions_processed)
+    log.info("Number of subscriptions skiped: %s", subscriptions_skipped)
+    log.info("Number of videos added to playlist: %s", videos_added)
+    log.info("Number of videos skipped: %s", videos_skipped_count)
+    log.info("Number of Errors: %s", errors)
+    log.info("Number of Distances calculated: %s", dist_count)
+    log.info("Total distance acumulated: %s", dist_sum)
+    log.info("Avarage distance: %s", avg_dist)
 
 def authenticate(credentials_file=None, pickle_credentials=None, scopes=None):
     credentials = None
