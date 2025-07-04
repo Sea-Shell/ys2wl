@@ -1,3 +1,4 @@
+.venv
 debug
 config.yaml
 config.yml
@@ -5,3 +6,9 @@ config.yml
 *.pickle
 *.db
 *.log*
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.pdb
+*.egg-info
