@@ -5,6 +5,7 @@ from google.auth.transport.requests import Request
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from logging.handlers import RotatingFileHandler
+from pythonjsonlogger import jsonlogger
 from tzlocal import get_localzone
 from configargparse import ArgumentParser
 import jq
@@ -43,7 +44,8 @@ times["oneyearback_iso"] = times["oneyearback"].isoformat()
 # Variables
 args = None
 log = None
-loggFormat = "%(asctime)5s %(levelname)10s %(message)s (%(name)s)"
+# loggFormat = "%(asctime)5s %(levelname)10s %(message)s (%(name)s)"
+loggFormat ="%(asctime)s %(levelname)s %(message)s %(name)s %(funcName)s %(lineno)d %(custom_text)s"
 criticals = [400, 401, 402, 403, 404, 405, 409, 410, 412, 413, 416, 417, 428, 429, 500, 501, 503]
 scopes = [
     'https://www.googleapis.com/auth/youtubepartner',
@@ -137,7 +139,8 @@ def setup_logger():
     global times
 
     log = logging.getLogger('YouTube_SubLater')
-    format = logging.Formatter(fmt=loggFormat, datefmt=times["date_format"])
+    # format = logging.Formatter(fmt=loggFormat, datefmt=times["date_format"])
+    format = jsonlogger.JsonFormatter(loggFormat)
     
         
     if args.log_file == "stream":
@@ -225,7 +228,6 @@ def get_last_run():
     
     con = db_connect(args.database_file)
     
-    log.debug("get_last_run: Checking last run in DB")
     with con:
         try:
             query = con.execute("SELECT timestamp FROM last_run WHERE id = 1 LIMIT 1")
@@ -237,7 +239,7 @@ def get_last_run():
     
     con.close()
     
-    log.debug("get_last_run: Last run in DB %s" % data[0])
+    log.info("get_last_run: Last run in DB %s" % data[0])
     
     return data[0]
 
@@ -282,8 +284,6 @@ def normalize_string(string):
     pattern = r'[^a-zA-Z0-9\-\_]+'
     
     new_string = re.sub(pattern, ' ', string)
-    
-    # log.debug("normalize_string: old [%s] new [%s] ", string, new_string)
     
     return new_string
 
@@ -656,7 +656,7 @@ def get_subscriptions(credentials=None, nextPage=None):
         sub_dict = [*sub_dict, *sub_dict_nextpage]
     
     if nextPage is None:
-        log.warning("get_subscriptions: Total amount of subscriptions: %s (from youtube API)" % subscriptions_response["pageInfo"]["totalResults"])
+        log.info("get_subscriptions: Total amount of subscriptions: %s (from youtube API)" % subscriptions_response["pageInfo"]["totalResults"])
 
     return sub_dict
 
@@ -697,7 +697,7 @@ def get_subscription_activity(credentials=None, channel=None, publishedAfter=Non
         act_array = [*act_array, *activity_response_nextpage]
     
     if nextPage is None:
-        log.warning("get_subscription_activity: Total amount of activity for subscription: %s (from youtube API)" % activity_response["pageInfo"]["totalResults"])
+        log.debug("get_subscription_activity: Total amount of activity for subscription %s: %s (from youtube API)" % (channel,activity_response["pageInfo"]["totalResults"]))
     
     return act_array
 
@@ -927,6 +927,7 @@ def main():
     setup_logger()
     
     log.debug("Arguments: {}".format(args))
+    log.debug("Some text", extra={"key": "value"})
     
     init_db()
         
@@ -1022,7 +1023,7 @@ def main():
                 log.debug("NOT using --published-after value")
                 if not subscription_from_db[0].get("timestamp") and subscription_from_db[0].get("timestamp") == None:
                     subscription_last_run = times["oneyearback_iso"]
-                    log.debug("subscription_last_run was empty in DB, and --published-after  was not set. Setting it to one year back: %s", subscription_last_run)
+                    log.warning("subscription_last_run was empty in DB, and --published-after  was not set. Setting it to one year back: %s", subscription_last_run)
                 else:
                     subscription_last_run = subscription_from_db[0].get("timestamp")
                     log.debug("subscription_last_run had value in DB: %s", subscription_last_run)
@@ -1031,10 +1032,10 @@ def main():
         
         if not datetime.fromisoformat(subscription_last_run) < reprocess_days:
             subscriptions_skipped = subscriptions_skipped + 1
-            log.warning("This subscription was processed within %s. Skipping for now", reprocess_days)
+            log.warning("This subscription '%s' was processed within %s. Skipping for now" % (subs["title"], reprocess_days))
             continue
         
-        log.debug("This subscription was last processed %s" % (datetime.fromisoformat(subscription_last_run).strftime(times["date_format"])))
+        log.debug("This %s subscription was last processed %s" % (subs["title"], datetime.fromisoformat(subscription_last_run).strftime(times["date_format"])))
         
         sub_activity_refined = []
         sub_activity = get_subscription_activity(credentials=credentials, channel=subs["id"], publishedAfter=subscription_last_run)
@@ -1052,7 +1053,7 @@ def main():
         
         sub_activity_refined.sort(key = lambda x:x['publishedAt'], reverse=True) if sub_activity != False else []
 
-        log.debug("sub_activity_refined: activity total count: %s" % (len(sub_activity_refined)))
+        log.info("sub_activity_refined: %s activity total count: %s" % (subs["title"], len(sub_activity_refined)))
         log.debug("sub_activity_refined: {}".format(json.dumps(sub_activity_refined, indent=4)))
         
         a=0
