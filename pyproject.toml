@@ -15,6 +15,7 @@ dependencies = [
     "python-dateutil",
     "retrying",
     "tzlocal",
+    "python-json-logger>=3.3.0",
 ]
 
 [project.scripts]
