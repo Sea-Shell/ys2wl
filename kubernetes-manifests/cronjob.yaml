@@ -22,7 +22,7 @@ spec:
               value: "0"
             - name: CONFIG
               value: /home/abc/.ys2wl/config.yaml
-            image: registry.hub.docker.com/bateau/ys2wl:1.7.0
+            image: registry.hub.docker.com/bateau/ys2wl:1.11.1
             imagePullPolicy: Always
             name: ys2wl
             volumeMounts:
