@@ -15,7 +15,7 @@ policy:
 approval_rules:
   - name: status checks and approval
     description: A rule that requires status checks to be green
-    conditions:
+    if:
       has_status:
         conclusions: ["success"]
         statuses:
@@ -24,6 +24,11 @@ approval_rules:
       count: 1
       teams:
         - "Sea-Shell/seashell"
+      conditions:
+        has_status:
+          conclusions: ["success"]
+          statuses:
+            - "lint / Commit lint"
 
   - name: seashell-auto-approval
     description: A rule that dont require approvals if from seashell
