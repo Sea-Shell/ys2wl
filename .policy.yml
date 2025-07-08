@@ -1,34 +1,26 @@
 ---
 policy:
   approval:
-    - and:
+    - or:
         - seashell-auto-approval
-        - or:
+        - and:
+            - status checks
             - dependabot-patch
             - dependabot-minor
-            - status checks and approval
   disapproval:
     requires:
       teams:
         - "Sea-Shell/owners"
 
 approval_rules:
-  - name: status checks and approval
+  - name: status checks
     description: A rule that requires status checks to be green
-    if:
-      has_status:
-        conclusions: ["success"]
-        statuses:
-          - "lint / Commit lint"
     requires:
-      count: 1
-      teams:
-        - "Sea-Shell/seashell"
       conditions:
         has_status:
           conclusions: ["success"]
           statuses:
-            - "lint / Commit lint"
+            - "Commit lint / lint / Commit lint (pull_request)"
 
   - name: seashell-auto-approval
     description: A rule that dont require approvals if from seashell
@@ -36,10 +28,6 @@ approval_rules:
       only_has_contributors_in:
         teams:
           - "Sea-Shell/seashell"
-      has_status:
-        conclusions: ["success"]
-        statuses:
-          - "lint / Commit lint"
       author_is_only_contributor: true
     requires:
       count: 0
