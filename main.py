@@ -1066,7 +1066,6 @@ def main():
                 regex = re.compile(r'\b%s\b' % word, re.IGNORECASE)
                 if regex.search(activity["title"]):
                     log.warning("Video %s (%s) title contains word '%s' which is in word-ignore list. Skipping", activity["title"], activity["videoId"], word)
-                    videos_skipped.append(f"activity['title'] contains word '{word}' which is in word-ignore list. Skipping")
                     videos_skipped_count = videos_skipped_count + 1
                     continue
             
