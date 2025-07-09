@@ -3,10 +3,10 @@ policy:
   approval:
     - or:
         - seashell-auto-approval
+        - dependabot-patch
+        - dependabot-minor
         - and:
             - status checks
-            - dependabot-patch
-            - dependabot-minor
   disapproval:
     requires:
       teams:
@@ -20,7 +20,7 @@ approval_rules:
         has_status:
           conclusions: ["success"]
           statuses:
-            - "Commit lint / lint / Commit lint (pull_request)"
+            - "lint / Commit lint"
 
   - name: seashell-auto-approval
     description: A rule that dont require approvals if from seashell
