@@ -334,7 +334,7 @@ def insert_video_to_db(videoId=None, timestamp=None, title=None, subscriptionId=
                 log.error('Sql error: {}'.format(err.args))
                 return False
         
-        log.debug("Video %s (%s) from %s added to database" % (title, videoId, subscriptionId))
+        log.debug("Video %s (%s) from %s added to database" % (title, videoId, subscriptionId), extra={"videoId": videoId, "title": title, "subscriptionId": subscriptionId})
 
         con.close()
     else:
@@ -815,7 +815,7 @@ def get_playlist(credentials=None, channelId=None, playlistId=None, nextPage=Non
     
     return playlist_dict
 
-def add_to_playlist(credentials=None, channelId=None, playlistId=None, playlistTitle=None, subscriptionId=None, videoId=None, videoTitle=None, videoType=None):
+def add_to_playlist(credentials=None, channelId=None, playlistId=None, playlistTitle=None, subscriptionId=None, subscriptionTitle=None, videoId=None, videoTitle=None, videoType=None):
     global errors
     global criticals
     global args
@@ -842,7 +842,7 @@ def add_to_playlist(credentials=None, channelId=None, playlistId=None, playlistT
         if args.log_level != "debug":
             try:
                 playlist_response = playlist_request.execute()
-                log.info("%s (id: %s. type: %s) added to %s (id: %s) in position %s" % (videoTitle, videoId, videoType, playlistTitle, playlistId, playlist_response["snippet"].get("position")))
+                log.info("%s (id: %s. type: %s) added to %s (id: %s) in position %s" % (videoTitle, videoId, videoType, playlistTitle, playlistId, playlist_response["snippet"].get("position")), extra={"subscriptionId": subscriptionId, "subscriptionTitle": subscriptionTitle, "videoId": videoId, "videoTitle": videoTitle, "videoType": videoType, "playlistId": playlistId, "playlistTitle": playlistTitle, "position": playlist_response["snippet"].get("position")})
                 log.debug("Playlist Insert respons: {}".format(json.dumps(playlist_response, indent=4)))
                 api_calls = api_calls + 1
                 videos_added = videos_added + 1
@@ -856,8 +856,8 @@ def add_to_playlist(credentials=None, channelId=None, playlistId=None, playlistT
                     log.error("Error: {}".format(err))
                 return False
         else:
-            log.debug("NOT REALY!!! %s (type: %s) added to %s in position None" % (videoId, videoType, playlistId))
             playlist_response = None
+            log.debug("NOT REALY!!! %s (type: %s) added to %s in position None" % (videoId, videoType, playlistId), extra={"subscriptionId": subscriptionId, "subscriptionTitle": subscriptionTitle, "videoId": videoId, "videoTitle": videoTitle, "videoType": videoType, "playlistId": playlistId, "playlistTitle": playlistTitle})
         
         insert_video_to_db(videoId=videoId, timestamp=times["now_iso"], title=videoTitle, subscriptionId=subscriptionId)
 
@@ -1034,7 +1034,7 @@ def main():
                     if youtube_minimum_length != 0 and video_length >= youtube_minimum_length:
 
                         if youtube_maximum_length != 0 and video_length <= youtube_maximum_length:
-                            add_to_playlist(credentials=credentials, channelId=channel["id"], playlistId=user_playlist["id"], playlistTitle=user_playlist["title"], subscriptionId=subs["id"], videoId=str(activity["videoId"]), videoTitle=str(activity["title"]), videoType=str(activity["type"]))
+                            add_to_playlist(credentials=credentials, channelId=channel["id"], playlistId=user_playlist["id"], playlistTitle=user_playlist["title"], subscriptionId=subs["id"], subscriptionTitle=subs["title"], videoId=str(activity["videoId"]), videoTitle=str(activity["title"]), videoType=str(activity["type"]))
                             time.sleep(args.youtube_playlist_sleep)
                         
                         else:
