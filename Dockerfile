@@ -6,6 +6,8 @@ RUN apk update && \
 
 FROM base AS build
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+RUN apk update && \
+    apk add --no-cache build-base cmake ninja
 ENV UV_PYTHON_INSTALL_DIR=/opt/uv/python
 USER 1000
 COPY pyproject.toml /opt/ys2wl/
