@@ -60,6 +60,7 @@ def get_arguments():
     parser.add('--config',                           env_var='CONFIG', is_config_file=True,                                      help='Path to config file in yaml format')
     parser.add('--pickle-file',                      env_var="PICKLE_FILE",                      default='credentials.pickle',   help='File to store access token once authenticated')
     parser.add('--credentials-file',                 env_var="CREDENTIALS_FILE",                 default='client_secret.json',   help='JSON file with credentials to oAuth2 account (https://console.developers.google.com/apis/credentials)')
+    parser.add('--no-webbrowser',                    env_var="NO_WEBBROWSER", action="store_true",                               help='Do not open a local webbrowser for authentication. Useful for remote SSH sessions')
     parser.add('--database-file',                    env_var="DATABASE_FILE",                    default='my.db',                help='Location of sqlite database file. Will be created if assigned file does not exists')
     parser.add('--local-json-files',                 env_var="LOCAL_JSON_FILES", action="store_true",                            help='Use local JSON files for testing instead of the YouTube API')
     parser.add('--compare-distance-number',          env_var="COMPARE_DISTANCE_NUMBER",          default=80, type=int,           help="Levenstein number to compare difference betwene existing videos and new to avoid adding similar titled videos.")
@@ -559,7 +560,7 @@ def authenticate(credentials_file=None, pickle_credentials=None, scopes=None):
         else:
             log.debug("Fetching new tokens")
             flow = InstalledAppFlow.from_client_secrets_file(credentials_file, scopes=scopes)
-            flow.run_local_server(port=8080, prompt='consent')
+            flow.run_local_server(port=8080, prompt='consent', open_browser=args.no_webbrowser)
             credentials = flow.credentials
 
             with open(pickle_credentials, "wb") as f:
