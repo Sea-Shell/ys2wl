@@ -36,7 +36,7 @@ jobs:
     needs: release
     steps:
       - name: checkout
-        uses: actions/checkout@v6.0.0
+        uses: actions/checkout@v6.0.1
         with:
           ref: refs/tags/${{ needs.release.outputs.git-tag }}
           fetch-depth: 0
@@ -67,12 +67,12 @@ jobs:
     steps:
       # Checkout repo code
       - name: Checkout repo with tag
-        uses: actions/checkout@v6.0.0
+        uses: actions/checkout@v6.0.1
         if: ${{ needs.release.outputs.new-release-published == 'true' }}
         with:
           ref: refs/tags/${{ needs.release.outputs.git-tag }}
       - name: Checkout repo without tag
-        uses: actions/checkout@v6.0.0
+        uses: actions/checkout@v6.0.1
         if: ${{ needs.release.outputs.new-release-published != 'true' }}
       - name: Kubeconfig context
         uses: azure/k8s-set-context@v4
