@@ -1,11 +1,11 @@
-FROM python:3.15.0a8-alpine AS base
+FROM python:3.15.0a8-alpine@sha256:e71f360edcbf53ed8f7769652d251e0c6e672c498fe974a841176b84d4c1c63e AS base
 
 RUN apk update && \
   apk add dumb-init && \
   adduser --disabled-password --uid 1000 --home /opt/ys2wl ys2wl
 
 FROM base AS build
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:latest@sha256:240fb85ab0f263ef12f492d8476aa3a2e4e1e333f7d67fbdd923d00a506a516a /uv /uvx /bin/
 RUN apk update && \
     apk add --no-cache build-base cmake ninja
 ENV UV_PYTHON_INSTALL_DIR=/opt/uv/python
