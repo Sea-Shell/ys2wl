@@ -1,4 +1,4 @@
 ---
-remote: Sea-Shell/seashell-config
+remote: Sea-Shell/seashell-configs
 path: policybot/policybot.yaml
 ref: main
