@@ -5,7 +5,7 @@ RUN apk update && \
   adduser --disabled-password --uid 1000 --home /opt/ys2wl ys2wl
 
 FROM base AS build
-COPY --from=ghcr.io/astral-sh/uv:latest@sha256:e590846f4776907b254ac0f44b5b380347af5d90d668138ca7938d1b0c2f98d3 /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:latest@sha256:440fd6477af86a2f1b38080c539f1672cd22acb1b1a47e321dba5158ab08864d /uv /uvx /bin/
 RUN apk update && \
     apk add --no-cache build-base cmake ninja
 ENV UV_PYTHON_INSTALL_DIR=/opt/uv/python
