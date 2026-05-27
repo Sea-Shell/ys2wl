@@ -16,6 +16,7 @@ dependencies = [
     "retrying",
     "tzlocal",
     "python-json-logger>=4.1.0",
+    "cffi>=2.0.0",
 ]
 
 [project.scripts]
