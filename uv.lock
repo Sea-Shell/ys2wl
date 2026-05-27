@@ -631,6 +631,7 @@ wheels = [
 name = "ys2wl"
 source = { virtual = "." }
 dependencies = [
+    { name = "cffi" },
     { name = "configargparse" },
     { name = "dateutils" },
     { name = "fuzzywuzzy" },
@@ -648,6 +649,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "cffi", specifier = ">=2.0.0" },
     { name = "configargparse" },
     { name = "dateutils" },
     { name = "fuzzywuzzy" },

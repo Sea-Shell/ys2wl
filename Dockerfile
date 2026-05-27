@@ -1,4 +1,4 @@
-FROM python:3.15.0b1-alpine@sha256:8fe37a98f64ee15fee985b1536cc005aef67847c31f435772250165307a68c2e AS base
+FROM python:3.13-alpine AS base
 
 RUN apk update && \
   apk add dumb-init && \
@@ -7,7 +7,7 @@ RUN apk update && \
 FROM base AS build
 COPY --from=ghcr.io/astral-sh/uv:latest@sha256:440fd6477af86a2f1b38080c539f1672cd22acb1b1a47e321dba5158ab08864d /uv /uvx /bin/
 RUN apk update && \
-    apk add --no-cache build-base cmake ninja
+    apk add --no-cache build-base cmake libffi-dev ninja
 ENV UV_PYTHON_INSTALL_DIR=/opt/uv/python
 USER 1000
 COPY pyproject.toml /opt/ys2wl/
