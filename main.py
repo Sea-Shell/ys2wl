@@ -25,6 +25,7 @@ subscriptions_processed=0
 subscriptions_skipped=0
 videos_added=0
 videos_skipped_count=0
+title_cache = []
 dist_count=0
 dist_sum=0
 
@@ -288,37 +289,61 @@ def normalize_string(string):
     
     return new_string
 
-def compare_title_with_db_title(new_title=None):
-    global args
-
+def load_title_cache():
+    global title_cache
     con = db_connect(args.database_file)
+    try:
+        query = con.execute('SELECT title FROM videos')
+        rows = query.fetchall()
+        title_cache = [normalize_string(row[0]) for row in rows if row[0]]
+        log.debug("Loaded %d titles into title cache", len(title_cache))
+    except sqlite3.Error as err:
+        log.error('Sql error: {}'.format(err.args))
+    finally:
+        con.close()
 
+def compare_title_with_db_title(new_title=None):
+    global title_cache
     new_title = normalize_string(new_title)
-    
-    log.debug("Checking if %s or similar is in DB", new_title)
-    with con:
-        try:
-            query = con.execute('SELECT videoId,title FROM videos')
-        except sqlite3.Error as err:
-            log.error('Sql error: {}'.format(err.args))
-            return False
-        
-    rows = query.fetchall()
-    log.debug("count on rows: %s" % len(rows))
-    con.close()
-    
-    for row in rows:
-        existing_title_before = row[1]
-        existing_title = normalize_string(existing_title_before)
-
+    log.debug("Checking if %s or similar is in cache", new_title)
+    for existing_title in title_cache:
         dist = distance(existing_title, new_title)
-
         if dist > args.compare_distance_number:
-            log.debug("dist result: %s which is less than %s", dist, args.compare_distance_number)
-            log.debug("%s was to close %s (distance: %s <= %s). Not adding to playlist", new_title, existing_title, dist, args.compare_distance_number)
+            log.debug("%s too close to %s (distance: %s). Not adding to playlist", new_title, existing_title, dist)
             return False
-
     return True
+
+#def compare_title_with_db_title(new_title=None):
+#    global args
+#
+#    con = db_connect(args.database_file)
+#
+#    new_title = normalize_string(new_title)
+#    
+#    log.debug("Checking if %s or similar is in DB", new_title)
+#    with con:
+#        try:
+#            query = con.execute('SELECT videoId,title FROM videos')
+#        except sqlite3.Error as err:
+#            log.error('Sql error: {}'.format(err.args))
+#            return False
+#        
+#    rows = query.fetchall()
+#    log.debug("count on rows: %s" % len(rows))
+#    con.close()
+#    
+#    for row in rows:
+#        existing_title_before = row[1]
+#        existing_title = normalize_string(existing_title_before)
+#
+#        dist = distance(existing_title, new_title)
+#
+#        if dist > args.compare_distance_number:
+#            log.debug("dist result: %s which is less than %s", dist, args.compare_distance_number)
+#            log.debug("%s was to close %s (distance: %s <= %s). Not adding to playlist", new_title, existing_title, dist, args.compare_distance_number)
+#            return False
+#
+#    return True
 
 def insert_video_to_db(videoId=None, timestamp=None, title=None, subscriptionId=None):
     global args
@@ -503,18 +528,19 @@ def get_subscription_from_db(subscriptionId=None):
 def get_file_list(file=None, fileType=None):
     global args
 
-    log.debug("loading video ignore-file '%s'", file)
+    log.debug("loading ignore-file '%s'", file)
 
     try:
         ignore_file = open(file, "r")
 
         ignore_data = ignore_file.read()
-        ignore_list = ignore_data.split("\n")
+        # ignore_list = ignore_data.split("\n")
+        ignore_list = [line for line in ignore_data.split("\n") if line.strip()]
         ignore_file.close()
-        log.debug(f"{fileType} list loaded from video file {file} {format(ignore_list)}")
+        log.debug(f"{fileType} list loaded from file {file} {format(ignore_list)}")
 
     except:
-        log.error(f"could not open video ignore-file {file}")
+        log.error(f"could not open ignore-file {file}")
         ignore_list=[]
 
     return ignore_list
@@ -861,6 +887,7 @@ def add_to_playlist(credentials=None, channelId=None, playlistId=None, playlistT
             log.debug("NOT REALY!!! %s (type: %s) added to %s in position None" % (videoId, videoType, playlistId), extra={"subscriptionId": subscriptionId, "subscriptionTitle": subscriptionTitle, "videoId": videoId, "videoTitle": videoTitle, "videoType": videoType, "playlistId": playlistId, "playlistTitle": playlistTitle})
         
         insert_video_to_db(videoId=videoId, timestamp=times["now_iso"], title=videoTitle, subscriptionId=subscriptionId)
+        title_cache.append(normalize_string(videoTitle))
 
     return playlist_response
 
@@ -883,6 +910,7 @@ def main():
     log.debug("Arguments: {}".format(args))
     
     init_db()
+    load_title_cache()
         
     db_last_run = get_last_run()
             
@@ -1014,7 +1042,7 @@ def main():
             maximum_length = False
 
             for word in ignore_word_list:
-                regex = re.compile(r'\b%s\b' % word, re.IGNORECASE)
+                regex = re.compile(r'\b' + re.escape(word) + r'\b', re.IGNORECASE)
                 if regex.search(activity["title"]):
                     log.warning(f"Video {activity["title"]} ({activity["videoId"]}) title contains word '{word}' which is in word-ignore list. Skipping", extra={"subscription_title": subs["title"], "subscription_id": subs["id"]})
                     videos_skipped_count = videos_skipped_count + 1
