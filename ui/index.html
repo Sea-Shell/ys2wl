@@ -167,7 +167,11 @@ label { display: block; font-size: 0.875rem; color: var(--text2); margin-bottom:
     <button id="triggerBtn">▶ Run Pipeline</button>
     <div id="triggerResult" style="margin-top:0.75rem"></div>
   </section>
-  <section id="subscriptions" class="page"></section>
+  <section id="subscriptions" class="page">
+    <h2>Subscriptions</h2>
+    <input id="subSearch" placeholder="Filter channels..." style="max-width:300px;margin-bottom:1rem">
+    <div id="subList"></div>
+  </section>
   <section id="rules" class="page"></section>
   <section id="config" class="page"></section>
   <section id="runs" class="page"></section>
@@ -270,6 +274,46 @@ document.getElementById('triggerBtn')?.addEventListener('click', async function(
     this.disabled = false; this.textContent = '▶ Run Pipeline';
   }
 });
+
+// ---- Subscriptions renderer ----
+renderers.subscriptions = async function() {
+  const container = document.getElementById('subList');
+  container.innerHTML = '<p style="color:var(--text2)">Loading...</p>';
+  try {
+    const subs = await api('/api/subscriptions');
+    container.innerHTML = `<table><thead><tr><th>Channel</th><th>Channel ID</th></tr></thead>
+      <tbody>${Array.isArray(subs) ? subs.map(s => `<tr data-cid="${escapeHtml(s.channel_id)}" class="sub-row" style="cursor:pointer">
+        <td>${escapeHtml(s.title)}</td><td style="color:var(--text2);font-size:0.75rem">${escapeHtml(s.channel_id)}</td>
+      </tr>`).join('') : ''}</tbody></table>`;
+    document.getElementById('subSearch').oninput = function() {
+      const q = this.value.toLowerCase();
+      document.querySelectorAll('.sub-row').forEach(r => {
+        r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
+      });
+    };
+    document.querySelectorAll('.sub-row').forEach(r => {
+      r.addEventListener('click', async function() {
+        const cid = this.dataset.cid;
+        const next = this.nextElementSibling;
+        if (next && next.classList.contains('activity-row')) {
+          next.remove(); return;
+        }
+        try {
+          const acts = await api('/api/subscriptions/' + encodeURIComponent(cid) + '/activity');
+          const row = document.createElement('tr'); row.className = 'activity-row';
+          row.innerHTML = `<td colspan="2" style="padding:0.5rem 1rem">
+            <table style="font-size:0.75rem">
+              <thead><tr><th>Video</th><th>Type</th><th>Published</th></tr></thead>
+              <tbody>${Array.isArray(acts) ? acts.map(a => `<tr>
+                <td>${escapeHtml(a.title)}</td><td>${a.video_type}</td><td>${a.published_at}</td>
+              </tr>`).join('') : ''}</tbody></table>
+          </td>`;
+          this.parentNode.insertBefore(row, this.nextSibling);
+        } catch { showToast('Failed to load activity'); }
+      });
+    });
+  } catch { container.innerHTML = '<p style="color:var(--error)">Failed to load subscriptions</p>'; }
+};
 
 // ---- Init ----
 const renderers = {};

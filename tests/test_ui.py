@@ -68,3 +68,9 @@ async def test_dashboard_has_stats_cards(client):
 async def test_dashboard_has_trigger_button(client):
     resp = await client.get("/ui/index.html")
     assert "Run Pipeline" in resp.text or "triggerBtn" in resp.text
+
+
+@pytest.mark.asyncio
+async def test_subscriptions_section_has_search(client):
+    resp = await client.get("/ui/index.html")
+    assert "subSearch" in resp.text or "Filter channels" in resp.text
