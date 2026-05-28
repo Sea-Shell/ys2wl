@@ -55,3 +55,16 @@ async def test_index_has_five_nav_links(client):
 async def test_index_has_api_wrapper(client):
     resp = await client.get("/ui/index.html")
     assert "async function api" in resp.text
+
+
+@pytest.mark.asyncio
+async def test_dashboard_has_stats_cards(client):
+    resp = await client.get("/ui/index.html")
+    assert "statSubs" in resp.text or "Subscriptions" in resp.text
+    assert "statRules" in resp.text or "Routing Rules" in resp.text
+
+
+@pytest.mark.asyncio
+async def test_dashboard_has_trigger_button(client):
+    resp = await client.get("/ui/index.html")
+    assert "Run Pipeline" in resp.text or "triggerBtn" in resp.text

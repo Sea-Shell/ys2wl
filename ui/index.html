@@ -156,7 +156,17 @@ label { display: block; font-size: 0.875rem; color: var(--text2); margin-bottom:
     <span id="lastRunText"></span>
   </div>
 
-  <section id="dashboard" class="page active"></section>
+  <section id="dashboard" class="page active">
+    <h2>Dashboard</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem">
+      <div class="card"><h3>Subscriptions</h3><div class="value" id="statSubs">-</div></div>
+      <div class="card"><h3>Routing Rules</h3><div class="value" id="statRules">-</div></div>
+      <div class="card"><h3>Last Run</h3><div class="value" id="statLastRun">-</div></div>
+      <div class="card"><h3>Videos Added</h3><div class="value" id="statVideosAdded">-</div></div>
+    </div>
+    <button id="triggerBtn">▶ Run Pipeline</button>
+    <div id="triggerResult" style="margin-top:0.75rem"></div>
+  </section>
   <section id="subscriptions" class="page"></section>
   <section id="rules" class="page"></section>
   <section id="config" class="page"></section>
@@ -226,6 +236,40 @@ async function updateHealth() {
     document.getElementById('healthText').textContent = 'unreachable';
   }
 }
+
+// ---- Dashboard renderer ----
+renderers.dashboard = async function() {
+  try {
+    const [subs, rules, runs] = await Promise.all([
+      api('/api/subscriptions'),
+      api('/api/rules'),
+      api('/api/pipeline/runs'),
+    ]);
+    document.getElementById('statSubs').textContent = Array.isArray(subs) ? subs.length : '-';
+    document.getElementById('statRules').textContent = Array.isArray(rules) ? rules.length : '-';
+    if (Array.isArray(runs) && runs.length > 0) {
+      const last = runs[0];
+      document.getElementById('statLastRun').textContent = last.status || '-';
+      document.getElementById('statVideosAdded').textContent = last.videos_added ?? '-';
+    }
+  } catch { /* cards stay as '-' */ }
+};
+
+// ---- Trigger ----
+document.getElementById('triggerBtn')?.addEventListener('click', async function() {
+  this.disabled = true; this.innerHTML = '<span class="spinner"></span>Running...';
+  document.getElementById('triggerResult').innerHTML = '';
+  try {
+    const data = await api('/api/pipeline/trigger', { method: 'POST' });
+    showToast('Pipeline started (run #' + data.run_id + ')', 'success');
+    renderers.dashboard();
+  } catch (e) {
+    document.getElementById('triggerResult').innerHTML =
+      '<span style="color:var(--error)">' + e.message + '</span>';
+  } finally {
+    this.disabled = false; this.textContent = '▶ Run Pipeline';
+  }
+});
 
 // ---- Init ----
 const renderers = {};
