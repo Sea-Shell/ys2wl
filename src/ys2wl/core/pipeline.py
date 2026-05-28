@@ -12,6 +12,7 @@ from ys2wl.filters.duration_filter import duration_filter
 from ys2wl.filters.title_similarity import title_similarity
 from ys2wl.filters.ignore_list import ignore_list_filter
 from ys2wl.filters.router import evaluate_rules
+from ys2wl import metrics
 from ys2wl.models.pipeline import PipelineSummary, VideoResult, FilterResult
 from ys2wl.models.youtube import Channel, Playlist, Subscription, RoutingRule
 
@@ -48,6 +49,7 @@ class PipelineOrchestrator:
     def run(self) -> PipelineSummary:
         now_iso = datetime.now(timezone.utc).isoformat()
         summary = PipelineSummary(started_at=now_iso)
+        start = time.time()
 
         try:
             subscriptions = self.youtube.get_subscriptions()
@@ -115,6 +117,18 @@ class PipelineOrchestrator:
 
         summary.finished_at = datetime.now(timezone.utc).isoformat()
         summary.status = "completed" if summary.errors == 0 else "completed_with_errors"
+
+        duration = time.time() - start
+        metrics.pipeline_duration_seconds.observe(duration)
+        metrics.subscriptions_processed_total.inc(summary.subscriptions_processed)
+        metrics.subscriptions_skipped_total.inc(summary.subscriptions_skipped)
+        metrics.videos_added_total.inc(summary.videos_added)
+        metrics.videos_skipped_total.labels(reason="total").inc(summary.videos_skipped)
+        metrics.errors_total.inc(summary.errors)
+        metrics.last_pipeline_status.set(1 if summary.errors == 0 else 0)
+        if self.youtube:
+            metrics.quota_estimate.set(self.youtube.api_calls[0])
+
         return summary
 
     def _process_activity(self, activity, channel_title: str, subscription_id: str) -> VideoResult:
