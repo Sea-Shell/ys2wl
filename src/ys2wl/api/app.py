@@ -8,22 +8,20 @@ from fastapi.responses import RedirectResponse
 import os
 from ys2wl.config import load_settings, Settings
 from ys2wl.core.youtube import YouTubeAPIClient
-from ys2wl.core.auth import load_credentials, SCOPES
+from ys2wl.core.auth import load_credentials
 from ys2wl.core.scheduler import PipelineScheduler
 from ys2wl.db.migrations import init_db
-from ys2wl.db import repository as repo
-from ys2wl.api.routes import health, config, rules, pipeline as pipeline_routes, subscriptions
+from ys2wl.api.routes import (
+    health,
+    config,
+    rules,
+    pipeline as pipeline_routes,
+    subscriptions,
+)
 from ys2wl.api.routes import auth as auth_routes
 from prometheus_client import make_asgi_app
 
 log = logging.getLogger("ys2wl.api")
-
-SCOPES = [
-    "https://www.googleapis.com/auth/youtubepartner",
-    "https://www.googleapis.com/auth/youtube.force-ssl",
-    "https://www.googleapis.com/auth/youtube",
-    "https://www.googleapis.com/auth/youtube.readonly",
-]
 
 
 class AppState:
@@ -83,7 +81,10 @@ def create_app() -> FastAPI:
     metrics_app = make_asgi_app()
     app.mount("/metrics", metrics_app)
 
-    ui_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "ui")
+    ui_dir = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))),
+        "ui",
+    )
     os.makedirs(ui_dir, exist_ok=True)
     app.mount("/ui", StaticFiles(directory=ui_dir, html=True), name="ui")
 

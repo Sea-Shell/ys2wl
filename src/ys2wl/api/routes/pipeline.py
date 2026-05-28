@@ -28,12 +28,16 @@ async def trigger_pipeline(request: Request):
             channels = state.youtube.get_channel_id()
             if channels:
                 channel_data = {"id": channels[0].id, "title": channels[0].title}
-                repo.insert_channel(state.db_con, channel_data["id"], channel_data["title"])
+                repo.insert_channel(
+                    state.db_con, channel_data["id"], channel_data["title"]
+                )
         if not playlist_data:
             playlists = state.youtube.get_user_playlists(channel_data["id"])
             if playlists:
                 playlist_data = {"id": playlists[0].id, "title": playlists[0].title}
-                repo.insert_playlist(state.db_con, playlist_data["id"], playlist_data["title"])
+                repo.insert_playlist(
+                    state.db_con, playlist_data["id"], playlist_data["title"]
+                )
 
         channel = Channel(id=channel_data["id"], title=channel_data["title"])
         playlist = Playlist(id=playlist_data["id"], title=playlist_data["title"])
@@ -45,8 +49,12 @@ async def trigger_pipeline(request: Request):
         db_rules = repo.get_routing_rules(state.db_con)
         routing_rules = [
             RoutingRule(
-                id=r["id"], name=r["name"], priority=r["priority"], field=r["field"],
-                operator=r["operator"], pattern=r["pattern"],
+                id=r["id"],
+                name=r["name"],
+                priority=r["priority"],
+                field=r["field"],
+                operator=r["operator"],
+                pattern=r["pattern"],
                 destination_playlist_id=r["destination_playlist_id"],
                 destination_playlist_title=r.get("destination_playlist_title", ""),
                 enabled=bool(r["enabled"]),
@@ -69,24 +77,33 @@ async def trigger_pipeline(request: Request):
         )
 
         summary = orchestrator.run()
-        repo.finish_pipeline_run(state.db_con, run_id, {
-            "status": summary.status,
-            "videos_added": summary.videos_added,
-            "videos_skipped": summary.videos_skipped,
-            "subscriptions_processed": summary.subscriptions_processed,
-            "subscriptions_skipped": summary.subscriptions_skipped,
-            "errors": summary.errors,
-            "error_message": summary.error_message,
-        })
+        repo.finish_pipeline_run(
+            state.db_con,
+            run_id,
+            {
+                "status": summary.status,
+                "videos_added": summary.videos_added,
+                "videos_skipped": summary.videos_skipped,
+                "subscriptions_processed": summary.subscriptions_processed,
+                "subscriptions_skipped": summary.subscriptions_skipped,
+                "errors": summary.errors,
+                "error_message": summary.error_message,
+            },
+        )
 
         if summary.errors == 0:
             repo.set_last_run(state.db_con, summary.started_at)
 
     except Exception as e:
         log.error("Pipeline run %d failed: %s", run_id, e)
-        repo.finish_pipeline_run(state.db_con, run_id, {
-            "status": "failed", "error_message": str(e),
-        })
+        repo.finish_pipeline_run(
+            state.db_con,
+            run_id,
+            {
+                "status": "failed",
+                "error_message": str(e),
+            },
+        )
         raise HTTPException(status_code=500, detail=str(e))
 
     return TriggerResponse(run_id=run_id)

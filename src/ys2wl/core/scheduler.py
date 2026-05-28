@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timezone
-from typing import Callable, Optional
+from typing import Callable
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 
@@ -15,12 +15,16 @@ class PipelineScheduler:
 
     def start(self) -> None:
         trigger = CronTrigger.from_crontab(self.cron_expression)
-        self.scheduler.add_job(self.pipeline_fn, trigger, id="pipeline", name="YouTube Pipeline")
+        self.scheduler.add_job(
+            self.pipeline_fn, trigger, id="pipeline", name="YouTube Pipeline"
+        )
         self.scheduler.start()
         log.info("Scheduler started with cron: %s", self.cron_expression)
 
     async def run_once(self) -> None:
-        log.info("Manual pipeline trigger at %s", datetime.now(timezone.utc).isoformat())
+        log.info(
+            "Manual pipeline trigger at %s", datetime.now(timezone.utc).isoformat()
+        )
         await self.pipeline_fn()
 
     def stop(self) -> None:

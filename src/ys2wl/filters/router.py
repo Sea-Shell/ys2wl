@@ -4,7 +4,9 @@ from ys2wl.models.youtube import Activity, RoutingRule
 from ys2wl.models.pipeline import RouteResult
 
 
-def _get_field_value(activity: Activity, channel_title: str, duration_seconds: int, field: Optional[str]) -> Optional[str]:
+def _get_field_value(
+    activity: Activity, channel_title: str, duration_seconds: int, field: Optional[str]
+) -> Optional[str]:
     mapping = {
         "channel_title": channel_title,
         "video_title": activity.title,

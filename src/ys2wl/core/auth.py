@@ -39,23 +39,31 @@ def get_client_config(credentials_file: str) -> Optional[dict]:
 def start_device_flow(client_id: str) -> dict:
     """Start OAuth 2.0 Device Flow. Returns device_code, user_code, verification_url, interval."""
     with httpx.Client() as client:
-        resp = client.post(DEVICE_CODE_URL, data={
-            "client_id": client_id,
-            "scope": " ".join(SCOPES),
-        })
+        resp = client.post(
+            DEVICE_CODE_URL,
+            data={
+                "client_id": client_id,
+                "scope": " ".join(SCOPES),
+            },
+        )
         resp.raise_for_status()
         return resp.json()
 
 
-def poll_device_flow(client_id: str, client_secret: str, device_code: str) -> tuple[Optional[Credentials], Optional[str]]:
+def poll_device_flow(
+    client_id: str, client_secret: str, device_code: str
+) -> tuple[Optional[Credentials], Optional[str]]:
     """Poll Google for token. Returns (credentials, None) on success, (None, status) if pending/failed."""
     with httpx.Client() as client:
-        resp = client.post(TOKEN_URL, data={
-            "client_id": client_id,
-            "client_secret": client_secret,
-            "device_code": device_code,
-            "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
-        })
+        resp = client.post(
+            TOKEN_URL,
+            data={
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "device_code": device_code,
+                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+            },
+        )
         data = resp.json()
     if "access_token" in data:
         creds = OAuth2Credentials(
@@ -96,8 +104,16 @@ def credentials_status(credentials: Optional[Credentials]) -> dict:
         if credentials.expired and credentials.refresh_token:
             try:
                 credentials.refresh(Request())
-                return {"authenticated": True, "expires_at": str(credentials.expiry) if credentials.expiry else None}
+                return {
+                    "authenticated": True,
+                    "expires_at": str(credentials.expiry)
+                    if credentials.expiry
+                    else None,
+                }
             except Exception:
                 return {"authenticated": False}
         return {"authenticated": False}
-    return {"authenticated": True, "expires_at": str(credentials.expiry) if credentials.expiry else None}
+    return {
+        "authenticated": True,
+        "expires_at": str(credentials.expiry) if credentials.expiry else None,
+    }

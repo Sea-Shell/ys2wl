@@ -1,10 +1,9 @@
 import re
-from typing import Optional
 from ys2wl.models.pipeline import FilterResult
 
 
 def _normalize(title: str) -> str:
-    return re.sub(r'[^a-zA-Z0-9\-_]+', ' ', title).lower()
+    return re.sub(r"[^a-zA-Z0-9\-_]+", " ", title).lower()
 
 
 def _fuzz_ratio(s1: str, s2: str) -> int:
@@ -33,7 +32,9 @@ def _fuzz_ratio(s1: str, s2: str) -> int:
     return int((1 - costs[m] / max_len) * 100)
 
 
-def title_similarity(new_title: str, existing_titles: list[tuple[str, str]], threshold: int) -> FilterResult:
+def title_similarity(
+    new_title: str, existing_titles: list[tuple[str, str]], threshold: int
+) -> FilterResult:
     normalized_new = _normalize(new_title)
     for video_id, existing_title in existing_titles:
         normalized_existing = _normalize(existing_title)

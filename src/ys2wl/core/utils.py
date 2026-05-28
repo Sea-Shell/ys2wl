@@ -5,8 +5,8 @@ from typing import Optional
 def time_to_seconds(time_str: str) -> int:
     if not time_str or time_str == "0s":
         return 0
-    pattern = r'(\d+)([smhd])'
-    units = {'s': 1, 'm': 60, 'h': 3600, 'd': 86400}
+    pattern = r"(\d+)([smhd])"
+    units = {"s": 1, "m": 60, "h": 3600, "d": 86400}
     matches = re.findall(pattern, time_str)
     total = 0
     for value, unit in matches:

@@ -14,7 +14,7 @@ from ys2wl.filters.ignore_list import ignore_list_filter
 from ys2wl.filters.router import evaluate_rules
 from ys2wl import metrics
 from ys2wl.models.pipeline import PipelineSummary, VideoResult, FilterResult
-from ys2wl.models.youtube import Channel, Playlist, Subscription, RoutingRule
+from ys2wl.models.youtube import Channel, Playlist, RoutingRule
 
 log = logging.getLogger("ys2wl.pipeline")
 
@@ -68,20 +68,32 @@ class PipelineOrchestrator:
 
             last_processed = repo.get_subscription_timestamp(self.db_con, sub.id)
             if last_processed:
-                reprocess_threshold = datetime.now(timezone.utc) - timedelta(days=self.settings.reprocess_days)
+                reprocess_threshold = datetime.now(timezone.utc) - timedelta(
+                    days=self.settings.reprocess_days
+                )
                 try:
                     last_dt = datetime.fromisoformat(last_processed)
                     if last_dt.replace(tzinfo=timezone.utc) > reprocess_threshold:
-                        log.info("Subscription '%s' processed within %d days, skipping", sub.title, self.settings.reprocess_days)
+                        log.info(
+                            "Subscription '%s' processed within %d days, skipping",
+                            sub.title,
+                            self.settings.reprocess_days,
+                        )
                         summary.subscriptions_skipped += 1
                         continue
                 except ValueError:
                     pass
 
-            published_after = self.settings.published_after or last_processed or (datetime.now(timezone.utc) - timedelta(weeks=52)).isoformat()
+            published_after = (
+                self.settings.published_after
+                or last_processed
+                or (datetime.now(timezone.utc) - timedelta(weeks=52)).isoformat()
+            )
 
             try:
-                activities = self.youtube.get_subscription_activity(sub.channel_id, published_after=published_after)
+                activities = self.youtube.get_subscription_activity(
+                    sub.channel_id, published_after=published_after
+                )
             except Exception as e:
                 log.error("Failed to get activity for %s: %s", sub.title, e)
                 summary.errors += 1
@@ -90,7 +102,10 @@ class PipelineOrchestrator:
             summary.subscriptions_processed += 1
             activity_count = 0
             for activity in activities:
-                if self.settings.activity_limit > 0 and activity_count >= self.settings.activity_limit:
+                if (
+                    self.settings.activity_limit > 0
+                    and activity_count >= self.settings.activity_limit
+                ):
                     break
                 activity_count += 1
 
@@ -108,7 +123,10 @@ class PipelineOrchestrator:
 
             repo.insert_subscription(self.db_con, sub.id, sub.title, now_iso)
 
-            if self.settings.subscription_limit > 0 and summary.subscriptions_processed >= self.settings.subscription_limit:
+            if (
+                self.settings.subscription_limit > 0
+                and summary.subscriptions_processed >= self.settings.subscription_limit
+            ):
                 log.info("Subscription limit reached")
                 break
 
@@ -131,7 +149,9 @@ class PipelineOrchestrator:
 
         return summary
 
-    def _process_activity(self, activity, channel_title: str, subscription_id: str) -> VideoResult:
+    def _process_activity(
+        self, activity, channel_title: str, subscription_id: str
+    ) -> VideoResult:
         result = VideoResult(
             video_id=activity.video_id,
             title=activity.title,
@@ -148,19 +168,29 @@ class PipelineOrchestrator:
         fr = ignore_list_filter(activity.video_id, self.ignore_videos)
         if not fr.passed:
             result.filter_result = fr
-            log.info("Filtered by ignore list: %s - %s", channel_title, activity.video_id)
+            log.info(
+                "Filtered by ignore list: %s - %s", channel_title, activity.video_id
+            )
             return result
 
         if repo.video_exists(self.db_con, activity.video_id):
-            result.filter_result = FilterResult(passed=False, reason="Already in DB", skipped_by="db_exists")
-            log.info("Skipped (exists in DB): %s - %s", channel_title, activity.video_id)
+            result.filter_result = FilterResult(
+                passed=False, reason="Already in DB", skipped_by="db_exists"
+            )
+            log.info(
+                "Skipped (exists in DB): %s - %s", channel_title, activity.video_id
+            )
             return result
 
         existing_titles = repo.get_all_video_titles(self.db_con)
-        fr = title_similarity(activity.title, existing_titles, self.settings.compare_distance)
+        fr = title_similarity(
+            activity.title, existing_titles, self.settings.compare_distance
+        )
         if not fr.passed:
             result.filter_result = fr
-            log.info("Filtered by title similarity: %s - %s", channel_title, activity.title)
+            log.info(
+                "Filtered by title similarity: %s - %s", channel_title, activity.title
+            )
             return result
 
         video_length = 0
@@ -174,25 +204,46 @@ class PipelineOrchestrator:
         fr = duration_filter(video_length, min_sec, max_sec)
         if not fr.passed:
             result.filter_result = fr
-            log.info("Filtered by duration: %s - %s (%ds)", channel_title, activity.title, video_length)
+            log.info(
+                "Filtered by duration: %s - %s (%ds)",
+                channel_title,
+                activity.title,
+                video_length,
+            )
             return result
 
         route_result = evaluate_rules(
-            activity, channel_title, video_length,
-            self.routing_rules, self.default_playlist_id, self.default_playlist_title,
+            activity,
+            channel_title,
+            video_length,
+            self.routing_rules,
+            self.default_playlist_id,
+            self.default_playlist_title,
         )
         result.route_result = route_result
 
         try:
-            success = self.youtube.add_to_playlist(route_result.playlist_id, activity.video_id)
+            success = self.youtube.add_to_playlist(
+                route_result.playlist_id, activity.video_id
+            )
             if success:
                 repo.insert_video(
-                    self.db_con, activity.video_id, datetime.now(timezone.utc).isoformat(),
-                    activity.title, subscription_id, route_result.playlist_id,
-                    video_length, route_result.rule_name,
+                    self.db_con,
+                    activity.video_id,
+                    datetime.now(timezone.utc).isoformat(),
+                    activity.title,
+                    subscription_id,
+                    route_result.playlist_id,
+                    video_length,
+                    route_result.rule_name,
                 )
                 result.added = True
-                log.info("Added: %s -> %s (%s)", activity.title, route_result.playlist_title, route_result.rule_name)
+                log.info(
+                    "Added: %s -> %s (%s)",
+                    activity.title,
+                    route_result.playlist_title,
+                    route_result.rule_name,
+                )
             else:
                 result.error = "add_to_playlist returned False"
         except Exception as e:

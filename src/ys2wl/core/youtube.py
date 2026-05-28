@@ -12,13 +12,36 @@ from googleapiclient.errors import HttpError
 from ys2wl.models.youtube import Channel, Playlist, Subscription, Activity
 
 log = logging.getLogger("ys2wl.youtube")
-CRITICAL_STATUSES = {400, 401, 402, 403, 404, 405, 409, 410, 412, 413, 416, 417, 428, 429, 500, 501, 503}
+CRITICAL_STATUSES = {
+    400,
+    401,
+    402,
+    403,
+    404,
+    405,
+    409,
+    410,
+    412,
+    413,
+    416,
+    417,
+    428,
+    429,
+    500,
+    501,
+    503,
+}
 MAX_RETRIES = 3
 RETRY_DELAYS = [1, 2, 4]
 
 
 class YouTubeAPIClient:
-    def __init__(self, credentials: Credentials, use_local: bool = False, debug_dir: str = "debug"):
+    def __init__(
+        self,
+        credentials: Credentials,
+        use_local: bool = False,
+        debug_dir: str = "debug",
+    ):
         self.credentials = credentials
         self.use_local = use_local
         self.debug_dir = debug_dir
@@ -55,7 +78,13 @@ class YouTubeAPIClient:
                     raise
                 if attempt < MAX_RETRIES - 1:
                     delay = RETRY_DELAYS[attempt] + (time.time() % 1)
-                    log.warning("HTTP %d, retrying in %.1fs (attempt %d/%d)", err.resp.status, delay, attempt + 1, MAX_RETRIES)
+                    log.warning(
+                        "HTTP %d, retrying in %.1fs (attempt %d/%d)",
+                        err.resp.status,
+                        delay,
+                        attempt + 1,
+                        MAX_RETRIES,
+                    )
                     time.sleep(delay)
         log.error("Max retries exhausted: %s", last_error)
         raise last_error
@@ -68,7 +97,10 @@ class YouTubeAPIClient:
             next_page: Optional[str] = None
             while True:
                 req = self.service.subscriptions().list(
-                    part="snippet", maxResults=50, mine=True, order="alphabetical",
+                    part="snippet",
+                    maxResults=50,
+                    mine=True,
+                    order="alphabetical",
                     pageToken=next_page,
                 )
                 resp = self._execute_with_retry(req)
@@ -98,7 +130,9 @@ class YouTubeAPIClient:
             for item in data.get("items", [])
         ]
 
-    def get_subscription_activity(self, channel_id: str, published_after: Optional[str] = None, limit: int = 50) -> list[Activity]:
+    def get_subscription_activity(
+        self, channel_id: str, published_after: Optional[str] = None, limit: int = 50
+    ) -> list[Activity]:
         if self.use_local:
             data = self._local_json("subscription_activity_list.json")
         else:
@@ -106,9 +140,12 @@ class YouTubeAPIClient:
             next_page: Optional[str] = None
             while True:
                 req = self.service.activities().list(
-                    part="snippet,contentDetails", maxResults=limit,
-                    publishedAfter=published_after, uploadType="upload",
-                    channelId=channel_id, pageToken=next_page,
+                    part="snippet,contentDetails",
+                    maxResults=limit,
+                    publishedAfter=published_after,
+                    uploadType="upload",
+                    channelId=channel_id,
+                    pageToken=next_page,
                 )
                 resp = self._execute_with_retry(req)
                 items.extend(resp.get("items", []))
@@ -123,17 +160,26 @@ class YouTubeAPIClient:
                 continue
             video_id = ""
             if video_type == "upload":
-                video_id = item.get("contentDetails", {}).get("upload", {}).get("videoId", "")
+                video_id = (
+                    item.get("contentDetails", {}).get("upload", {}).get("videoId", "")
+                )
             else:
-                video_id = item.get("contentDetails", {}).get("playlistItem", {}).get("resourceId", {}).get("videoId", "")
+                video_id = (
+                    item.get("contentDetails", {})
+                    .get("playlistItem", {})
+                    .get("resourceId", {})
+                    .get("videoId", "")
+                )
             if not video_id:
                 continue
-            activities.append(Activity(
-                video_id=video_id,
-                title=item["snippet"]["title"],
-                published_at=item["snippet"]["publishedAt"],
-                video_type=video_type,
-            ))
+            activities.append(
+                Activity(
+                    video_id=video_id,
+                    title=item["snippet"]["title"],
+                    published_at=item["snippet"]["publishedAt"],
+                    video_type=video_type,
+                )
+            )
         return activities
 
     def get_video_duration(self, video_id: str) -> int:
@@ -157,7 +203,10 @@ class YouTubeAPIClient:
             next_page: Optional[str] = None
             while True:
                 req = self.service.playlists().list(
-                    part="snippet", channelId=channel_id, maxResults=50, pageToken=next_page,
+                    part="snippet",
+                    channelId=channel_id,
+                    maxResults=50,
+                    pageToken=next_page,
                 )
                 resp = self._execute_with_retry(req)
                 items.extend(resp.get("items", []))
@@ -178,7 +227,10 @@ class YouTubeAPIClient:
             next_page: Optional[str] = None
             while True:
                 req = self.service.playlistItems().list(
-                    part="snippet", playlistId=playlist_id, maxResults=50, pageToken=next_page,
+                    part="snippet",
+                    playlistId=playlist_id,
+                    maxResults=50,
+                    pageToken=next_page,
                 )
                 resp = self._execute_with_retry(req)
                 items.extend(resp.get("items", []))
@@ -203,13 +255,19 @@ class YouTubeAPIClient:
             self._execute_with_retry(req)
             return True
         except HttpError as err:
-            log.error("Failed to add video %s to playlist %s: %s", video_id, playlist_id, err)
+            log.error(
+                "Failed to add video %s to playlist %s: %s", video_id, playlist_id, err
+            )
             return False
 
     @staticmethod
     def _iso8601_to_seconds(duration_str: str) -> int:
         import re
-        match = re.match(r'P(?:(?P<days>\d+)D)?T?(?:(?P<hours>\d+)H)?(?:(?P<minutes>\d+)M)?(?:(?P<seconds>\d+)S)?', duration_str)
+
+        match = re.match(
+            r"P(?:(?P<days>\d+)D)?T?(?:(?P<hours>\d+)H)?(?:(?P<minutes>\d+)M)?(?:(?P<seconds>\d+)S)?",
+            duration_str,
+        )
         if not match:
             return 0
         days = int(match.group("days")) if match.group("days") else 0
@@ -219,7 +277,12 @@ class YouTubeAPIClient:
         return days * 86400 + hours * 3600 + minutes * 60 + seconds
 
 
-def authenticate(credentials_file: str, pickle_credentials: str, scopes_list: list[str], no_webbrowser: bool = False) -> Credentials:
+def authenticate(
+    credentials_file: str,
+    pickle_credentials: str,
+    scopes_list: list[str],
+    no_webbrowser: bool = False,
+) -> Credentials:
     credentials = None
     if os.path.exists(pickle_credentials):
         log.debug("Loading credentials from %s", pickle_credentials)
@@ -231,8 +294,12 @@ def authenticate(credentials_file: str, pickle_credentials: str, scopes_list: li
             credentials.refresh(Request())
         else:
             log.debug("Fetching new tokens")
-            flow = InstalledAppFlow.from_client_secrets_file(credentials_file, scopes=scopes_list)
-            flow.run_local_server(port=8080, prompt="consent", open_browser=not no_webbrowser)
+            flow = InstalledAppFlow.from_client_secrets_file(
+                credentials_file, scopes=scopes_list
+            )
+            flow.run_local_server(
+                port=8080, prompt="consent", open_browser=not no_webbrowser
+            )
             credentials = flow.credentials
             with open(pickle_credentials, "wb") as f:
                 log.debug("Saving credentials to pickle file")

@@ -76,15 +76,18 @@ async def test_config_get_and_update(app: FastAPI):
 async def test_rule_lifecycle(app: FastAPI):
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.post("/api/rules", json={
-            "name": "Test Rule",
-            "priority": 10,
-            "field": "title",
-            "operator": "contains",
-            "pattern": "trailer",
-            "destination_playlist_id": "PLtest123",
-            "destination_playlist_title": "Test Playlist",
-        })
+        resp = await client.post(
+            "/api/rules",
+            json={
+                "name": "Test Rule",
+                "priority": 10,
+                "field": "title",
+                "operator": "contains",
+                "pattern": "trailer",
+                "destination_playlist_id": "PLtest123",
+                "destination_playlist_title": "Test Playlist",
+            },
+        )
     assert resp.status_code == 201
     rule = resp.json()
     assert rule["name"] == "Test Rule"

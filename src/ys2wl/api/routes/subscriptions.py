@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
 router = APIRouter()
@@ -26,14 +26,24 @@ def _get_state(request: Request):
 async def list_subscriptions(request: Request):
     state = _get_state(request)
     subs = state.youtube.get_subscriptions()
-    return [SubscriptionResponse(id=s.id, title=s.title, channel_id=s.channel_id) for s in subs]
+    return [
+        SubscriptionResponse(id=s.id, title=s.title, channel_id=s.channel_id)
+        for s in subs
+    ]
 
 
-@router.get("/subscriptions/{channel_id}/activity", response_model=List[ActivityResponse])
+@router.get(
+    "/subscriptions/{channel_id}/activity", response_model=List[ActivityResponse]
+)
 async def get_subscription_activity(channel_id: str, request: Request):
     state = _get_state(request)
     activities = state.youtube.get_subscription_activity(channel_id)
     return [
-        ActivityResponse(video_id=a.video_id, title=a.title, published_at=a.published_at, video_type=a.video_type)
+        ActivityResponse(
+            video_id=a.video_id,
+            title=a.title,
+            published_at=a.published_at,
+            video_type=a.video_type,
+        )
         for a in activities
     ]

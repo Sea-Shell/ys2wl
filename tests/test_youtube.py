@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from ys2wl.core.youtube import YouTubeAPIClient
 from ys2wl.models.youtube import Channel, Playlist, Subscription, Activity
 
@@ -14,7 +14,9 @@ def mock_credentials():
 
 @pytest.fixture
 def client(mock_credentials):
-    client = YouTubeAPIClient(credentials=mock_credentials, use_local=True, debug_dir="debug")
+    client = YouTubeAPIClient(
+        credentials=mock_credentials, use_local=True, debug_dir="debug"
+    )
     yield client
     client.close()
 

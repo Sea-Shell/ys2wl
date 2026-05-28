@@ -1,5 +1,5 @@
-from ys2wl.models.youtube import Channel, Playlist, Subscription, Activity, Video, RoutingRule
-from ys2wl.models.pipeline import FilterResult, RouteResult, VideoResult, PipelineSummary
+from ys2wl.models.youtube import Channel, Subscription, Activity
+from ys2wl.models.pipeline import FilterResult, RouteResult, PipelineSummary
 
 
 def test_channel():
@@ -14,7 +14,12 @@ def test_subscription():
 
 
 def test_activity():
-    a = Activity(video_id="v1", title="My Video", published_at="2024-01-01T00:00:00Z", video_type="upload")
+    a = Activity(
+        video_id="v1",
+        title="My Video",
+        published_at="2024-01-01T00:00:00Z",
+        video_type="upload",
+    )
     assert a.video_type == "upload"
 
 
@@ -25,7 +30,9 @@ def test_filter_result():
 
 
 def test_route_result():
-    r = RouteResult(playlist_id="PLabc", playlist_title="Music", rule_name="gaming_rule")
+    r = RouteResult(
+        playlist_id="PLabc", playlist_title="Music", rule_name="gaming_rule"
+    )
     assert r.playlist_id == "PLabc"
 
 

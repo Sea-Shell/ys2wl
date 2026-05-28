@@ -1,10 +1,9 @@
-import pytest
 import json
 import tempfile
 import os
-from unittest.mock import patch, MagicMock
 from ys2wl.core.auth import (
-    get_client_config, credentials_status,
+    get_client_config,
+    credentials_status,
 )
 
 

@@ -4,7 +4,11 @@ from typing import Optional
 
 
 class Settings(BaseSettings):
-    model_config = {"env_prefix": "YS2WL_", "env_file": ".env", "env_file_encoding": "utf-8"}
+    model_config = {
+        "env_prefix": "YS2WL_",
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+    }
 
     pickle_file: str = Field(default="credentials.pickle")
     credentials_file: str = Field(default="client_secret.json")

@@ -1,11 +1,11 @@
 import pytest
 from httpx import ASGITransport, AsyncClient
-from unittest.mock import patch
 
 
 @pytest.mark.asyncio
 async def test_auth_status_returns_not_authenticated():
     from ys2wl.api.app import create_app, AppState
+
     app = create_app()
     state = AppState()
     app.state.ys2wl = state
@@ -20,6 +20,7 @@ async def test_auth_status_returns_not_authenticated():
 @pytest.mark.asyncio
 async def test_auth_device_returns_400_without_creds():
     from ys2wl.api.app import create_app, AppState
+
     app = create_app()
     state = AppState()
     app.state.ys2wl = state

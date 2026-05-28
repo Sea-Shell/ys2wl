@@ -1,7 +1,6 @@
 import pytest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from ys2wl.core.pipeline import PipelineOrchestrator
-from ys2wl.models.pipeline import PipelineSummary
 from ys2wl.models.youtube import Subscription, Activity, Channel, Playlist
 from ys2wl.config import Settings
 import sqlite3
@@ -62,7 +61,12 @@ def test_pipeline_adds_video(settings, db_con):
         Subscription(id="UC1", title="Channel One", channel_id="UC1"),
     ]
     mock_youtube.get_subscription_activity.return_value = [
-        Activity(video_id="v1", title="New Video", published_at="2024-06-01T00:00:00Z", video_type="upload"),
+        Activity(
+            video_id="v1",
+            title="New Video",
+            published_at="2024-06-01T00:00:00Z",
+            video_type="upload",
+        ),
     ]
     mock_youtube.get_video_duration.return_value = 300
     mock_youtube.add_to_playlist.return_value = True
@@ -93,7 +97,12 @@ def test_pipeline_word_filter_skips(settings, db_con):
         Subscription(id="UC1", title="Channel One", channel_id="UC1"),
     ]
     mock_youtube.get_subscription_activity.return_value = [
-        Activity(video_id="v1", title="Sketchy Video", published_at="now", video_type="upload"),
+        Activity(
+            video_id="v1",
+            title="Sketchy Video",
+            published_at="now",
+            video_type="upload",
+        ),
     ]
     mock_youtube.api_calls = [0]
 

@@ -1,15 +1,15 @@
 import pytest
 import sqlite3
-from unittest.mock import MagicMock, patch
 from httpx import ASGITransport, AsyncClient
-from ys2wl.api.models import ConfigResponse, TriggerResponse
 
 
 @pytest.fixture
 def app():
     from ys2wl.api.app import create_app
+
     app = create_app()
     from ys2wl.api.app import AppState
+
     state = AppState()
     app.state.ys2wl = state
     state.db_con = sqlite3.connect(":memory:")

@@ -21,8 +21,13 @@ async def list_rules(request: Request):
 async def create_rule(rule: RoutingRuleCreate, request: Request):
     state = _get_state(request)
     rid = repo.create_routing_rule(
-        state.db_con, rule.name, rule.priority, rule.field,
-        rule.operator, rule.pattern, rule.destination_playlist_id,
+        state.db_con,
+        rule.name,
+        rule.priority,
+        rule.field,
+        rule.operator,
+        rule.pattern,
+        rule.destination_playlist_id,
         rule.destination_playlist_title,
     )
     if rid is None:
@@ -40,7 +45,9 @@ async def update_rule(rule_id: int, update: RoutingRuleUpdate, request: Request)
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")
     repo.update_routing_rule(state.db_con, rule_id, **updates)
-    cursor = state.db_con.execute("SELECT * FROM routing_rules WHERE id = ?", (rule_id,))
+    cursor = state.db_con.execute(
+        "SELECT * FROM routing_rules WHERE id = ?", (rule_id,)
+    )
     row = cursor.fetchone()
     if not row:
         raise HTTPException(status_code=404, detail="Rule not found")

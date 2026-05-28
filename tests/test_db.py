@@ -2,14 +2,27 @@ import pytest
 import sqlite3
 from ys2wl.db.migrations import init_db
 from ys2wl.db.repository import (
-    video_exists, insert_video, get_all_video_titles,
-    insert_channel, get_channel,
-    insert_playlist, get_playlist,
-    insert_subscription, get_subscription_timestamp,
-    get_last_run, set_last_run,
-    get_routing_rules, create_routing_rule, update_routing_rule, delete_routing_rule,
-    create_pipeline_run, finish_pipeline_run, get_pipeline_runs, get_pipeline_run,
-    get_config, set_config,
+    video_exists,
+    insert_video,
+    get_all_video_titles,
+    insert_channel,
+    get_channel,
+    insert_playlist,
+    get_playlist,
+    insert_subscription,
+    get_subscription_timestamp,
+    get_last_run,
+    set_last_run,
+    get_routing_rules,
+    create_routing_rule,
+    update_routing_rule,
+    delete_routing_rule,
+    create_pipeline_run,
+    finish_pipeline_run,
+    get_pipeline_runs,
+    get_pipeline_run,
+    get_config,
+    set_config,
 )
 
 
@@ -17,7 +30,9 @@ def test_init_db_creates_tables(tmp_path):
     db_path = str(tmp_path / "test.db")
     init_db(db_path)
     con = sqlite3.connect(db_path)
-    cursor = con.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+    cursor = con.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
+    )
     tables = [row[0] for row in cursor.fetchall()]
     con.close()
     assert "videos" in tables
@@ -78,7 +93,9 @@ def test_last_run(db_con):
 def test_routing_rules(db_con):
     rules = get_routing_rules(db_con)
     assert len(rules) == 0
-    rid = create_routing_rule(db_con, "Test", 10, "channel_title", "contains", "music", "PL1", "Music")
+    rid = create_routing_rule(
+        db_con, "Test", 10, "channel_title", "contains", "music", "PL1", "Music"
+    )
     assert rid is not None
     rules = get_routing_rules(db_con)
     assert len(rules) == 1
@@ -91,8 +108,15 @@ def test_routing_rules(db_con):
 def test_pipeline_runs(db_con):
     rid = create_pipeline_run(db_con, trigger="manual")
     assert rid is not None
-    summary = {"status": "completed", "videos_added": 5, "subscriptions_processed": 10,
-               "subscriptions_skipped": 2, "videos_skipped": 3, "errors": 0, "error_message": ""}
+    summary = {
+        "status": "completed",
+        "videos_added": 5,
+        "subscriptions_processed": 10,
+        "subscriptions_skipped": 2,
+        "videos_skipped": 3,
+        "errors": 0,
+        "error_message": "",
+    }
     assert finish_pipeline_run(db_con, rid, summary)
     runs = get_pipeline_runs(db_con)
     assert len(runs) == 1

@@ -1,6 +1,7 @@
 from ys2wl.metrics import (
-    api_calls_total, videos_added_total, videos_skipped_total,
-    errors_total, pipeline_duration_seconds,
+    api_calls_total,
+    videos_added_total,
+    errors_total,
 )
 
 
