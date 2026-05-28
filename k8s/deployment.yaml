@@ -25,16 +25,12 @@ spec:
             - name: YS2WL_PICKLE_FILE
               value: /data/credentials.pickle
             - name: YS2WL_CREDENTIALS_FILE
-              value: /app/credentials.json
+              value: /data/credentials.json
             - name: YS2WL_DATABASE_FILE
               value: /data/ys2wl.db
           volumeMounts:
-            - name: data
-              mountPath: /data
-            - name: credentials
-              mountPath: /app/credentials.json
-              subPath: credentials.json
-              readOnly: true
+            - mountPath: /data
+              name: config
           livenessProbe:
             httpGet:
               path: /api/health
@@ -48,9 +44,7 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 10
       volumes:
-        - name: data
-          persistentVolumeClaim:
-            claimName: ys2wl-data
-        - name: credentials
-          secret:
-            secretName: ys2wl-credentials
+        - hostPath:
+            path: /data/disk2/opt/ys2wl
+            type: ""
+          name: config
