@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ys2wl-config
+data:
+  YS2WL_DATABASE_FILE: /data/ys2wl.db
+  YS2WL_PICKLE_FILE: /data/credentials.pickle
+  YS2WL_CREDENTIALS_FILE: /app/credentials.json
+  YS2WL_SCHEDULE: "0 */6 * * *"
+  YS2WL_API_PORT: "8080"
+  YS2WL_LOG_LEVEL: info
+  YS2WL_COMPARE_DISTANCE: "80"
+  YS2WL_REPROCESS_DAYS: "2"
+  YS2WL_PLAYLIST_SLEEP: "10"
+  YS2WL_SUBSCRIPTION_SLEEP: "30"
+  YS2WL_PIPELINE_CONCURRENCY: "1"
+  YS2WL_NO_WEBBROWSER: "true"
