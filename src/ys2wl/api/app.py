@@ -3,6 +3,9 @@ from contextlib import asynccontextmanager
 from typing import AsyncIterator
 import sqlite3
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
+import os
 from ys2wl.config import load_settings, Settings
 from ys2wl.core.youtube import YouTubeAPIClient, authenticate
 from ys2wl.core.scheduler import PipelineScheduler
@@ -75,5 +78,13 @@ def create_app() -> FastAPI:
 
     metrics_app = make_asgi_app()
     app.mount("/metrics", metrics_app)
+
+    ui_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "ui")
+    os.makedirs(ui_dir, exist_ok=True)
+    app.mount("/ui", StaticFiles(directory=ui_dir, html=True), name="ui")
+
+    @app.get("/")
+    async def root():
+        return RedirectResponse(url="/ui/index.html")
 
     return app
