@@ -7,11 +7,13 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 import os
 from ys2wl.config import load_settings, Settings
-from ys2wl.core.youtube import YouTubeAPIClient, authenticate
+from ys2wl.core.youtube import YouTubeAPIClient
+from ys2wl.core.auth import load_credentials, SCOPES
 from ys2wl.core.scheduler import PipelineScheduler
 from ys2wl.db.migrations import init_db
 from ys2wl.db import repository as repo
 from ys2wl.api.routes import health, config, rules, pipeline as pipeline_routes, subscriptions
+from ys2wl.api.routes import auth as auth_routes
 from prometheus_client import make_asgi_app
 
 log = logging.getLogger("ys2wl.api")
@@ -28,8 +30,10 @@ class AppState:
     def __init__(self):
         self.settings: Settings = load_settings()
         self.db_con: sqlite3.Connection = None
-        self.youtube: YouTubeAPIClient = None
-        self.scheduler: PipelineScheduler = None
+        self.credentials = None
+        self.youtube: YouTubeAPIClient | None = None
+        self.scheduler: PipelineScheduler | None = None
+        self.device_flow: dict | None = None
 
 
 @asynccontextmanager
@@ -41,13 +45,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator:
     state.db_con = sqlite3.connect(state.settings.database_file)
     state.db_con.row_factory = sqlite3.Row
 
-    credentials = authenticate(
-        state.settings.credentials_file,
-        state.settings.pickle_file,
-        SCOPES,
-        no_webbrowser=state.settings.no_webbrowser,
-    )
-    state.youtube = YouTubeAPIClient(credentials=credentials)
+    state.credentials = load_credentials(state.settings.pickle_file)
+    if state.credentials and state.credentials.valid:
+        log.info("Loaded saved credentials")
+        state.youtube = YouTubeAPIClient(credentials=state.credentials)
+    else:
+        log.info("No valid credentials found — use UI auth flow")
 
     app.state.ys2wl = state
     log.info("ys2wl service started")
@@ -75,6 +78,7 @@ def create_app() -> FastAPI:
     app.include_router(rules.router, prefix="/api", tags=["rules"])
     app.include_router(pipeline_routes.router, prefix="/api", tags=["pipeline"])
     app.include_router(subscriptions.router, prefix="/api", tags=["subscriptions"])
+    app.include_router(auth_routes.router, prefix="/api", tags=["auth"])
 
     metrics_app = make_asgi_app()
     app.mount("/metrics", metrics_app)

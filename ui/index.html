@@ -148,6 +148,7 @@ label { display: block; font-size: 0.875rem; color: var(--text2); margin-bottom:
   <a data-page="rules">Routing Rules</a>
   <a data-page="config">Config</a>
   <a data-page="runs">Pipeline Runs</a>
+  <a data-page="auth">Auth</a>
 </nav>
 
 <div class="main">
@@ -210,6 +211,10 @@ label { display: block; font-size: 0.875rem; color: var(--text2); margin-bottom:
     <h2>Pipeline Runs</h2>
     <div id="runsList"></div>
   </section>
+  <section id="auth" class="page">
+    <h2>Authentication</h2>
+    <div id="authStatus"></div>
+  </section>
 </div>
 
 <div id="toast" class="toast"></div>
@@ -242,7 +247,7 @@ function escapeHtml(s) {
 }
 
 // ---- Routing ----
-const PAGES = ['dashboard','subscriptions','rules','config','runs'];
+const PAGES = ['dashboard','subscriptions','rules','config','runs','auth'];
 
 function navigate(page) {
   location.hash = '#' + page;
@@ -494,6 +499,71 @@ renderers.runs = async function() {
     </tr>`).join('')}</tbody></table>`;
   } catch { container.innerHTML = '<p style="color:var(--error)">Failed to load runs</p>'; }
 };
+
+// ---- Auth renderer ----
+renderers.auth = async function() {
+  const container = document.getElementById('authStatus');
+  container.innerHTML = '<p style="color:var(--text2)">Checking...</p>';
+  try {
+    const status = await api('/api/auth/status');
+    if (status.authenticated) {
+      container.innerHTML = `
+        <div class="card" style="border-left:4px solid var(--success)">
+          <h3>✅ Authenticated</h3>
+          <p style="color:var(--text2);margin-top:0.5rem">Expires: ${status.expires_at || 'Unknown'}</p>
+        </div>
+        <button id="reauthBtn" style="margin-top:0.5rem;background:var(--surface2);color:var(--text)">Re-authenticate</button>`;
+      document.getElementById('reauthBtn')?.addEventListener('click', startAuthFlow);
+    } else {
+      container.innerHTML = `
+        <div class="card" style="border-left:4px solid var(--error)">
+          <h3>❌ Not Authenticated</h3>
+          <p style="color:var(--text2);margin-top:0.5rem">Authenticate with Google to enable YouTube API access.</p>
+        </div>
+        <button id="authBtn" style="margin-top:0.5rem">Authenticate with Google</button>`;
+      document.getElementById('authBtn')?.addEventListener('click', startAuthFlow);
+    }
+  } catch {
+    container.innerHTML = '<p style="color:var(--error)">Failed to check auth status</p>';
+  }
+};
+
+async function startAuthFlow() {
+  const container = document.getElementById('authStatus');
+  container.innerHTML = '<p style="color:var(--text2)">Starting device flow...</p>';
+  try {
+    const data = await api('/api/auth/device', { method: 'POST' });
+    container.innerHTML = `
+      <div class="card" style="text-align:center">
+        <h3 style="margin-bottom:1rem">Authorize with Google</h3>
+        <p style="color:var(--text2);margin-bottom:1rem">Visit the URL below and enter the code:</p>
+        <p style="font-size:1.5rem;font-weight:700;margin-bottom:0.5rem">
+          <a href="${escapeHtml(data.verification_url)}" target="_blank" style="color:var(--accent)">${escapeHtml(data.verification_url)}</a>
+        </p>
+        <div style="font-size:3rem;font-weight:700;letter-spacing:0.5rem;background:var(--bg);padding:1rem;border-radius:var(--radius);margin:1rem 0;font-family:monospace">${escapeHtml(data.user_code)}</div>
+        <p style="color:var(--text2);font-size:0.875rem">Waiting for authorization...</p>
+        <div class="spinner" style="margin:1rem auto"></div>
+      </div>`;
+    pollAuthStatus();
+  } catch (e) {
+    container.innerHTML = '<p style="color:var(--error)">Failed: ' + e.message + '</p>';
+  }
+}
+
+let pollTimer = null;
+async function pollAuthStatus() {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    try {
+      const result = await api('/api/auth/poll', { method: 'POST' });
+      if (result.status === 'success') {
+        clearInterval(pollTimer);
+        pollTimer = null;
+        renderers.auth();
+      }
+    } catch { /* continue polling */ }
+  }, 3000);
+}
 
 // ---- Init ----
 const renderers = {};
