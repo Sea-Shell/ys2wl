@@ -1,6 +1,6 @@
 [project]
 name = "ys2wl"
-dynamic = ["version"]
+version = "2.0.0"
 requires-python = ">=3.13"
 dependencies = [
     "urllib3>= 2.6.3",
@@ -24,14 +24,24 @@ dependencies = [
     "httpx>=0.28.0",
 ]
 
-[project.scripts]
-ys2wl="main.py"
+[build-system]
+requires = ["setuptools>=70.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [dependency-groups]
-dev = []
+dev = [
+    "pytest>=9.0.0",
+    "pytest-asyncio>=0.26.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
 
 [tool.uv]
-package = false
+package = true
 
 [[tool.uv.index]]
 name = "pypi"

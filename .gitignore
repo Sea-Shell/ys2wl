@@ -12,3 +12,4 @@ __pycache__
 *.pdb
 *.egg-info
 docs/superpowers/
+.opencode/
