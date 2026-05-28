@@ -71,6 +71,19 @@ async def test_dashboard_has_trigger_button(client):
 
 
 @pytest.mark.asyncio
+@pytest.mark.asyncio
+async def test_rules_section_has_table(client):
+    resp = await client.get("/ui/index.html")
+    assert "rulesList" in resp.text or "Add Rule" in resp.text
+
+
+@pytest.mark.asyncio
+async def test_rules_section_has_modal(client):
+    resp = await client.get("/ui/index.html")
+    assert "ruleModal" in resp.text
+
+
+@pytest.mark.asyncio
 async def test_subscriptions_section_has_search(client):
     resp = await client.get("/ui/index.html")
     assert "subSearch" in resp.text or "Filter channels" in resp.text

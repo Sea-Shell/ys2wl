@@ -172,7 +172,35 @@ label { display: block; font-size: 0.875rem; color: var(--text2); margin-bottom:
     <input id="subSearch" placeholder="Filter channels..." style="max-width:300px;margin-bottom:1rem">
     <div id="subList"></div>
   </section>
-  <section id="rules" class="page"></section>
+  <section id="rules" class="page">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <h2 style="margin:0">Routing Rules</h2>
+      <button id="addRuleBtn">+ Add Rule</button>
+    </div>
+    <div id="rulesList"></div>
+    <div id="ruleModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:999;
+         align-items:center;justify-content:center">
+      <div style="background:var(--surface);padding:2rem;border-radius:var(--radius);width:480px;max-width:90vw">
+        <h3 id="ruleModalTitle" style="margin-bottom:1rem">Add Rule</h3>
+        <input type="hidden" id="ruleId">
+        <div class="form-group"><label>Name</label><input id="ruleName"></div>
+        <div class="form-group"><label>Priority</label><input id="rulePriority" type="number" value="0"></div>
+        <div class="form-group"><label>Field</label>
+          <select id="ruleField"><option value="">Any</option><option value="title">Title</option>
+          <option value="channel_title">Channel Title</option><option value="duration">Duration</option></select></div>
+        <div class="form-group"><label>Operator</label>
+          <select id="ruleOperator"><option>contains</option><option>regex</option><option>eq</option>
+          <option>lt</option><option>gt</option></select></div>
+        <div class="form-group"><label>Pattern</label><input id="rulePattern"></div>
+        <div class="form-group"><label>Destination Playlist ID</label><input id="ruleDestId"></div>
+        <div class="form-group"><label>Destination Playlist Title</label><input id="ruleDestTitle"></div>
+        <div style="display:flex;gap:0.5rem;justify-content:flex-end">
+          <button id="ruleCancel" style="background:var(--surface2);color:var(--text)">Cancel</button>
+          <button id="ruleSave">Save</button>
+        </div>
+      </div>
+    </div>
+  </section>
   <section id="config" class="page"></section>
   <section id="runs" class="page"></section>
 </div>
@@ -314,6 +342,96 @@ renderers.subscriptions = async function() {
     });
   } catch { container.innerHTML = '<p style="color:var(--error)">Failed to load subscriptions</p>'; }
 };
+
+// ---- Rules renderer + modal ----
+renderers.rules = async function() {
+  const container = document.getElementById('rulesList');
+  container.innerHTML = '<p style="color:var(--text2)">Loading...</p>';
+  try {
+    const rules = await api('/api/rules');
+    if (!Array.isArray(rules) || rules.length === 0) {
+      container.innerHTML = '<p style="color:var(--text2)">No rules configured</p>'; return;
+    }
+    container.innerHTML = `<table><thead><tr>
+      <th>Name</th><th>Priority</th><th>Pattern</th><th>Destination</th><th>Enabled</th><th></th>
+    </tr></thead><tbody>${rules.map(r => `<tr>
+      <td>${escapeHtml(r.name)}</td>
+      <td>${r.priority}</td>
+      <td style="font-family:monospace;font-size:0.75rem">${escapeHtml(r.pattern || '-')}</td>
+      <td style="font-size:0.75rem;color:var(--text2)">${escapeHtml(r.destination_playlist_id)}</td>
+      <td><input type="checkbox" ${r.enabled ? 'checked' : ''} data-rid="${r.id}" class="toggle-rule"></td>
+      <td><button class="edit-rule" data-rid="${r.id}" style="background:var(--surface2);color:var(--text);padding:0.25rem 0.5rem;font-size:0.75rem">Edit</button>
+      <button class="del-rule" data-rid="${r.id}" style="background:var(--error);color:#fff;padding:0.25rem 0.5rem;font-size:0.75rem">Del</button></td>
+    </tr>`).join('')}</tbody></table>`;
+
+    document.querySelectorAll('.toggle-rule').forEach(cb => {
+      cb.addEventListener('change', async function() {
+        try {
+          await api('/api/rules/' + this.dataset.rid, {
+            method: 'PUT', body: JSON.stringify({ enabled: this.checked }),
+          });
+        } catch (e) { showToast('Toggle failed: ' + e.message); }
+      });
+    });
+    document.querySelectorAll('.del-rule').forEach(btn => {
+      btn.addEventListener('click', async function() {
+        if (!confirm('Delete this rule?')) return;
+        try {
+          await api('/api/rules/' + this.dataset.rid, { method: 'DELETE' });
+          renderers.rules();
+        } catch (e) { showToast('Delete failed: ' + e.message); }
+      });
+    });
+    document.querySelectorAll('.edit-rule').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const row = rules.find(r => r.id == this.dataset.rid);
+        if (row) openRuleModal(row);
+      });
+    });
+  } catch { container.innerHTML = '<p style="color:var(--error)">Failed to load rules</p>'; }
+};
+
+function openRuleModal(rule) {
+  const modal = document.getElementById('ruleModal');
+  document.getElementById('ruleModalTitle').textContent = rule ? 'Edit Rule' : 'Add Rule';
+  document.getElementById('ruleId').value = rule ? rule.id : '';
+  document.getElementById('ruleName').value = rule ? rule.name : '';
+  document.getElementById('rulePriority').value = rule ? rule.priority : 0;
+  document.getElementById('ruleField').value = rule ? (rule.field || '') : '';
+  document.getElementById('ruleOperator').value = rule ? rule.operator : 'contains';
+  document.getElementById('rulePattern').value = rule ? (rule.pattern || '') : '';
+  document.getElementById('ruleDestId').value = rule ? rule.destination_playlist_id : '';
+  document.getElementById('ruleDestTitle').value = rule ? rule.destination_playlist_title : '';
+  modal.style.display = 'flex';
+}
+
+document.getElementById('addRuleBtn')?.addEventListener('click', () => openRuleModal(null));
+document.getElementById('ruleCancel')?.addEventListener('click', () => {
+  document.getElementById('ruleModal').style.display = 'none';
+});
+document.getElementById('ruleSave')?.addEventListener('click', async function() {
+  const id = document.getElementById('ruleId').value;
+  const body = {
+    name: document.getElementById('ruleName').value,
+    priority: parseInt(document.getElementById('rulePriority').value) || 0,
+    field: document.getElementById('ruleField').value || null,
+    operator: document.getElementById('ruleOperator').value,
+    pattern: document.getElementById('rulePattern').value || null,
+    destination_playlist_id: document.getElementById('ruleDestId').value,
+    destination_playlist_title: document.getElementById('ruleDestTitle').value,
+  };
+  try {
+    if (id) {
+      await api('/api/rules/' + id, { method: 'PUT', body: JSON.stringify(body) });
+      showToast('Rule updated', 'success');
+    } else {
+      await api('/api/rules', { method: 'POST', body: JSON.stringify(body) });
+      showToast('Rule created', 'success');
+    }
+    document.getElementById('ruleModal').style.display = 'none';
+    renderers.rules();
+  } catch (e) { showToast('Save failed: ' + e.message); }
+});
 
 // ---- Init ----
 const renderers = {};
