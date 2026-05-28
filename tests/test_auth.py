@@ -36,3 +36,52 @@ def test_get_client_config_parses_web():
 
 def test_credentials_status_none():
     assert credentials_status(None) == {"authenticated": False}
+
+
+def test_oauth2_credentials_constructor():
+    from google.oauth2.credentials import Credentials
+
+    creds = Credentials(
+        token="ya29.test_token",
+        refresh_token="1//test_refresh",
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id="123456.apps.googleusercontent.com",
+        client_secret="G0ogleS3cret",
+        scopes=["https://www.googleapis.com/auth/youtube"],
+    )
+    assert creds.token == "ya29.test_token"
+    assert creds.refresh_token == "1//test_refresh"
+    assert creds.valid
+    assert creds.expired is False
+
+
+def test_oauth2_credentials_pickle_roundtrip():
+    import pickle
+    from google.oauth2.credentials import Credentials
+
+    creds = Credentials(
+        token="ya29.test_token",
+        refresh_token="1//test_refresh",
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id="123456.apps.googleusercontent.com",
+        client_secret="G0ogleS3cret",
+        scopes=["https://www.googleapis.com/auth/youtube"],
+    )
+    data = pickle.dumps(creds)
+    loaded = pickle.loads(data)
+    assert loaded.token == "ya29.test_token"
+    assert loaded.refresh_token == "1//test_refresh"
+
+
+def test_credentials_status_with_valid_creds():
+    from google.oauth2.credentials import Credentials
+    from ys2wl.core.auth import credentials_status
+
+    creds = Credentials(
+        token="ya29.test_token",
+        token_uri="https://oauth2.googleapis.com/token",
+        client_id="123456.apps.googleusercontent.com",
+        client_secret="G0ogleS3cret",
+    )
+    status = credentials_status(creds)
+    assert status["authenticated"] is True

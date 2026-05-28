@@ -214,3 +214,39 @@ class TestRouter:
             activity, "Test Channel", 120, rules, "PL_DEFAULT", "Default"
         )
         assert result.playlist_id == "PL_DEFAULT"
+
+
+class TestFuzzRatio:
+    def test_identical_strings(self):
+        from ys2wl.filters.title_similarity import _fuzz_ratio
+
+        assert _fuzz_ratio("hello", "hello") == 100
+
+    def test_completely_different(self):
+        from ys2wl.filters.title_similarity import _fuzz_ratio
+
+        assert _fuzz_ratio("abc", "xyz") == 0
+
+    def test_kitten_sitting(self):
+        from ys2wl.filters.title_similarity import _fuzz_ratio
+
+        ratio = _fuzz_ratio("kitten", "sitting")
+        assert 55 <= ratio <= 60
+
+    def test_empty_strings(self):
+        from ys2wl.filters.title_similarity import _fuzz_ratio
+
+        # early return for falsy input, not the max_len==0 branch
+        assert _fuzz_ratio("", "") == 0
+
+    def test_one_empty(self):
+        from ys2wl.filters.title_similarity import _fuzz_ratio
+
+        assert _fuzz_ratio("abc", "") == 0
+
+    def test_reversed_args_same_result(self):
+        from ys2wl.filters.title_similarity import _fuzz_ratio
+
+        a = _fuzz_ratio("abcdef", "abcxyz")
+        b = _fuzz_ratio("abcxyz", "abcdef")
+        assert a == b
