@@ -1,0 +1,10 @@
+{
+  "kind": "youtube#playlistItemListResponse",
+  "pageInfo": {"totalResults": 1, "resultsPerPage": 50},
+  "items": [
+    {
+      "snippet": {"title": "Existing Video", "resourceId": {"kind": "youtube#video", "videoId": "v0"}},
+      "contentDetails": {"videoId": "v0"}
+    }
+  ]
+}

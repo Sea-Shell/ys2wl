@@ -1,0 +1,9 @@
+{
+  "kind": "youtube#channelListResponse",
+  "items": [
+    {
+      "id": "UC_mine",
+      "snippet": {"title": "My Channel"}
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "kind": "youtube#subscriptionListResponse",
+  "pageInfo": {"totalResults": 2, "resultsPerPage": 50},
+  "items": [
+    {"snippet": {"title": "Channel One", "resourceId": {"channelId": "UC1"}}},
+    {"snippet": {"title": "Channel Two", "resourceId": {"channelId": "UC2"}}}
+  ]
+}

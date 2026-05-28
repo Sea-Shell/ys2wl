@@ -1,0 +1,9 @@
+{
+  "kind": "youtube#videoListResponse",
+  "items": [
+    {
+      "id": "test_video_id",
+      "contentDetails": {"duration": "PT5M30S"}
+    }
+  ]
+}
