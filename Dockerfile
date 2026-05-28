@@ -1,4 +1,4 @@
-FROM python:3.12-slim AS builder
+FROM python:3.12-slim@sha256:090ba77e2958f6af52a5341f788b50b032dd4ca28377d2893dcf1ecbdfdfe203 AS builder
 
 RUN pip install --no-cache-dir uv
 
@@ -9,7 +9,7 @@ RUN uv sync --no-install-project --no-dev
 
 COPY src/ src/
 
-FROM python:3.12-slim AS runtime
+FROM python:3.12-slim@sha256:090ba77e2958f6af52a5341f788b50b032dd4ca28377d2893dcf1ecbdfdfe203 AS runtime
 
 RUN pip install --no-cache-dir uv \
     && adduser --disabled-password --uid 1000 --gecos "" appuser
