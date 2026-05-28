@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ys2wl</title>
+<style>
+:root {
+  --bg: #0f172a;
+  --surface: #1e293b;
+  --surface2: #334155;
+  --text: #e2e8f0;
+  --text2: #94a3b8;
+  --accent: #38bdf8;
+  --accent-hover: #7dd3fc;
+  --success: #22c55e;
+  --warning: #eab308;
+  --error: #ef4444;
+  --sidebar: 220px;
+  --radius: 8px;
+  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  min-height: 100vh;
+}
+.sidebar {
+  width: var(--sidebar);
+  background: var(--surface);
+  padding: 1.5rem 0;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+}
+.sidebar h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  padding: 0 1.25rem 1.5rem;
+  color: var(--accent);
+}
+.sidebar a {
+  display: block;
+  padding: 0.625rem 1.25rem;
+  color: var(--text2);
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: background .15s, color .15s;
+  cursor: pointer;
+}
+.sidebar a:hover,
+.sidebar a.active {
+  background: var(--surface2);
+  color: var(--text);
+}
+.main {
+  margin-left: var(--sidebar);
+  flex: 1;
+  padding: 1.5rem 2rem;
+}
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--surface2);
+  font-size: 0.875rem;
+  color: var(--text2);
+}
+.health-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--success);
+  margin-right: 0.5rem;
+}
+.page { display: none; }
+.page.active { display: block; }
+.page h2 { font-size: 1.5rem; margin-bottom: 1rem; }
+.card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+}
+.card h3 { font-size: 0.875rem; color: var(--text2); margin-bottom: 0.25rem; }
+.card .value { font-size: 1.5rem; font-weight: 700; }
+button, .btn {
+  background: var(--accent);
+  color: #0f172a;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: background .15s;
+}
+button:hover { background: var(--accent-hover); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+th { text-align: left; padding: 0.5rem; color: var(--text2); border-bottom: 1px solid var(--surface2); }
+td { padding: 0.5rem; border-bottom: 1px solid var(--surface2); }
+tr:hover td { background: var(--surface2); }
+.badge {
+  display: inline-block; padding: 0.125rem 0.5rem;
+  border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+}
+.badge-ok { background: var(--success); color: #0f172a; }
+.badge-fail { background: var(--error); color: #fff; }
+.badge-run { background: var(--warning); color: #0f172a; }
+input, select {
+  background: var(--bg); color: var(--text); border: 1px solid var(--surface2);
+  padding: 0.5rem; border-radius: var(--radius); font-size: 0.875rem; width: 100%;
+}
+label { display: block; font-size: 0.875rem; color: var(--text2); margin-bottom: 0.25rem; }
+.form-group { margin-bottom: 1rem; }
+.toast {
+  position: fixed; top: 1rem; right: 1rem; padding: 0.75rem 1rem;
+  border-radius: var(--radius); font-size: 0.875rem; font-weight: 600;
+  z-index: 1000; display: none;
+}
+.toast.error { background: var(--error); color: #fff; display: block; }
+.toast.success { background: var(--success); color: #0f172a; display: block; }
+.spinner {
+  display: inline-block; width: 16px; height: 16px;
+  border: 2px solid var(--surface2); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin .6s linear infinite;
+  vertical-align: middle; margin-right: 0.5rem;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<nav class="sidebar" id="sidebar">
+  <h1>ys2wl</h1>
+  <a class="active" data-page="dashboard">Dashboard</a>
+  <a data-page="subscriptions">Subscriptions</a>
+  <a data-page="rules">Routing Rules</a>
+  <a data-page="config">Config</a>
+  <a data-page="runs">Pipeline Runs</a>
+  <a data-page="auth">Auth</a>
+</nav>
+
+<div class="main">
+  <div class="topbar">
+    <span><span class="health-dot" id="healthDot"></span><span id="healthText">loading...</span></span>
+    <span id="lastRunText"></span>
+  </div>
+
+  <section id="dashboard" class="page active">
+    <h2>Dashboard</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem">
+      <div class="card"><h3>Subscriptions</h3><div class="value" id="statSubs">-</div></div>
+      <div class="card"><h3>Routing Rules</h3><div class="value" id="statRules">-</div></div>
+      <div class="card"><h3>Last Run</h3><div class="value" id="statLastRun">-</div></div>
+      <div class="card"><h3>Videos Added</h3><div class="value" id="statVideosAdded">-</div></div>
+    </div>
+    <button id="triggerBtn">▶ Run Pipeline</button>
+    <div id="triggerResult" style="margin-top:0.75rem"></div>
+  </section>
+  <section id="subscriptions" class="page">
+    <h2>Subscriptions</h2>
+    <input id="subSearch" placeholder="Filter channels..." style="max-width:300px;margin-bottom:1rem">
+    <div id="subList"></div>
+  </section>
+  <section id="rules" class="page">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <h2 style="margin:0">Routing Rules</h2>
+      <button id="addRuleBtn">+ Add Rule</button>
+    </div>
+    <div id="rulesList"></div>
+    <div id="ruleModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:999;
+         align-items:center;justify-content:center">
+      <div style="background:var(--surface);padding:2rem;border-radius:var(--radius);width:480px;max-width:90vw">
+        <h3 id="ruleModalTitle" style="margin-bottom:1rem">Add Rule</h3>
+        <input type="hidden" id="ruleId">
+        <div class="form-group"><label>Name</label><input id="ruleName"></div>
+        <div class="form-group"><label>Priority</label><input id="rulePriority" type="number" value="0"></div>
+        <div class="form-group"><label>Field</label>
+          <select id="ruleField"><option value="">Any</option><option value="title">Title</option>
+          <option value="channel_title">Channel Title</option><option value="duration">Duration</option></select></div>
+        <div class="form-group"><label>Operator</label>
+          <select id="ruleOperator"><option>contains</option><option>regex</option><option>eq</option>
+          <option>lt</option><option>gt</option></select></div>
+        <div class="form-group"><label>Pattern</label><input id="rulePattern"></div>
+        <div class="form-group"><label>Destination Playlist ID</label><input id="ruleDestId"></div>
+        <div class="form-group"><label>Destination Playlist Title</label><input id="ruleDestTitle"></div>
+        <div style="display:flex;gap:0.5rem;justify-content:flex-end">
+          <button id="ruleCancel" style="background:var(--surface2);color:var(--text)">Cancel</button>
+          <button id="ruleSave">Save</button>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section id="config" class="page">
+    <h2>Config</h2>
+    <div style="max-width:480px" id="configForm"></div>
+    <button id="configSave" style="margin-top:0.5rem">Save Config</button>
+  </section>
+  <section id="runs" class="page">
+    <h2>Pipeline Runs</h2>
+    <div id="runsList"></div>
+  </section>
+  <section id="auth" class="page">
+    <h2>Authentication</h2>
+    <div id="authStatus"></div>
+  </section>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ---- API wrapper ----
+async function api(path, opts = {}) {
+  const res = await fetch(path, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', ...opts.headers },
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`${res.status}: ${body}`);
+  }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+function showToast(msg, type = 'error') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast ${type}`;
+  setTimeout(() => { t.className = 'toast'; }, 4000);
+}
+
+function escapeHtml(s) {
+  if (s == null) return '';
+  const d = document.createElement('div');
+  d.textContent = String(s); return d.innerHTML;
+}
+
+// ---- Routing ----
+const PAGES = ['dashboard','subscriptions','rules','config','runs','auth'];
+
+function navigate(page) {
+  location.hash = '#' + page;
+}
+
+function renderPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+  const el = document.getElementById(page);
+  if (el) el.classList.add('active');
+  const link = document.querySelector(`.sidebar a[data-page="${page}"]`);
+  if (link) link.classList.add('active');
+  if (typeof renderers[page] === 'function') renderers[page]();
+}
+
+window.addEventListener('hashchange', () => {
+  const page = location.hash.slice(1) || 'dashboard';
+  if (PAGES.includes(page)) renderPage(page);
+  else navigate('dashboard');
+});
+
+// ---- Health check ----
+async function updateHealth() {
+  try {
+    const data = await api('/api/health');
+    document.getElementById('healthDot').style.background = 'var(--success)';
+    document.getElementById('healthText').textContent = 'healthy';
+  } catch {
+    document.getElementById('healthDot').style.background = 'var(--error)';
+    document.getElementById('healthText').textContent = 'unreachable';
+  }
+}
+
+// ---- Dashboard renderer ----
+renderers.dashboard = async function() {
+  try {
+    const [subs, rules, runs] = await Promise.all([
+      api('/api/subscriptions'),
+      api('/api/rules'),
+      api('/api/pipeline/runs'),
+    ]);
+    document.getElementById('statSubs').textContent = Array.isArray(subs) ? subs.length : '-';
+    document.getElementById('statRules').textContent = Array.isArray(rules) ? rules.length : '-';
+    if (Array.isArray(runs) && runs.length > 0) {
+      const last = runs[0];
+      document.getElementById('statLastRun').textContent = last.status || '-';
+      document.getElementById('statVideosAdded').textContent = last.videos_added ?? '-';
+    }
+  } catch { /* cards stay as '-' */ }
+};
+
+// ---- Trigger ----
+document.getElementById('triggerBtn')?.addEventListener('click', async function() {
+  this.disabled = true; this.innerHTML = '<span class="spinner"></span>Running...';
+  document.getElementById('triggerResult').innerHTML = '';
+  try {
+    const data = await api('/api/pipeline/trigger', { method: 'POST' });
+    showToast('Pipeline started (run #' + data.run_id + ')', 'success');
+    renderers.dashboard();
+  } catch (e) {
+    document.getElementById('triggerResult').innerHTML =
+      '<span style="color:var(--error)">' + e.message + '</span>';
+  } finally {
+    this.disabled = false; this.textContent = '▶ Run Pipeline';
+  }
+});
+
+// ---- Subscriptions renderer ----
+renderers.subscriptions = async function() {
+  const container = document.getElementById('subList');
+  container.innerHTML = '<p style="color:var(--text2)">Loading...</p>';
+  try {
+    const subs = await api('/api/subscriptions');
+    container.innerHTML = `<table><thead><tr><th>Channel</th><th>Channel ID</th></tr></thead>
+      <tbody>${Array.isArray(subs) ? subs.map(s => `<tr data-cid="${escapeHtml(s.channel_id)}" class="sub-row" style="cursor:pointer">
+        <td>${escapeHtml(s.title)}</td><td style="color:var(--text2);font-size:0.75rem">${escapeHtml(s.channel_id)}</td>
+      </tr>`).join('') : ''}</tbody></table>`;
+    document.getElementById('subSearch').oninput = function() {
+      const q = this.value.toLowerCase();
+      document.querySelectorAll('.sub-row').forEach(r => {
+        r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
+      });
+    };
+    document.querySelectorAll('.sub-row').forEach(r => {
+      r.addEventListener('click', async function() {
+        const cid = this.dataset.cid;
+        const next = this.nextElementSibling;
+        if (next && next.classList.contains('activity-row')) {
+          next.remove(); return;
+        }
+        try {
+          const acts = await api('/api/subscriptions/' + encodeURIComponent(cid) + '/activity');
+          const row = document.createElement('tr'); row.className = 'activity-row';
+          row.innerHTML = `<td colspan="2" style="padding:0.5rem 1rem">
+            <table style="font-size:0.75rem">
+              <thead><tr><th>Video</th><th>Type</th><th>Published</th></tr></thead>
+              <tbody>${Array.isArray(acts) ? acts.map(a => `<tr>
+                <td>${escapeHtml(a.title)}</td><td>${a.video_type}</td><td>${a.published_at}</td>
+              </tr>`).join('') : ''}</tbody></table>
+          </td>`;
+          this.parentNode.insertBefore(row, this.nextSibling);
+        } catch { showToast('Failed to load activity'); }
+      });
+    });
+  } catch { container.innerHTML = '<p style="color:var(--error)">Failed to load subscriptions</p>'; }
+};
+
+// ---- Rules renderer + modal ----
+renderers.rules = async function() {
+  const container = document.getElementById('rulesList');
+  container.innerHTML = '<p style="color:var(--text2)">Loading...</p>';
+  try {
+    const rules = await api('/api/rules');
+    if (!Array.isArray(rules) || rules.length === 0) {
+      container.innerHTML = '<p style="color:var(--text2)">No rules configured</p>'; return;
+    }
+    container.innerHTML = `<table><thead><tr>
+      <th>Name</th><th>Priority</th><th>Pattern</th><th>Destination</th><th>Enabled</th><th></th>
+    </tr></thead><tbody>${rules.map(r => `<tr>
+      <td>${escapeHtml(r.name)}</td>
+      <td>${r.priority}</td>
+      <td style="font-family:monospace;font-size:0.75rem">${escapeHtml(r.pattern || '-')}</td>
+      <td style="font-size:0.75rem;color:var(--text2)">${escapeHtml(r.destination_playlist_id)}</td>
+      <td><input type="checkbox" ${r.enabled ? 'checked' : ''} data-rid="${r.id}" class="toggle-rule"></td>
+      <td><button class="edit-rule" data-rid="${r.id}" style="background:var(--surface2);color:var(--text);padding:0.25rem 0.5rem;font-size:0.75rem">Edit</button>
+      <button class="del-rule" data-rid="${r.id}" style="background:var(--error);color:#fff;padding:0.25rem 0.5rem;font-size:0.75rem">Del</button></td>
+    </tr>`).join('')}</tbody></table>`;
+
+    document.querySelectorAll('.toggle-rule').forEach(cb => {
+      cb.addEventListener('change', async function() {
+        try {
+          await api('/api/rules/' + this.dataset.rid, {
+            method: 'PUT', body: JSON.stringify({ enabled: this.checked }),
+          });
+        } catch (e) { showToast('Toggle failed: ' + e.message); }
+      });
+    });
+    document.querySelectorAll('.del-rule').forEach(btn => {
+      btn.addEventListener('click', async function() {
+        if (!confirm('Delete this rule?')) return;
+        try {
+          await api('/api/rules/' + this.dataset.rid, { method: 'DELETE' });
+          renderers.rules();
+        } catch (e) { showToast('Delete failed: ' + e.message); }
+      });
+    });
+    document.querySelectorAll('.edit-rule').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const row = rules.find(r => r.id == this.dataset.rid);
+        if (row) openRuleModal(row);
+      });
+    });
+  } catch { container.innerHTML = '<p style="color:var(--error)">Failed to load rules</p>'; }
+};
+
+function openRuleModal(rule) {
+  const modal = document.getElementById('ruleModal');
+  document.getElementById('ruleModalTitle').textContent = rule ? 'Edit Rule' : 'Add Rule';
+  document.getElementById('ruleId').value = rule ? rule.id : '';
+  document.getElementById('ruleName').value = rule ? rule.name : '';
+  document.getElementById('rulePriority').value = rule ? rule.priority : 0;
+  document.getElementById('ruleField').value = rule ? (rule.field || '') : '';
+  document.getElementById('ruleOperator').value = rule ? rule.operator : 'contains';
+  document.getElementById('rulePattern').value = rule ? (rule.pattern || '') : '';
+  document.getElementById('ruleDestId').value = rule ? rule.destination_playlist_id : '';
+  document.getElementById('ruleDestTitle').value = rule ? rule.destination_playlist_title : '';
+  modal.style.display = 'flex';
+}
+
+document.getElementById('addRuleBtn')?.addEventListener('click', () => openRuleModal(null));
+document.getElementById('ruleCancel')?.addEventListener('click', () => {
+  document.getElementById('ruleModal').style.display = 'none';
+});
+document.getElementById('ruleSave')?.addEventListener('click', async function() {
+  const id = document.getElementById('ruleId').value;
+  const body = {
+    name: document.getElementById('ruleName').value,
+    priority: parseInt(document.getElementById('rulePriority').value) || 0,
+    field: document.getElementById('ruleField').value || null,
+    operator: document.getElementById('ruleOperator').value,
+    pattern: document.getElementById('rulePattern').value || null,
+    destination_playlist_id: document.getElementById('ruleDestId').value,
+    destination_playlist_title: document.getElementById('ruleDestTitle').value,
+  };
+  try {
+    if (id) {
+      await api('/api/rules/' + id, { method: 'PUT', body: JSON.stringify(body) });
+      showToast('Rule updated', 'success');
+    } else {
+      await api('/api/rules', { method: 'POST', body: JSON.stringify(body) });
+      showToast('Rule created', 'success');
+    }
+    document.getElementById('ruleModal').style.display = 'none';
+    renderers.rules();
+  } catch (e) { showToast('Save failed: ' + e.message); }
+});
+
+// ---- Config renderer ----
+renderers.config = async function() {
+  const container = document.getElementById('configForm');
+  container.innerHTML = '<p style="color:var(--text2)">Loading...</p>';
+  try {
+    const cfg = await api('/api/config');
+    const fields = [
+      ['schedule', 'Schedule (cron)', 'text'],
+      ['compare_distance', 'Compare Distance (0-100)', 'number'],
+      ['reprocess_days', 'Reprocess Days', 'number'],
+      ['playlist_sleep', 'Playlist Sleep (s)', 'number'],
+      ['subscription_sleep', 'Subscription Sleep (s)', 'number'],
+      ['pipeline_concurrency', 'Pipeline Concurrency', 'number'],
+      ['activity_limit', 'Activity Limit', 'number'],
+      ['subscription_limit', 'Subscription Limit', 'number'],
+      ['log_level', 'Log Level', 'text'],
+    ];
+    container.innerHTML = fields.map(([key, label, type]) =>
+      `<div class="form-group"><label>${label}</label>
+      <input type="${type}" id="cfg_${key}" value="${escapeHtml(String(cfg[key] ?? ''))}"></div>`
+    ).join('');
+    document.getElementById('configSave').onclick = async function() {
+      const body = {};
+      fields.forEach(([key]) => { body[key] = document.getElementById('cfg_' + key).value; });
+      try {
+        await api('/api/config', { method: 'PUT', body: JSON.stringify(body) });
+        showToast('Config saved', 'success');
+      } catch (e) { showToast('Save failed: ' + e.message); }
+    };
+  } catch { container.innerHTML = '<p style="color:var(--error)">Failed to load config</p>'; }
+};
+
+// ---- Pipeline Runs renderer ----
+renderers.runs = async function() {
+  const container = document.getElementById('runsList');
+  container.innerHTML = '<p style="color:var(--text2)">Loading...</p>';
+  try {
+    const runs = await api('/api/pipeline/runs');
+    if (!Array.isArray(runs) || runs.length === 0) {
+      container.innerHTML = '<p style="color:var(--text2)">No runs yet</p>'; return;
+    }
+    container.innerHTML = `<table><thead><tr>
+      <th>ID</th><th>Started</th><th>Status</th><th>Trigger</th><th>Processed</th><th>Skipped</th><th>Errors</th>
+    </tr></thead><tbody>${runs.map(r => `<tr>
+      <td>${r.id}</td>
+      <td style="font-size:0.75rem;color:var(--text2)">${r.started_at || '-'}</td>
+      <td><span class="badge ${r.status === 'success' ? 'badge-ok' : r.status === 'failed' ? 'badge-fail' : 'badge-run'}">${r.status || '-'}</span></td>
+      <td>${r.trigger || '-'}</td>
+      <td>${r.subscriptions_processed ?? '-'}</td>
+      <td>${r.subscriptions_skipped ?? '-'}</td>
+      <td>${r.errors ?? '-'}</td>
+    </tr>`).join('')}</tbody></table>`;
+  } catch { container.innerHTML = '<p style="color:var(--error)">Failed to load runs</p>'; }
+};
+
+// ---- Auth renderer ----
+renderers.auth = async function() {
+  const container = document.getElementById('authStatus');
+  container.innerHTML = '<p style="color:var(--text2)">Checking...</p>';
+  try {
+    const status = await api('/api/auth/status');
+    if (status.authenticated) {
+      container.innerHTML = `
+        <div class="card" style="border-left:4px solid var(--success)">
+          <h3>✅ Authenticated</h3>
+          <p style="color:var(--text2);margin-top:0.5rem">Expires: ${status.expires_at || 'Unknown'}</p>
+        </div>
+        <button id="reauthBtn" style="margin-top:0.5rem;background:var(--surface2);color:var(--text)">Re-authenticate</button>`;
+      document.getElementById('reauthBtn')?.addEventListener('click', startAuthFlow);
+    } else {
+      container.innerHTML = `
+        <div class="card" style="border-left:4px solid var(--error)">
+          <h3>❌ Not Authenticated</h3>
+          <p style="color:var(--text2);margin-top:0.5rem">Authenticate with Google to enable YouTube API access.</p>
+        </div>
+        <button id="authBtn" style="margin-top:0.5rem">Authenticate with Google</button>`;
+      document.getElementById('authBtn')?.addEventListener('click', startAuthFlow);
+    }
+  } catch {
+    container.innerHTML = '<p style="color:var(--error)">Failed to check auth status</p>';
+  }
+};
+
+async function startAuthFlow() {
+  const container = document.getElementById('authStatus');
+  container.innerHTML = '<p style="color:var(--text2)">Starting device flow...</p>';
+  try {
+    const data = await api('/api/auth/device', { method: 'POST' });
+    container.innerHTML = `
+      <div class="card" style="text-align:center">
+        <h3 style="margin-bottom:1rem">Authorize with Google</h3>
+        <p style="color:var(--text2);margin-bottom:1rem">Visit the URL below and enter the code:</p>
+        <p style="font-size:1.5rem;font-weight:700;margin-bottom:0.5rem">
+          <a href="${escapeHtml(data.verification_url)}" target="_blank" style="color:var(--accent)">${escapeHtml(data.verification_url)}</a>
+        </p>
+        <div style="font-size:3rem;font-weight:700;letter-spacing:0.5rem;background:var(--bg);padding:1rem;border-radius:var(--radius);margin:1rem 0;font-family:monospace">${escapeHtml(data.user_code)}</div>
+        <p style="color:var(--text2);font-size:0.875rem">Waiting for authorization...</p>
+        <div class="spinner" style="margin:1rem auto"></div>
+      </div>`;
+    pollAuthStatus();
+  } catch (e) {
+    container.innerHTML = '<p style="color:var(--error)">Failed: ' + e.message + '</p>';
+  }
+}
+
+let pollTimer = null;
+async function pollAuthStatus() {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(async () => {
+    try {
+      const result = await api('/api/auth/poll', { method: 'POST' });
+      if (result.status === 'success') {
+        clearInterval(pollTimer);
+        pollTimer = null;
+        renderers.auth();
+      }
+    } catch { /* continue polling */ }
+  }, 3000);
+}
+
+// ---- Init ----
+const renderers = {};
+if (!location.hash) navigate('dashboard');
+renderPage(location.hash.slice(1) || 'dashboard');
+updateHealth();
+setInterval(updateHealth, 30000);
+</script>
+</body>
+</html>

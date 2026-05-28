@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ys2wl
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ys2wl
+  template:
+    metadata:
+      labels:
+        app: ys2wl
+    spec:
+      containers:
+        - name: ys2wl
+          image: ys2wl:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: ys2wl-config
+          env:
+            - name: YS2WL_PICKLE_FILE
+              value: /data/credentials.pickle
+            - name: YS2WL_CREDENTIALS_FILE
+              value: /data/credentials.json
+            - name: YS2WL_DATABASE_FILE
+              value: /data/ys2wl.db
+          volumeMounts:
+            - mountPath: /data
+              name: config
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+      volumes:
+        - hostPath:
+            path: /data/disk2/opt/ys2wl
+            type: ""
+          name: config

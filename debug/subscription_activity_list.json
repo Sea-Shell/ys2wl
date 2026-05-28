@@ -1,0 +1,14 @@
+{
+  "kind": "youtube#activityListResponse",
+  "pageInfo": {"totalResults": 2, "resultsPerPage": 50},
+  "items": [
+    {
+      "snippet": {"type": "upload", "title": "Test Video 1", "publishedAt": "2024-06-01T00:00:00Z"},
+      "contentDetails": {"upload": {"videoId": "v1"}}
+    },
+    {
+      "snippet": {"type": "upload", "title": "Test Video 2", "publishedAt": "2024-06-02T00:00:00Z"},
+      "contentDetails": {"upload": {"videoId": "v2"}}
+    }
+  ]
+}

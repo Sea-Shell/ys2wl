@@ -11,3 +11,5 @@ __pycache__
 *.pyd
 *.pdb
 *.egg-info
+docs/superpowers/
+.opencode/

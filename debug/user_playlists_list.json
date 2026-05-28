@@ -1,0 +1,8 @@
+{
+  "kind": "youtube#playlistListResponse",
+  "pageInfo": {"totalResults": 2, "resultsPerPage": 50},
+  "items": [
+    {"id": "PL1", "snippet": {"title": "Watch Later"}},
+    {"id": "PL2", "snippet": {"title": "Music"}}
+  ]
+}

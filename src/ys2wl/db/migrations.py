@@ -1,0 +1,74 @@
+import sqlite3
+import logging
+
+log = logging.getLogger("ys2wl.db.migrations")
+
+SCHEMA_SQL = """
+CREATE TABLE IF NOT EXISTS videos (
+    videoId TEXT NOT NULL PRIMARY KEY,
+    timestamp TEXT,
+    title TEXT,
+    subscriptionId TEXT,
+    playlistId TEXT,
+    duration_seconds INTEGER,
+    route_rule TEXT
+);
+CREATE TABLE IF NOT EXISTS channel (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT
+);
+CREATE TABLE IF NOT EXISTS playlist (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT
+);
+CREATE TABLE IF NOT EXISTS subscription (
+    id TEXT NOT NULL PRIMARY KEY,
+    title TEXT,
+    timestamp TEXT
+);
+CREATE TABLE IF NOT EXISTS last_run (
+    id NUMBER NOT NULL PRIMARY KEY,
+    timestamp TEXT
+);
+CREATE TABLE IF NOT EXISTS routing_rules (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    priority INTEGER NOT NULL DEFAULT 0,
+    field TEXT,
+    operator TEXT NOT NULL DEFAULT 'contains',
+    pattern TEXT,
+    destination_playlist_id TEXT NOT NULL,
+    destination_playlist_title TEXT,
+    enabled INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS pipeline_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    started_at TEXT NOT NULL,
+    finished_at TEXT,
+    status TEXT NOT NULL DEFAULT 'running',
+    subscriptions_processed INTEGER DEFAULT 0,
+    subscriptions_skipped INTEGER DEFAULT 0,
+    videos_added INTEGER DEFAULT 0,
+    videos_skipped INTEGER DEFAULT 0,
+    errors INTEGER DEFAULT 0,
+    error_message TEXT,
+    trigger TEXT DEFAULT 'scheduled'
+);
+CREATE TABLE IF NOT EXISTS app_config (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+"""
+
+
+def init_db(db_path: str) -> bool:
+    try:
+        con = sqlite3.connect(db_path)
+        con.executescript(SCHEMA_SQL)
+        con.close()
+        return True
+    except sqlite3.Error as err:
+        log.error("Failed to initialize database: %s", err)
+        return False

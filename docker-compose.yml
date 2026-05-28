@@ -1,0 +1,17 @@
+services:
+  ys2wl:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data
+      - ./credentials.json:/app/credentials.json:ro
+    environment:
+      - YS2WL_DATABASE_FILE=/data/ys2wl.db
+      - YS2WL_PICKLE_FILE=/data/credentials.pickle
+      - YS2WL_CREDENTIALS_FILE=/app/credentials.json
+      - YS2WL_SCHEDULE=0 */6 * * *
+      - YS2WL_API_PORT=8080
+      - YS2WL_LOG_LEVEL=info
+      - YS2WL_COMPARE_DISTANCE=80
+      - YS2WL_NO_WEBBROWSER=true
