@@ -87,3 +87,15 @@ async def test_rules_section_has_modal(client):
 async def test_subscriptions_section_has_search(client):
     resp = await client.get("/ui/index.html")
     assert "subSearch" in resp.text or "Filter channels" in resp.text
+
+
+@pytest.mark.asyncio
+async def test_config_form_exists(client):
+    resp = await client.get("/ui/index.html")
+    assert "configForm" in resp.text or "Config" in resp.text
+
+
+@pytest.mark.asyncio
+async def test_runs_section_exists(client):
+    resp = await client.get("/ui/index.html")
+    assert "runsList" in resp.text or "Pipeline Runs" in resp.text

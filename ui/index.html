@@ -201,8 +201,15 @@ label { display: block; font-size: 0.875rem; color: var(--text2); margin-bottom:
       </div>
     </div>
   </section>
-  <section id="config" class="page"></section>
-  <section id="runs" class="page"></section>
+  <section id="config" class="page">
+    <h2>Config</h2>
+    <div style="max-width:480px" id="configForm"></div>
+    <button id="configSave" style="margin-top:0.5rem">Save Config</button>
+  </section>
+  <section id="runs" class="page">
+    <h2>Pipeline Runs</h2>
+    <div id="runsList"></div>
+  </section>
 </div>
 
 <div id="toast" class="toast"></div>
@@ -432,6 +439,61 @@ document.getElementById('ruleSave')?.addEventListener('click', async function() 
     renderers.rules();
   } catch (e) { showToast('Save failed: ' + e.message); }
 });
+
+// ---- Config renderer ----
+renderers.config = async function() {
+  const container = document.getElementById('configForm');
+  container.innerHTML = '<p style="color:var(--text2)">Loading...</p>';
+  try {
+    const cfg = await api('/api/config');
+    const fields = [
+      ['schedule', 'Schedule (cron)', 'text'],
+      ['compare_distance', 'Compare Distance (0-100)', 'number'],
+      ['reprocess_days', 'Reprocess Days', 'number'],
+      ['playlist_sleep', 'Playlist Sleep (s)', 'number'],
+      ['subscription_sleep', 'Subscription Sleep (s)', 'number'],
+      ['pipeline_concurrency', 'Pipeline Concurrency', 'number'],
+      ['activity_limit', 'Activity Limit', 'number'],
+      ['subscription_limit', 'Subscription Limit', 'number'],
+      ['log_level', 'Log Level', 'text'],
+    ];
+    container.innerHTML = fields.map(([key, label, type]) =>
+      `<div class="form-group"><label>${label}</label>
+      <input type="${type}" id="cfg_${key}" value="${escapeHtml(String(cfg[key] ?? ''))}"></div>`
+    ).join('');
+    document.getElementById('configSave').onclick = async function() {
+      const body = {};
+      fields.forEach(([key]) => { body[key] = document.getElementById('cfg_' + key).value; });
+      try {
+        await api('/api/config', { method: 'PUT', body: JSON.stringify(body) });
+        showToast('Config saved', 'success');
+      } catch (e) { showToast('Save failed: ' + e.message); }
+    };
+  } catch { container.innerHTML = '<p style="color:var(--error)">Failed to load config</p>'; }
+};
+
+// ---- Pipeline Runs renderer ----
+renderers.runs = async function() {
+  const container = document.getElementById('runsList');
+  container.innerHTML = '<p style="color:var(--text2)">Loading...</p>';
+  try {
+    const runs = await api('/api/pipeline/runs');
+    if (!Array.isArray(runs) || runs.length === 0) {
+      container.innerHTML = '<p style="color:var(--text2)">No runs yet</p>'; return;
+    }
+    container.innerHTML = `<table><thead><tr>
+      <th>ID</th><th>Started</th><th>Status</th><th>Trigger</th><th>Processed</th><th>Skipped</th><th>Errors</th>
+    </tr></thead><tbody>${runs.map(r => `<tr>
+      <td>${r.id}</td>
+      <td style="font-size:0.75rem;color:var(--text2)">${r.started_at || '-'}</td>
+      <td><span class="badge ${r.status === 'success' ? 'badge-ok' : r.status === 'failed' ? 'badge-fail' : 'badge-run'}">${r.status || '-'}</span></td>
+      <td>${r.trigger || '-'}</td>
+      <td>${r.subscriptions_processed ?? '-'}</td>
+      <td>${r.subscriptions_skipped ?? '-'}</td>
+      <td>${r.errors ?? '-'}</td>
+    </tr>`).join('')}</tbody></table>`;
+  } catch { container.innerHTML = '<p style="color:var(--error)">Failed to load runs</p>'; }
+};
 
 // ---- Init ----
 const renderers = {};
