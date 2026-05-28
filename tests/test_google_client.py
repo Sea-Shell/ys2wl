@@ -56,10 +56,10 @@ def test_build_youtube_v3_subscriptions_list():
 def test_http_error_403():
     """HttpError with 403 has correct status and message."""
     resp = httplib2.Response({"status": 403})
-    body = json.dumps({"error": {"message": "Access forbidden", "code": 403}}).encode()
-    err = HttpError(
-        resp, body, uri="https://youtube.googleapis.com/youtube/v3/channels"
-    )
+    body = json.dumps(
+        {"error": {"message": "Access forbidden", "code": 403}}
+    ).encode()
+    err = HttpError(resp, body, uri="https://youtube.googleapis.com/youtube/v3/channels")
     assert err.resp.status == 403
     assert "Access forbidden" in str(err)
 
