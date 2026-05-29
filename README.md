@@ -31,3 +31,16 @@ youtube-maximum-length: ""            # Maximum length of tracks to add. 1s, 2m,
 log-level: ""                         # Set loglevel: debug, info, warning, or error
 log-file: ""                          # File to cast logs to. If you want all output to stdout type "stream"
 ```
+
+## Pre-commit hooks
+
+Install pre-commit and the hook:
+```sh
+uv tool install pre-commit
+pre-commit install
+```
+
+Lint and format run automatically on `git commit`. Run manually:
+```sh
+make check
+```

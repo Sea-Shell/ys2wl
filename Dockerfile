@@ -1,32 +1,52 @@
-FROM python:3.12-slim@sha256:090ba77e2958f6af52a5341f788b50b032dd4ca28377d2893dcf1ecbdfdfe203 AS builder
+FROM ghcr.io/astral-sh/uv:0.6 AS uv
+FROM python:3.13-slim AS builder
 
-RUN pip install --no-cache-dir uv
+COPY --from=uv /uv /uvx /bin/
 
 WORKDIR /app
 
-COPY pyproject.toml .
-RUN uv sync --no-install-project --no-dev
+COPY pyproject.toml uv.lock /app/
+RUN uv sync --frozen --no-install-project --no-group dev
 
 COPY src/ src/
+COPY ui/ ui/
+RUN uv sync --frozen --no-group dev
 
-FROM python:3.12-slim@sha256:090ba77e2958f6af52a5341f788b50b032dd4ca28377d2893dcf1ecbdfdfe203 AS runtime
+FROM python:3.13-slim AS runtime
 
-RUN pip install --no-cache-dir uv \
-    && adduser --disabled-password --uid 1000 --gecos "" appuser
+ARG UID=1000
+ARG GID=1000
+ARG APP_PORT=8080
+ARG APP_VERSION=dev
+ARG BUILD_DATE
+ARG VCS_REF
+
+LABEL org.opencontainers.image.source="https://github.com/Sea-Shell/ys2wl" \
+  org.opencontainers.image.description="ys2wl" \
+  org.opencontainers.image.licenses="MIT" \
+  org.opencontainers.image.version="${APP_VERSION}" \
+  org.opencontainers.image.created="${BUILD_DATE}" \
+  org.opencontainers.image.revision="${VCS_REF}"
+
+RUN apt-get update && apt-get install -y --no-install-recommends tini \
+  && apt-get clean && rm -rf /var/lib/apt/lists/* \
+  && addgroup --gid ${GID} appgroup \
+  && adduser --disabled-password --uid ${UID} --gid ${GID} --gecos "" appuser
 
 WORKDIR /app
 
-COPY --from=builder /app /app
+COPY --from=builder --chown=${UID}:${GID} /app /app
 
-ENV YS2WL_NO_WEBBROWSER=true
-ENV PYTHONUNBUFFERED=1
-ENV PATH="/root/.local/bin:${PATH}"
+ENV PATH="/app/.venv/bin:$PATH" \
+  YS2WL_NO_WEBBROWSER=true \
+  PYTHONUNBUFFERED=1
 
-EXPOSE 8080
+EXPOSE ${APP_PORT}
 
-USER 1000
+USER appuser
+
+ENTRYPOINT ["tini", "--"]
+CMD ["python", "-m", "ys2wl"]
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/api/health')" || exit 1
-
-CMD ["uv", "run", "python", "-m", "ys2wl"]
+  CMD python -c "import urllib.request; exit(0) if urllib.request.urlopen('http://localhost:8080/api/health').status == 200 else exit(1)"

@@ -2,7 +2,12 @@ __pycache__
 *.pyc
 .git
 .env
+.venv
+.ruff_cache
+.pytest_cache
 *.md
 tests/
 debug/
 k8s/
+archive/
+logs.log
