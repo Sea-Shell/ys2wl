@@ -2,6 +2,7 @@ import logging
 from typing import List
 from fastapi import APIRouter, Request
 from ys2wl.api.models import SubscriptionStat
+from ys2wl.db import repository as repo
 
 log = logging.getLogger("ys2wl.api.stats")
 router = APIRouter()
@@ -36,16 +37,9 @@ async def get_subscription_stats(request: Request):
     if not rows:
         return []
 
-    ignore_path = state.settings.subscription_ignore_file
     ignored_set = set()
-    try:
-        with open(ignore_path) as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#"):
-                    ignored_set.add(line)
-    except (FileNotFoundError, OSError):
-        pass
+    for entry in repo.get_ignore_entries(state.db_con, "subscription"):
+        ignored_set.add(entry["pattern"])
 
     def _is_ignored(title: str, sub_id: str) -> bool:
         if title in ignored_set or sub_id in ignored_set:

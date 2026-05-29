@@ -1,5 +1,16 @@
+import sqlite3
+
 import pytest
 from httpx import ASGITransport, AsyncClient
+
+
+def _db() -> sqlite3.Connection:
+    con = sqlite3.connect(":memory:")
+    con.row_factory = sqlite3.Row
+    con.execute(
+        "CREATE TABLE IF NOT EXISTS app_config (key TEXT PRIMARY KEY, value TEXT)"
+    )
+    return con
 
 
 @pytest.mark.asyncio
@@ -8,6 +19,7 @@ async def test_auth_status_returns_not_authenticated():
 
     app = create_app()
     state = AppState()
+    state.db_con = _db()
     app.state.ys2wl = state
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -23,6 +35,7 @@ async def test_auth_device_returns_400_without_creds():
 
     app = create_app()
     state = AppState()
+    state.db_con = _db()
     app.state.ys2wl = state
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
