@@ -7,6 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import RedirectResponse
 import os
 from ys2wl.config import load_settings, Settings
+from google.auth.transport.requests import Request
 from ys2wl.core.youtube import YouTubeAPIClient
 from ys2wl.core.auth import load_credentials
 from ys2wl.core.scheduler import PipelineScheduler
@@ -17,6 +18,7 @@ from ys2wl.api.routes import (
     rules,
     pipeline as pipeline_routes,
     subscriptions,
+    stats as stats_routes,
 )
 from ys2wl.api.routes import auth as auth_routes
 from prometheus_client import make_asgi_app
@@ -44,11 +46,22 @@ async def lifespan(app: FastAPI) -> AsyncIterator:
     state.db_con.row_factory = sqlite3.Row
 
     state.credentials = load_credentials(state.settings.pickle_file)
-    if state.credentials and state.credentials.valid:
-        log.info("Loaded saved credentials")
-        state.youtube = YouTubeAPIClient(credentials=state.credentials)
+    if state.credentials:
+        if state.credentials.valid:
+            log.info("Loaded saved credentials")
+            state.youtube = YouTubeAPIClient(credentials=state.credentials)
+        elif state.credentials.expired and state.credentials.refresh_token:
+            log.info("Credentials expired — attempting refresh")
+            try:
+                state.credentials.refresh(Request())
+                log.info("Credentials refreshed successfully")
+                state.youtube = YouTubeAPIClient(credentials=state.credentials)
+            except Exception as e:
+                log.warning("Credential refresh failed: %s", e)
+        else:
+            log.info("Credentials invalid and cannot be refreshed — use UI auth flow")
     else:
-        log.info("No valid credentials found — use UI auth flow")
+        log.info("No saved credentials found — use UI auth flow")
 
     app.state.ys2wl = state
     log.info("ys2wl service started")
@@ -76,6 +89,7 @@ def create_app() -> FastAPI:
     app.include_router(rules.router, prefix="/api", tags=["rules"])
     app.include_router(pipeline_routes.router, prefix="/api", tags=["pipeline"])
     app.include_router(subscriptions.router, prefix="/api", tags=["subscriptions"])
+    app.include_router(stats_routes.router, prefix="/api", tags=["stats"])
     app.include_router(auth_routes.router, prefix="/api", tags=["auth"])
 
     metrics_app = make_asgi_app()
