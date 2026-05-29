@@ -1,4 +1,6 @@
 .venv
+.ruff_cache
+.pytest_cache
 debug
 config.yaml
 config.yml

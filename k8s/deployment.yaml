@@ -14,8 +14,8 @@ spec:
     spec:
       containers:
         - name: ys2wl
-          image: registry.hub.docker.com/bateau/ys2wl:v1.12.0
-          imagePullPolicy: IfNotPresent
+          image: registry.hub.docker.com/bateau/ys2wl:v2.1.0
+          imagePullPolicy: Always
           ports:
             - containerPort: 8080
           envFrom:
