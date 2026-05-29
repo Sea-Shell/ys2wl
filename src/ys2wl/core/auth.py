@@ -1,12 +1,14 @@
+import base64
 import json
 import logging
-import os
 import pickle
+import sqlite3
 from typing import Optional
 from google.auth.credentials import Credentials
 from google.oauth2.credentials import Credentials as OAuth2Credentials
 from google.auth.transport.requests import Request
 import httpx
+from ys2wl.db import repository as repo
 
 log = logging.getLogger("ys2wl.auth")
 
@@ -21,18 +23,21 @@ DEVICE_CODE_URL = "https://oauth2.googleapis.com/device/code"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 
 
-def get_client_config(credentials_file: str) -> Optional[dict]:
-    """Extract client_id and client_secret from Google OAuth credentials JSON."""
+def get_client_config(db_con: sqlite3.Connection) -> Optional[dict]:
+    """Extract client_id and client_secret from Google OAuth credentials JSON in DB."""
     try:
-        with open(credentials_file) as f:
-            data = json.load(f)
+        raw = repo.get_config(db_con, "client_secret_json")
+        if not raw:
+            log.error("No client_secret_json in app_config")
+            return None
+        data = json.loads(raw)
         installed = data.get("installed") or data.get("web", {})
         return {
             "client_id": installed.get("client_id"),
             "client_secret": installed.get("client_secret"),
         }
-    except (FileNotFoundError, KeyError, json.JSONDecodeError) as e:
-        log.error("Failed to read credentials file: %s", e)
+    except (KeyError, json.JSONDecodeError) as e:
+        log.error("Failed to read credentials from DB: %s", e)
         return None
 
 
@@ -83,23 +88,22 @@ def poll_device_flow(
     return None, error
 
 
-def save_credentials(credentials: Credentials, path: str) -> None:
-    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    with open(path, "wb") as f:
-        pickle.dump(credentials, f)
+def save_credentials(db_con: sqlite3.Connection, credentials: Credentials) -> None:
+    blob = base64.b64encode(pickle.dumps(credentials)).decode("ascii")
+    repo.set_config(db_con, "credentials_pickle", blob)
 
 
-def load_credentials(path: str) -> Optional[Credentials]:
+def load_credentials(db_con: sqlite3.Connection) -> Optional[Credentials]:
     try:
-        with open(path, "rb") as f:
-            creds = pickle.load(f)
-            log.debug("Loaded credentials from %s", path)
-            return creds
-    except FileNotFoundError:
-        log.debug("No credentials file at %s", path)
-        return None
-    except (pickle.UnpicklingError, EOFError) as e:
-        log.warning("Failed to unpickle credentials from %s: %s", path, e)
+        raw = repo.get_config(db_con, "credentials_pickle")
+        if not raw:
+            log.debug("No credentials_pickle in app_config")
+            return None
+        creds = pickle.loads(base64.b64decode(raw))
+        log.debug("Loaded credentials from DB")
+        return creds
+    except (pickle.UnpicklingError, EOFError, ValueError) as e:
+        log.warning("Failed to unpickle credentials from DB: %s", e)
         return None
 
 

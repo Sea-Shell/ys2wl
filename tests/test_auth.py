@@ -1,37 +1,47 @@
 import json
-import tempfile
-import os
+import sqlite3
+from ys2wl.db import repository as repo
 from ys2wl.core.auth import (
     get_client_config,
     credentials_status,
 )
 
 
-def test_get_client_config_returns_none_for_missing_file():
-    result = get_client_config("/nonexistent/credentials.json")
+def _db() -> sqlite3.Connection:
+    con = sqlite3.connect(":memory:")
+    con.row_factory = sqlite3.Row
+    con.execute(
+        "CREATE TABLE IF NOT EXISTS app_config (key TEXT PRIMARY KEY, value TEXT)"
+    )
+    return con
+
+
+def test_get_client_config_returns_none_for_missing():
+    db_con = _db()
+    result = get_client_config(db_con)
     assert result is None
 
 
 def test_get_client_config_parses_installed():
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-        json.dump({"installed": {"client_id": "abc", "client_secret": "def"}}, f)
-        path = f.name
-    try:
-        result = get_client_config(path)
-        assert result == {"client_id": "abc", "client_secret": "def"}
-    finally:
-        os.unlink(path)
+    db_con = _db()
+    repo.set_config(
+        db_con,
+        "client_secret_json",
+        json.dumps({"installed": {"client_id": "abc", "client_secret": "def"}}),
+    )
+    result = get_client_config(db_con)
+    assert result == {"client_id": "abc", "client_secret": "def"}
 
 
 def test_get_client_config_parses_web():
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
-        json.dump({"web": {"client_id": "xyz", "client_secret": "123"}}, f)
-        path = f.name
-    try:
-        result = get_client_config(path)
-        assert result == {"client_id": "xyz", "client_secret": "123"}
-    finally:
-        os.unlink(path)
+    db_con = _db()
+    repo.set_config(
+        db_con,
+        "client_secret_json",
+        json.dumps({"web": {"client_id": "xyz", "client_secret": "123"}}),
+    )
+    result = get_client_config(db_con)
+    assert result == {"client_id": "xyz", "client_secret": "123"}
 
 
 def test_credentials_status_none():

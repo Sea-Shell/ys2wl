@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator:
     state.db_con = sqlite3.connect(state.settings.database_file)
     state.db_con.row_factory = sqlite3.Row
 
-    state.credentials = load_credentials(state.settings.pickle_file)
+    state.credentials = load_credentials(state.db_con)
     if state.credentials:
         if state.credentials.valid:
             log.info("Loaded saved credentials")

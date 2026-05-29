@@ -42,7 +42,7 @@ async def auth_status(request: Request):
 @router.post("/auth/device", response_model=DeviceFlowResponse)
 async def auth_device(request: Request):
     state = _get_state(request)
-    config = get_client_config(state.settings.credentials_file)
+    config = get_client_config(state.db_con)
     if not config or not config.get("client_id"):
         raise HTTPException(
             status_code=400, detail="credentials.json not found or invalid"
@@ -74,7 +74,7 @@ async def auth_poll(request: Request):
         state.device_flow["device_code"],
     )
     if creds:
-        save_credentials(creds, state.settings.pickle_file)
+        save_credentials(state.db_con, creds)
         state.credentials = creds
         state.youtube = YouTubeAPIClient(credentials=creds)
         state.device_flow = None
