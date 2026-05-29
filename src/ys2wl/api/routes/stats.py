@@ -19,27 +19,21 @@ async def get_subscription_stats(request: Request):
     try:
         rows = con.execute(
             """
-            SELECT subscription_title,
-                   COUNT(*) FILTER (WHERE action = 'added') AS videos_added,
-                   MAX(CASE WHEN action = 'added' THEN created_at END) AS last_added_at,
-                   COUNT(*) AS total_decisions
-            FROM pipeline_run_decisions
-            GROUP BY subscription_title
+            SELECT v.subscriptionId,
+                   COALESCE(s.title, v.subscriptionId) AS title,
+                   COUNT(v.videoId) AS videos_added
+            FROM videos v
+            LEFT JOIN subscription s ON v.subscriptionId = s.id
+            GROUP BY v.subscriptionId
             ORDER BY videos_added DESC
             """
         ).fetchall()
     except Exception as e:
-        log.error("Failed to query pipeline_run_decisions: %s", e)
+        log.error("Failed to query video stats: %s", e)
         return []
 
-    active_set = set()
-    try:
-        for r in con.execute(
-            "SELECT DISTINCT title FROM subscription WHERE title IS NOT NULL"
-        ):
-            active_set.add(r[0])
-    except Exception as e:
-        log.error("Failed to query subscriptions: %s", e)
+    if not rows:
+        return []
 
     ignore_path = state.settings.subscription_ignore_file
     ignored_set = set()
@@ -54,20 +48,30 @@ async def get_subscription_stats(request: Request):
 
     result = []
     for row in rows:
-        title = row[0]
-        if title in active_set:
-            status = "active"
-        elif title in ignored_set:
+        sub_id = row[0]
+        title = row[1]
+        if title in ignored_set:
             status = "ignored"
+        elif _is_in_subscription_table(con, sub_id):
+            status = "active"
         else:
             status = "inactive"
         result.append(
             SubscriptionStat(
                 subscription_title=title,
-                videos_added=row[1] or 0,
-                last_added_at=row[2],
-                total_decisions=row[3] or 0,
+                subscription_id=sub_id,
+                videos_added=row[2] or 0,
                 status=status,
             )
         )
     return result
+
+
+def _is_in_subscription_table(con, sub_id: str) -> bool:
+    try:
+        r = con.execute(
+            "SELECT 1 FROM subscription WHERE id = ? LIMIT 1", (sub_id,)
+        ).fetchone()
+        return r is not None
+    except Exception:
+        return False

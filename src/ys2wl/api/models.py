@@ -95,7 +95,6 @@ class TriggerResponse(BaseModel):
 
 class SubscriptionStat(BaseModel):
     subscription_title: str
+    subscription_id: str = ""
     videos_added: int = 0
-    last_added_at: Optional[str] = None
-    total_decisions: int = 0
     status: str = "inactive"
