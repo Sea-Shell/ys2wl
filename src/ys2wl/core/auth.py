@@ -92,8 +92,14 @@ def save_credentials(credentials: Credentials, path: str) -> None:
 def load_credentials(path: str) -> Optional[Credentials]:
     try:
         with open(path, "rb") as f:
-            return pickle.load(f)
-    except (FileNotFoundError, pickle.UnpicklingError, EOFError):
+            creds = pickle.load(f)
+            log.debug("Loaded credentials from %s", path)
+            return creds
+    except FileNotFoundError:
+        log.debug("No credentials file at %s", path)
+        return None
+    except (pickle.UnpicklingError, EOFError) as e:
+        log.warning("Failed to unpickle credentials from %s: %s", path, e)
         return None
 
 

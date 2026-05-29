@@ -1,6 +1,6 @@
 import sqlite3
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 log = logging.getLogger("ys2wl.db.repository")
@@ -35,6 +35,7 @@ def insert_video(
                 route_rule,
             ),
         )
+        con.commit()
         return True
     except sqlite3.Error as err:
         log.error("Failed to insert video: %s", err)
@@ -53,6 +54,7 @@ def insert_channel(con: sqlite3.Connection, channel_id: str, title: str) -> bool
             "INSERT OR REPLACE INTO channel (id, title) VALUES (?, ?)",
             (channel_id, title),
         )
+        con.commit()
         return True
     except sqlite3.Error as err:
         log.error("Failed to insert channel: %s", err)
@@ -74,6 +76,7 @@ def insert_playlist(con: sqlite3.Connection, playlist_id: str, title: str) -> bo
             "INSERT OR REPLACE INTO playlist (id, title) VALUES (?, ?)",
             (playlist_id, title),
         )
+        con.commit()
         return True
     except sqlite3.Error as err:
         log.error("Failed to insert playlist: %s", err)
@@ -97,6 +100,7 @@ def insert_subscription(
             "INSERT OR REPLACE INTO subscription (id, title, timestamp) VALUES (?, ?, ?)",
             (sub_id, title, timestamp),
         )
+        con.commit()
         return True
     except sqlite3.Error as err:
         log.error("Failed to insert subscription: %s", err)
@@ -124,6 +128,7 @@ def set_last_run(con: sqlite3.Connection, timestamp: str) -> bool:
             "INSERT OR REPLACE INTO last_run (id, timestamp) VALUES (1, ?)",
             (timestamp,),
         )
+        con.commit()
         return True
     except sqlite3.Error as err:
         log.error("Failed to set last_run: %s", err)
@@ -136,7 +141,9 @@ def get_routing_rules(con: sqlite3.Connection) -> list[dict]:
         "SELECT id, name, priority, field, operator, pattern, destination_playlist_id, destination_playlist_title, enabled "
         "FROM routing_rules WHERE enabled = 1 ORDER BY priority DESC"
     )
-    return [dict(row) for row in cursor.fetchall()]
+    results = [dict(row) for row in cursor.fetchall()]
+    log.info("get_routing_rules: %d enabled rules", len(results))
+    return results
 
 
 def create_routing_rule(
@@ -166,6 +173,7 @@ def create_routing_rule(
                 now,
             ),
         )
+        con.commit()
         return cursor.lastrowid
     except sqlite3.Error as err:
         log.error("Failed to create routing rule: %s", err)
@@ -191,6 +199,7 @@ def update_routing_rule(con: sqlite3.Connection, rule_id: int, **kwargs) -> bool
     values = list(updates.values()) + [rule_id]
     try:
         con.execute(f"UPDATE routing_rules SET {set_clause} WHERE id = ?", values)
+        con.commit()
         return True
     except sqlite3.Error as err:
         log.error("Failed to update routing rule: %s", err)
@@ -200,6 +209,7 @@ def update_routing_rule(con: sqlite3.Connection, rule_id: int, **kwargs) -> bool
 def delete_routing_rule(con: sqlite3.Connection, rule_id: int) -> bool:
     try:
         con.execute("DELETE FROM routing_rules WHERE id = ?", (rule_id,))
+        con.commit()
         return True
     except sqlite3.Error as err:
         log.error("Failed to delete routing rule: %s", err)
@@ -216,6 +226,7 @@ def create_pipeline_run(
             "INSERT INTO pipeline_runs (started_at, status, trigger) VALUES (?, 'running', ?)",
             (now, trigger),
         )
+        con.commit()
         return cursor.lastrowid
     except sqlite3.Error as err:
         log.error("Failed to create pipeline run: %s", err)
@@ -240,6 +251,7 @@ def finish_pipeline_run(con: sqlite3.Connection, run_id: int, summary: dict) -> 
                 run_id,
             ),
         )
+        con.commit()
         return True
     except sqlite3.Error as err:
         log.error("Failed to finish pipeline run: %s", err)
@@ -259,6 +271,64 @@ def get_pipeline_run(con: sqlite3.Connection, run_id: int) -> Optional[dict]:
     return dict(row) if row else None
 
 
+# -- pipeline_run_decisions --
+def insert_run_decisions(
+    con: sqlite3.Connection, run_id: int, decisions: list[dict]
+) -> bool:
+    try:
+        now = datetime.now(timezone.utc).isoformat()
+        con.executemany(
+            "INSERT INTO pipeline_run_decisions (run_id, video_id, title, subscription_title, action, reason, reason_detail, routed_to, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            [
+                (
+                    run_id,
+                    d.get("video_id"),
+                    d.get("title"),
+                    d.get("subscription_title"),
+                    d.get("action"),
+                    d.get("reason"),
+                    d.get("reason_detail"),
+                    d.get("routed_to"),
+                    now,
+                )
+                for d in decisions
+            ],
+        )
+        con.commit()
+        return True
+    except sqlite3.Error as err:
+        log.error("Failed to insert run decisions: %s", err)
+        return False
+
+
+def get_run_decisions(
+    con: sqlite3.Connection, run_id: int, limit: int = 1000
+) -> list[dict]:
+    cursor = con.execute(
+        "SELECT id, video_id, title, subscription_title, action, reason, reason_detail, routed_to, created_at "
+        "FROM pipeline_run_decisions WHERE run_id = ? ORDER BY id ASC LIMIT ?",
+        (run_id, limit),
+    )
+    return [dict(row) for row in cursor.fetchall()]
+
+
+def cleanup_old_decisions(con: sqlite3.Connection, days: int = 10) -> bool:
+    try:
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+        cursor = con.execute(
+            "DELETE FROM pipeline_run_decisions WHERE created_at < ?", (cutoff,)
+        )
+        con.commit()
+        deleted = cursor.rowcount
+        if deleted > 0:
+            log.info("Cleaned up %d old pipeline run decisions", deleted)
+        return True
+    except sqlite3.Error as err:
+        log.error("Failed to cleanup old decisions: %s", err)
+        return False
+
+
 # -- app_config --
 def get_config(con: sqlite3.Connection, key: str) -> Optional[str]:
     cursor = con.execute("SELECT value FROM app_config WHERE key = ?", (key,))
@@ -271,6 +341,7 @@ def set_config(con: sqlite3.Connection, key: str, value: str) -> bool:
         con.execute(
             "INSERT OR REPLACE INTO app_config (key, value) VALUES (?, ?)", (key, value)
         )
+        con.commit()
         return True
     except sqlite3.Error as err:
         log.error("Failed to set config '%s': %s", key, err)

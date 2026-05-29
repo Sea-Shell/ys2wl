@@ -56,6 +56,18 @@ CREATE TABLE IF NOT EXISTS pipeline_runs (
     error_message TEXT,
     trigger TEXT DEFAULT 'scheduled'
 );
+CREATE TABLE IF NOT EXISTS pipeline_run_decisions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    run_id INTEGER NOT NULL REFERENCES pipeline_runs(id),
+    video_id TEXT,
+    title TEXT,
+    subscription_title TEXT,
+    action TEXT NOT NULL,
+    reason TEXT,
+    reason_detail TEXT,
+    routed_to TEXT,
+    created_at TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS app_config (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL

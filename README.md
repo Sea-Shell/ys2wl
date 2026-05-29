@@ -1,46 +1,89 @@
-# Youtube Subscription to playlist
+# ys2wl — YouTube Subscription to Watch Later
 
-This script will take activity from your subscribers and add them to a playlist.
-If you want to add these videos to the special "watch-later" playlist you need to move them there yourself.  
+Web service that scrapes YouTube subscriptions and routes new videos to
+playlists based on configurable rules.
 
-The script uses pickle to save session betweene runs. it will create a picke file on first run.  
-You need to create a application in youtube to be able to populate this picke-file
-After some time this file will need to be re-created.
+## Quick start
 
-
-example config-file (config.yaml):
-```yaml
-pickle-file: ""                       # File to store access token once authenticated
-credentials-file: ""                  # JSON file with credentials to oAuth2 account
-database-file: ""                     # Location of sqlite database file. Will be created if not exists
-local-json-files: ""                  # JSON file with credentials to oAuth2 account
-compare-distance-number: 0            # Levenstein number to compare difference between existing videos and new
-published-after: ""                   # Only videos from after this date will be added. Timestamp in ISO8601 (YYYY-MM-DDThh:mm:ss.sZ) format
-reprocess-days: ""                    # Amount of days before subscription will be processed again
-youtube-channel: ""                   # Name of your channel with destination playlist
-youtube-playlist: ""                  # Name of playlist to add videos to
-youtube-activity-limit: 0             # How much activity to process per subscription per run
-youtube-subscription-limit: 0         # How many subscriptions to process per run
-youtube-subscription-ignore-file: ""  # File with newline separated list of subscriptions to ignore when processing
-youtube-video-ignore-file: ""         # File with newline separated list of video-ids to ignore when processing
-youtube-words-ignore-file: ""         # File with newline separated list of words to ignore when processing
-youtube-playlist-sleep: 0             # How long to wait between playlist API insert-calls
-youtube-subscription-sleep: 0         # How long to wait between subscription API insert-calls
-youtube-minimum-length: ""            # Minimum length of tracks to add. 1s, 2m, 1h format
-youtube-maximum-length: ""            # Maximum length of tracks to add. 1s, 2m, 1h format
-log-level: ""                         # Set loglevel: debug, info, warning, or error
-log-file: ""                          # File to cast logs to. If you want all output to stdout type "stream"
+```sh
+uv sync --dev
+uv run python -m ys2wl
 ```
 
-## Pre-commit hooks
+Open http://localhost:8080
 
-Install pre-commit and the hook:
+## Configuration
+
+Environment variables with prefix `YS2WL_`. Set via `.env` file, shell env,
+or the web UI at `/ui#config`.
+
+| Variable | Default | Description |
+|---|---|---|
+| `YS2WL_API_PORT` | `8080` | HTTP listen port |
+| `YS2WL_LOG_LEVEL` | `warning` | Log level |
+| `YS2WL_LOG_FILE` | `stream` | Log output (`stream` for stdout) |
+| `YS2WL_PICKLE_FILE` | `credentials.pickle` | OAuth token file path |
+| `YS2WL_CREDENTIALS_FILE` | `client_secret.json` | Google OAuth client JSON |
+| `YS2WL_DATABASE_FILE` | `ys2wl.db` | SQLite database path |
+| `YS2WL_SCHEDULE` | `0 */6 * * *` | Cron expression for pipeline |
+| `YS2WL_COMPARE_DISTANCE` | `80` | Title similarity threshold (0-100) |
+| `YS2WL_REPROCESS_DAYS` | `2` | Days before re-processing a sub |
+| `YS2WL_PLAYLIST_SLEEP` | `10` | Seconds between playlist API inserts |
+| `YS2WL_SUBSCRIPTION_SLEEP` | `30` | Seconds between sub processing |
+| `YS2WL_ACTIVITY_LIMIT` | `0` | Max activities per sub (0=unlimited) |
+| `YS2WL_SUBSCRIPTION_LIMIT` | `0` | Max subs per run (0=unlimited) |
+| `YS2WL_MINIMUM_LENGTH` | `0s` | Min video duration |
+| `YS2WL_MAXIMUM_LENGTH` | `0s` | Max video duration |
+| `YS2WL_PUBLISHED_AFTER` | — | ISO8601 date filter |
+| `YS2WL_SUBSCRIPTION_IGNORE_FILE` | `.subscription-ignore` | Subscriptions to skip |
+| `YS2WL_VIDEO_IGNORE_FILE` | `.video-ignore` | Video IDs to skip |
+| `YS2WL_WORDS_IGNORE_FILE` | `.ignore-words` | Title word blocklist |
+| `YS2WL_NO_WEBBROWSER` | `false` | Skip browser auth (headless mode) |
+| `YS2WL_PIPELINE_CONCURRENCY` | `1` | Parallel pipelines |
+
+## API
+
+| Method | Path | Description |
+|---|---|---|
+| GET | `/api/health` | Health check |
+| GET/PUT | `/api/config` | Get/update runtime config |
+| GET | `/api/auth/status` | OAuth status |
+| POST | `/api/auth/device` | Start device auth flow |
+| POST | `/api/auth/poll` | Poll for auth completion |
+| GET | `/api/subscriptions` | List subscriptions |
+| GET | `/api/subscriptions/{cid}/activity` | Channel activity |
+| CRUD | `/api/rules` | Routing rules |
+| POST | `/api/pipeline/trigger` | Trigger pipeline run |
+| GET | `/api/pipeline/runs` | Pipeline run history |
+| GET | `/api/pipeline/runs/{id}` | Run details |
+| GET | `/metrics` | Prometheus metrics |
+
+## Docker
+
+```sh
+make docker
+# or
+docker build -t ys2wl .
+docker run -p 8080:8080 -v /path/to/data:/data ys2wl
+```
+
+## Development
+
+```sh
+make sync    # install dependencies
+make test    # run tests
+make lint    # ruff check
+make format  # ruff format
+make check   # lint + format check
+```
+
+Lint and format run automatically on commit via pre-commit:
+
 ```sh
 uv tool install pre-commit
 pre-commit install
 ```
 
-Lint and format run automatically on `git commit`. Run manually:
-```sh
-make check
-```
+## Kubernetes
+
+Manifests in `k8s/` — deploy with `kubectl apply -f k8s/`.

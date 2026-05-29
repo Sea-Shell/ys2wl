@@ -1,6 +1,10 @@
+import logging
+
 from pydantic_settings import BaseSettings
 from pydantic import Field
 from typing import Optional
+
+log = logging.getLogger("ys2wl.config")
 
 
 class Settings(BaseSettings):
@@ -34,4 +38,6 @@ class Settings(BaseSettings):
 
 
 def load_settings() -> Settings:
-    return Settings()
+    s = Settings()
+    log.debug("config loaded: %s", s.model_dump())
+    return s
