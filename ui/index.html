@@ -564,7 +564,7 @@ renderers.stats = async function() {
   try {
     const data = await api('/api/stats/subscriptions');
     if (!Array.isArray(data) || data.length === 0) {
-      container.innerHTML = '<p style="color:var(--text2)">No stats yet — run the pipeline first</p>'; return;
+      container.innerHTML = '<p style="color:var(--text2)">No data yet</p>'; return;
     }
     let sortCol = 'videos_added';
     let sortDir = 'desc';
