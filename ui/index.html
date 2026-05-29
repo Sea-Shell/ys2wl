@@ -588,10 +588,12 @@ renderers.stats = async function() {
       container.innerHTML = `<table><thead><tr>
         <th style="cursor:pointer" onclick="setStatsSort('subscription_title')">Subscription${arrow('subscription_title')}</th>
         <th style="cursor:pointer" onclick="setStatsSort('videos_added')">Videos Added${arrow('videos_added')}</th>
+        <th style="cursor:pointer" onclick="setStatsSort('last_added_at')">Last Added${arrow('last_added_at')}</th>
         <th style="cursor:pointer" onclick="setStatsSort('status')">Status${arrow('status')}</th>
       </tr></thead><tbody>${sorted.map(d => `<tr>
         <td>${escapeHtml(d.subscription_title)}</td>
         <td>${d.videos_added}</td>
+        <td style="font-size:0.75rem;color:var(--text2)">${d.last_added_at || '-'}</td>
         <td><span class="badge ${statusClass(d.status)}">${d.status}</span></td>
       </tr>`).join('')}</tbody></table>
       <p style="color:var(--text2);font-size:0.75rem">${data.length} subscription(s)</p>`;

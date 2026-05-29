@@ -21,7 +21,8 @@ async def get_subscription_stats(request: Request):
             """
             SELECT v.subscriptionId,
                    COALESCE(s.title, v.subscriptionId) AS title,
-                   COUNT(v.videoId) AS videos_added
+                   COUNT(v.videoId) AS videos_added,
+                   MAX(v.timestamp) AS last_added_at
             FROM videos v
             LEFT JOIN subscription s ON v.subscriptionId = s.id
             GROUP BY v.subscriptionId
@@ -61,6 +62,7 @@ async def get_subscription_stats(request: Request):
                 subscription_title=title,
                 subscription_id=sub_id,
                 videos_added=row[2] or 0,
+                last_added_at=row[3],
                 status=status,
             )
         )
