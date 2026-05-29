@@ -137,6 +137,9 @@ label { display: block; font-size: 0.875rem; color: var(--text2); margin-bottom:
   vertical-align: middle; margin-right: 0.5rem;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+.config-tab { background:var(--surface2); color:var(--text); border:none; padding:0.5rem 1rem; border-radius:var(--radius); font-weight:600; font-size:0.875rem; cursor:pointer; }
+.config-tab.active { background:var(--accent); color:#0f172a; }
+.config-pane { max-width:520px; }
 </style>
 </head>
 <body>
@@ -205,8 +208,14 @@ label { display: block; font-size: 0.875rem; color: var(--text2); margin-bottom:
   </section>
   <section id="config" class="page">
     <h2>Config</h2>
-    <div style="max-width:480px" id="configForm"></div>
-    <button id="configSave" style="margin-top:0.5rem">Save Config</button>
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem">
+      <button class="config-tab active" data-tab="runtime">Runtime</button>
+      <button class="config-tab" data-tab="credentials">Credentials</button>
+      <button class="config-tab" data-tab="ignores">Ignore Lists</button>
+    </div>
+    <div id="configRuntime" class="config-pane"></div>
+    <div id="configCredentials" class="config-pane" style="display:none"></div>
+    <div id="configIgnores" class="config-pane" style="display:none"></div>
   </section>
   <section id="runs" class="page">
     <h2>Pipeline Runs</h2>
@@ -466,9 +475,9 @@ document.getElementById('ruleSave')?.addEventListener('click', async function() 
   } catch (e) { showToast('Save failed: ' + e.message); }
 });
 
-// ---- Config renderer ----
-renderers.config = async function() {
-  const container = document.getElementById('configForm');
+// ---- Config renderers ----
+renderers.configRuntime = async function() {
+  const container = document.getElementById('configRuntime');
   container.innerHTML = '<p style="color:var(--text2)">Loading...</p>';
   try {
     const cfg = await api('/api/config');
@@ -481,21 +490,130 @@ renderers.config = async function() {
       ['pipeline_concurrency', 'Pipeline Concurrency', 'number'],
       ['activity_limit', 'Activity Limit', 'number'],
       ['subscription_limit', 'Subscription Limit', 'number'],
+      ['minimum_length', 'Minimum Length', 'text'],
+      ['maximum_length', 'Maximum Length', 'text'],
+      ['published_after', 'Published After (ISO date)', 'text'],
+      ['no_webbrowser', 'No Webbrowser', 'checkbox'],
       ['log_level', 'Log Level', 'text'],
     ];
     container.innerHTML = fields.map(([key, label, type]) =>
-      `<div class="form-group"><label>${label}</label>
-      <input type="${type}" id="cfg_${key}" value="${escapeHtml(String(cfg[key] ?? ''))}"></div>`
-    ).join('');
-    document.getElementById('configSave').onclick = async function() {
+      type === 'checkbox'
+        ? `<div class="form-group"><label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+            <input type="checkbox" id="cfg_${key}" ${cfg[key] ? 'checked' : ''} style="width:auto">
+            ${label}</label></div>`
+        : `<div class="form-group"><label>${label}</label>
+            <input type="${type}" id="cfg_${key}" value="${escapeHtml(String(cfg[key] ?? ''))}"></div>`
+    ).join('') + '<button id="configSaveRuntime" style="margin-top:0.5rem">Save Config</button>';
+    document.getElementById('configSaveRuntime').onclick = async function() {
       const body = {};
-      fields.forEach(([key]) => { body[key] = document.getElementById('cfg_' + key).value; });
+      fields.forEach(([key]) => {
+        const el = document.getElementById('cfg_' + key);
+        if (el.type === 'checkbox') {
+          body[key] = el.checked;
+        } else {
+          body[key] = el.value;
+        }
+      });
       try {
         await api('/api/config', { method: 'PUT', body: JSON.stringify(body) });
         showToast('Config saved', 'success');
       } catch (e) { showToast('Save failed: ' + e.message); }
     };
   } catch { container.innerHTML = '<p style="color:var(--error)">Failed to load config</p>'; }
+};
+
+renderers.configCredentials = async function() {
+  const container = document.getElementById('configCredentials');
+  container.innerHTML = '<p style="color:var(--text2)">Loading...</p>';
+  try {
+    const cfg = await api('/api/config');
+    container.innerHTML = `
+      <div class="card"><h3>Client Secret JSON</h3>
+      <p style="color:var(--text2);font-size:0.75rem;margin-bottom:0.5rem">Paste the contents of your Google OAuth client_secret.json file here.</p>
+      <textarea id="cfg_client_secret_json" rows="12" style="font-family:monospace;font-size:0.75rem;width:100%;background:var(--bg);color:var(--text);border:1px solid var(--surface2);padding:0.5rem;border-radius:var(--radius)">${escapeHtml(cfg.client_secret_json || '')}</textarea>
+      <button id="saveCredentialsBtn" style="margin-top:0.75rem">Save Credentials</button></div>`;
+    document.getElementById('saveCredentialsBtn').onclick = async () => {
+      try {
+        await api('/api/config', {
+          method: 'PUT',
+          body: JSON.stringify({ client_secret_json: document.getElementById('cfg_client_secret_json').value })
+        });
+        showToast('Credentials saved', 'success');
+      } catch (e) { showToast('Save failed: ' + e.message); }
+    };
+  } catch { container.innerHTML = '<p style="color:var(--error)">Failed to load</p>'; }
+};
+
+renderers.configIgnores = async function() {
+  let ignoreType = 'subscription';
+  const container = document.getElementById('configIgnores');
+  async function loadEntries(type) {
+    const entries = await api(`/api/config/ignores?type=${type}`);
+    document.getElementById('ignoreTableBody').innerHTML = entries.length === 0
+      ? '<tr><td style="color:var(--text2)">No entries</td><td></td></tr>'
+      : entries.map(e => `<tr>
+        <td>${escapeHtml(e.pattern)}</td>
+        <td><button class="del-ignore" data-id="${e.id}" style="background:var(--error);color:#fff;padding:0.25rem 0.5rem;font-size:0.75rem;border:none;border-radius:4px;cursor:pointer">Del</button></td>
+      </tr>`).join('');
+    document.querySelectorAll('.del-ignore').forEach(btn => {
+      btn.onclick = async function() {
+        try {
+          await api(`/api/config/ignores/${this.dataset.id}`, { method: 'DELETE' });
+          loadEntries(ignoreType);
+        } catch (e) { showToast('Delete failed: ' + e.message); }
+      };
+    });
+  }
+  function render() {
+    container.innerHTML = `
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem">
+        ${['subscription','video','words'].map(t =>
+          `<button class="config-tab ${t === ignoreType ? 'active' : ''}" data-itype="${t}">${t}</button>`
+        ).join('')}
+      </div>
+      <div class="form-group" style="display:flex;gap:0.5rem">
+        <input id="newIgnorePattern" placeholder="Add pattern..." style="flex:1">
+        <button id="addIgnoreBtn">Add</button>
+      </div>
+      <table style="width:100%"><thead><tr><th>Pattern</th><th></th></tr></thead>
+      <tbody id="ignoreTableBody"><tr><td style="color:var(--text2)">Loading...</td><td></td></tr></tbody></table>`;
+    loadEntries(ignoreType);
+  }
+  render();
+  container.addEventListener('click', e => {
+    const tab = e.target.closest('[data-itype]');
+    if (tab) { ignoreType = tab.dataset.itype; render(); }
+  });
+  container.addEventListener('click', async e => {
+    if (e.target.id === 'addIgnoreBtn') {
+      const input = document.getElementById('newIgnorePattern');
+      if (!input.value.trim()) return;
+      try {
+        await api('/api/config/ignores', {
+          method: 'POST',
+          body: JSON.stringify({ type: ignoreType, pattern: input.value.trim() })
+        });
+        input.value = '';
+        loadEntries(ignoreType);
+        showToast('Entry added', 'success');
+      } catch (e) { showToast('Add failed: ' + e.message); }
+    }
+  });
+};
+
+renderers.config = async function() {
+  renderers.configRuntime();
+  renderers.configCredentials();
+  renderers.configIgnores();
+  document.querySelectorAll('.config-tab[data-tab]').forEach(btn => {
+    btn.onclick = function() {
+      document.querySelectorAll('.config-tab').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      document.querySelectorAll('.config-pane').forEach(p => p.style.display = 'none');
+      const tabId = 'config' + this.dataset.tab.charAt(0).toUpperCase() + this.dataset.tab.slice(1);
+      document.getElementById(tabId).style.display = 'block';
+    };
+  });
 };
 
 // ---- Pipeline Runs renderer ----
