@@ -14,8 +14,9 @@ Open http://localhost:8080
 
 ## Configuration
 
-Environment variables with prefix `YS2WL_`. Set via `.env` file, shell env,
-or the web UI at `/ui#config`.
+Runtime config is stored in the SQLite DB and editable via the web UI at
+`/ui#config`. Environment variables seed the DB on first run. Ignore lists
+(subscription, video, words) are managed in the web UI — no more `.ignore` files.
 
 | Variable | Default | Description |
 |---|---|---|
@@ -35,9 +36,6 @@ or the web UI at `/ui#config`.
 | `YS2WL_MINIMUM_LENGTH` | `0s` | Min video duration |
 | `YS2WL_MAXIMUM_LENGTH` | `0s` | Max video duration |
 | `YS2WL_PUBLISHED_AFTER` | — | ISO8601 date filter |
-| `YS2WL_SUBSCRIPTION_IGNORE_FILE` | `.subscription-ignore` | Subscriptions to skip |
-| `YS2WL_VIDEO_IGNORE_FILE` | `.video-ignore` | Video IDs to skip |
-| `YS2WL_WORDS_IGNORE_FILE` | `.ignore-words` | Title word blocklist |
 | `YS2WL_NO_WEBBROWSER` | `false` | Skip browser auth (headless mode) |
 | `YS2WL_PIPELINE_CONCURRENCY` | `1` | Parallel pipelines |
 
@@ -46,7 +44,9 @@ or the web UI at `/ui#config`.
 | Method | Path | Description |
 |---|---|---|
 | GET | `/api/health` | Health check |
-| GET/PUT | `/api/config` | Get/update runtime config |
+| GET/PUT | `/api/config` | Get/update runtime config (DB-backed) |
+| GET/POST | `/api/config/ignores` | List/add ignore entries |
+| DELETE | `/api/config/ignores/{id}` | Delete an ignore entry |
 | GET | `/api/auth/status` | OAuth status |
 | POST | `/api/auth/device` | Start device auth flow |
 | POST | `/api/auth/poll` | Poll for auth completion |
