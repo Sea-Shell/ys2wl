@@ -40,9 +40,15 @@ async def trigger_pipeline(request: Request):
         channel = Channel(id=channel_data["id"], title=channel_data["title"])
         playlist = Playlist(id=playlist_data["id"], title=playlist_data["title"])
 
-        ignore_subs = _load_file(state.settings.subscription_ignore_file)
-        ignore_vids = _load_file(state.settings.video_ignore_file)
-        ignore_words = _load_file(state.settings.words_ignore_file)
+        ignore_subs = [
+            e["pattern"] for e in repo.get_ignore_entries(state.db_con, "subscription")
+        ]
+        ignore_vids = [
+            e["pattern"] for e in repo.get_ignore_entries(state.db_con, "video")
+        ]
+        ignore_words = [
+            e["pattern"] for e in repo.get_ignore_entries(state.db_con, "words")
+        ]
 
         db_rules = repo.get_routing_rules(state.db_con)
         routing_rules = [
@@ -168,11 +174,3 @@ async def get_run_decisions(run_id: int, request: Request):
     state = get_state(request)
     decisions = repo.get_run_decisions(state.db_con, run_id)
     return [RunDecisionResponse(**d) for d in decisions]
-
-
-def _load_file(filepath: str) -> list[str]:
-    try:
-        with open(filepath) as f:
-            return [line.strip() for line in f if line.strip()]
-    except (FileNotFoundError, OSError):
-        return []

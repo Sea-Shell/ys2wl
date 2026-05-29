@@ -17,7 +17,4 @@ data:
   YS2WL_PLAYLIST_SLEEP: "30"
   YS2WL_REPROCESS_DAYS: "1"
   YS2WL_SCHEDULE: "0 */6 * * *"
-  YS2WL_SUBSCRIPTION_IGNORE_FILE: "/data/.subscription-ignore"
   YS2WL_SUBSCRIPTION_SLEEP: "60"
-  YS2WL_VIDEO_IGNORE_FILE: "/data/.video-ignore"
-  YS2WL_WORDS_IGNORE_FILE: "/data/.words-ignore"

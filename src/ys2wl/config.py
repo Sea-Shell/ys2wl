@@ -31,9 +31,6 @@ class Settings(BaseSettings):
     minimum_length: str = Field(default="0s")
     maximum_length: str = Field(default="0s")
     published_after: Optional[str] = Field(default=None)
-    subscription_ignore_file: str = Field(default=".subscription-ignore")
-    video_ignore_file: str = Field(default=".video-ignore")
-    words_ignore_file: str = Field(default=".ignore-words")
     no_webbrowser: bool = Field(default=False)
 
 
