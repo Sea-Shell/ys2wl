@@ -143,12 +143,13 @@ label { display: block; font-size: 0.875rem; color: var(--text2); margin-bottom:
 
 <nav class="sidebar" id="sidebar">
   <h1>ys2wl</h1>
-  <a class="active" data-page="dashboard">Dashboard</a>
-  <a data-page="subscriptions">Subscriptions</a>
-  <a data-page="rules">Routing Rules</a>
-  <a data-page="config">Config</a>
-  <a data-page="runs">Pipeline Runs</a>
-  <a data-page="auth">Auth</a>
+  <a class="active" data-page="dashboard" href="#dashboard">Dashboard</a>
+  <a data-page="subscriptions" href="#subscriptions">Subscriptions</a>
+  <a data-page="rules" href="#rules">Routing Rules</a>
+  <a data-page="config" href="#config">Config</a>
+  <a data-page="runs" href="#runs">Pipeline Runs</a>
+  <a data-page="stats" href="#stats">Stats</a>
+  <a data-page="auth" href="#auth">Auth</a>
 </nav>
 
 <div class="main">
@@ -187,12 +188,12 @@ label { display: block; font-size: 0.875rem; color: var(--text2); margin-bottom:
         <div class="form-group"><label>Name</label><input id="ruleName"></div>
         <div class="form-group"><label>Priority</label><input id="rulePriority" type="number" value="0"></div>
         <div class="form-group"><label>Field</label>
-          <select id="ruleField"><option value="">Any</option><option value="title">Title</option>
-          <option value="channel_title">Channel Title</option><option value="duration">Duration</option></select></div>
+          <select id="ruleField"><option value="">Any</option><option value="video_title">Title</option>
+          <option value="channel_title">Channel Title</option><option value="duration_seconds">Duration</option></select></div>
         <div class="form-group"><label>Operator</label>
           <select id="ruleOperator"><option>contains</option><option>regex</option><option>eq</option>
           <option>lt</option><option>gt</option></select></div>
-        <div class="form-group"><label>Pattern</label><input id="rulePattern"></div>
+        <div class="form-group"><label>Pattern</label><input id="rulePattern" placeholder="leave empty to match all (contains/regex only)"></div>
         <div class="form-group"><label>Destination Playlist ID</label><input id="ruleDestId"></div>
         <div class="form-group"><label>Destination Playlist Title</label><input id="ruleDestTitle"></div>
         <div style="display:flex;gap:0.5rem;justify-content:flex-end">
@@ -210,6 +211,16 @@ label { display: block; font-size: 0.875rem; color: var(--text2); margin-bottom:
   <section id="runs" class="page">
     <h2>Pipeline Runs</h2>
     <div id="runsList"></div>
+  </section>
+  <section id="run-detail" class="page">
+    <h2>Run Details</h2>
+    <div id="runDetailSummary"></div>
+    <p><a href="#runs" style="color:var(--accent);cursor:pointer">&larr; Back to Runs</a></p>
+    <div id="runDetailDecisions"><p style="color:var(--text2)">Loading...</p></div>
+  </section>
+  <section id="stats" class="page">
+    <h2>Stats</h2>
+    <div id="statsTable"></div>
   </section>
   <section id="auth" class="page">
     <h2>Authentication</h2>
@@ -247,7 +258,7 @@ function escapeHtml(s) {
 }
 
 // ---- Routing ----
-const PAGES = ['dashboard','subscriptions','rules','config','runs','auth'];
+const PAGES = ['dashboard','subscriptions','rules','config','runs','stats','auth'];
 
 function navigate(page) {
   location.hash = '#' + page;
@@ -264,9 +275,18 @@ function renderPage(page) {
 }
 
 window.addEventListener('hashchange', () => {
-  const page = location.hash.slice(1) || 'dashboard';
-  if (PAGES.includes(page)) renderPage(page);
-  else navigate('dashboard');
+  const hash = location.hash.slice(1) || 'dashboard';
+  const runMatch = hash.match(/^run-detail-(\d+)$/);
+  if (runMatch) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+    document.getElementById('run-detail').classList.add('active');
+    renderers.runDetail(parseInt(runMatch[1]));
+  } else if (PAGES.includes(hash)) {
+    renderPage(hash);
+  } else {
+    navigate('dashboard');
+  }
 });
 
 // ---- Health check ----
@@ -282,6 +302,7 @@ async function updateHealth() {
 }
 
 // ---- Dashboard renderer ----
+const renderers = {};
 renderers.dashboard = async function() {
   try {
     const [subs, rules, runs] = await Promise.all([
@@ -428,7 +449,7 @@ document.getElementById('ruleSave')?.addEventListener('click', async function() 
     priority: parseInt(document.getElementById('rulePriority').value) || 0,
     field: document.getElementById('ruleField').value || null,
     operator: document.getElementById('ruleOperator').value,
-    pattern: document.getElementById('rulePattern').value || null,
+    pattern: document.getElementById('rulePattern').value,
     destination_playlist_id: document.getElementById('ruleDestId').value,
     destination_playlist_title: document.getElementById('ruleDestTitle').value,
   };
@@ -488,7 +509,7 @@ renderers.runs = async function() {
     }
     container.innerHTML = `<table><thead><tr>
       <th>ID</th><th>Started</th><th>Status</th><th>Trigger</th><th>Processed</th><th>Skipped</th><th>Errors</th>
-    </tr></thead><tbody>${runs.map(r => `<tr>
+    </tr></thead><tbody>${runs.map(r => `<tr style="cursor:pointer" onclick="location.hash='#run-detail-${r.id}'">
       <td>${r.id}</td>
       <td style="font-size:0.75rem;color:var(--text2)">${r.started_at || '-'}</td>
       <td><span class="badge ${r.status === 'success' ? 'badge-ok' : r.status === 'failed' ? 'badge-fail' : 'badge-run'}">${r.status || '-'}</span></td>
@@ -498,6 +519,89 @@ renderers.runs = async function() {
       <td>${r.errors ?? '-'}</td>
     </tr>`).join('')}</tbody></table>`;
   } catch { container.innerHTML = '<p style="color:var(--error)">Failed to load runs</p>'; }
+};
+
+renderers.runDetail = async function(runId) {
+  const summaryEl = document.getElementById('runDetailSummary');
+  const decisionsEl = document.getElementById('runDetailDecisions');
+  decisionsEl.innerHTML = '<p style="color:var(--text2)">Loading...</p>';
+  try {
+    const [run, decisions] = await Promise.all([
+      api('/api/pipeline/runs/' + runId),
+      api('/api/pipeline/runs/' + runId + '/decisions'),
+    ]);
+    summaryEl.innerHTML = `<div class="card" style="margin-bottom:1rem">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.5rem">
+        <div><strong>Run #${run.id}</strong></div>
+        <div>Status: <span class="badge ${run.status === 'success' ? 'badge-ok' : run.status === 'failed' ? 'badge-fail' : 'badge-run'}">${run.status}</span></div>
+        <div>Started: <span style="color:var(--text2);font-size:0.75rem">${run.started_at || '-'}</span></div>
+        <div>Finished: <span style="color:var(--text2);font-size:0.75rem">${run.finished_at || '-'}</span></div>
+        <div>Subscriptions: ${run.subscriptions_processed ?? '-'}</div>
+        <div>Added: ${run.videos_added ?? '-'}</div>
+        <div>Skipped: ${run.videos_skipped ?? '-'}</div>
+        <div>Errors: ${run.errors ?? '-'}</div>
+      </div>
+    </div>`;
+    if (!Array.isArray(decisions) || decisions.length === 0) {
+      decisionsEl.innerHTML = '<p style="color:var(--text2)">No decisions logged for this run</p>'; return;
+    }
+    decisionsEl.innerHTML = `<table><thead><tr>
+      <th>Video</th><th>Channel</th><th>Action</th><th>Reason</th><th>Routed To</th>
+    </tr></thead><tbody>${decisions.map(d => `<tr>
+      <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis">${escapeHtml(d.title)}</td>
+      <td>${escapeHtml(d.subscription_title)}</td>
+      <td><span class="badge ${d.action === 'added' ? 'badge-ok' : d.action === 'error' ? 'badge-fail' : 'badge-run'}">${d.action}</span></td>
+      <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis">${escapeHtml(d.reason_detail || d.reason || '-')}</td>
+      <td>${escapeHtml(d.routed_to || '-')}</td>
+    </tr>`).join('')}</tbody></table>
+    <p style="color:var(--text2);font-size:0.75rem">${decisions.length} decision(s)</p>`;
+  } catch { decisionsEl.innerHTML = '<p style="color:var(--error)">Failed to load run details</p>'; }
+};
+
+renderers.stats = async function() {
+  const container = document.getElementById('statsTable');
+  container.innerHTML = '<p style="color:var(--text2)">Loading...</p>';
+  try {
+    const data = await api('/api/stats/subscriptions');
+    if (!Array.isArray(data) || data.length === 0) {
+      container.innerHTML = '<p style="color:var(--text2)">No stats yet — run the pipeline first</p>'; return;
+    }
+    let sortCol = 'videos_added';
+    let sortDir = 'desc';
+    window.setStatsSort = function(col) {
+      if (sortCol === col) sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      else { sortCol = col; sortDir = col === 'subscription_title' ? 'asc' : 'desc'; }
+      renderTable();
+    };
+    function renderTable() {
+      const sorted = [...data].sort((a, b) => {
+        let va = a[sortCol], vb = b[sortCol];
+        if (typeof va === 'string') { va = va.toLowerCase(); vb = (vb || '').toLowerCase(); }
+        if (va == null) va = '';
+        if (vb == null) vb = '';
+        if (va < vb) return sortDir === 'asc' ? -1 : 1;
+        if (va > vb) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+      });
+      const arrow = (col) => sortCol === col ? (sortDir === 'asc' ? ' \u2191' : ' \u2193') : '';
+      const statusClass = (s) => s === 'active' ? 'badge-ok' : s === 'ignored' ? 'badge-run' : '';
+      container.innerHTML = `<table><thead><tr>
+        <th style="cursor:pointer" onclick="setStatsSort('subscription_title')">Subscription${arrow('subscription_title')}</th>
+        <th style="cursor:pointer" onclick="setStatsSort('videos_added')">Videos Added${arrow('videos_added')}</th>
+        <th style="cursor:pointer" onclick="setStatsSort('last_added_at')">Last Added${arrow('last_added_at')}</th>
+        <th style="cursor:pointer" onclick="setStatsSort('status')">Status${arrow('status')}</th>
+        <th style="cursor:pointer" onclick="setStatsSort('total_decisions')">Total${arrow('total_decisions')}</th>
+      </tr></thead><tbody>${sorted.map(d => `<tr>
+        <td>${escapeHtml(d.subscription_title)}</td>
+        <td>${d.videos_added}</td>
+        <td style="font-size:0.75rem;color:var(--text2)">${d.last_added_at || '-'}</td>
+        <td><span class="badge ${statusClass(d.status)}">${d.status}</span></td>
+        <td>${d.total_decisions}</td>
+      </tr>`).join('')}</tbody></table>
+      <p style="color:var(--text2);font-size:0.75rem">${data.length} subscription(s)</p>`;
+    }
+    renderTable();
+  } catch { container.innerHTML = '<p style="color:var(--error)">Failed to load stats</p>'; }
 };
 
 // ---- Auth renderer ----
@@ -566,7 +670,6 @@ async function pollAuthStatus() {
 }
 
 // ---- Init ----
-const renderers = {};
 if (!location.hash) navigate('dashboard');
 renderPage(location.hash.slice(1) || 'dashboard');
 updateHealth();
