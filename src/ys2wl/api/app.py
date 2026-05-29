@@ -12,6 +12,7 @@ from ys2wl.core.youtube import YouTubeAPIClient
 from ys2wl.core.auth import load_credentials
 from ys2wl.core.scheduler import PipelineScheduler
 from ys2wl.db.migrations import init_db
+from ys2wl.db import repository as repo
 from ys2wl.api.routes import (
     health,
     config,
@@ -62,6 +63,40 @@ async def lifespan(app: FastAPI) -> AsyncIterator:
             log.info("Credentials invalid and cannot be refreshed — use UI auth flow")
     else:
         log.info("No saved credentials found — use UI auth flow")
+
+    # Overlay DB config onto settings (DB wins)
+    for key in [
+        "schedule",
+        "compare_distance",
+        "reprocess_days",
+        "playlist_sleep",
+        "subscription_sleep",
+        "pipeline_concurrency",
+        "activity_limit",
+        "subscription_limit",
+        "log_level",
+        "minimum_length",
+        "maximum_length",
+        "published_after",
+        "no_webbrowser",
+        "client_secret_json",
+    ]:
+        db_val = repo.get_config(state.db_con, key)
+        if db_val is not None and hasattr(state.settings, key):
+            try:
+                val = getattr(state.settings, key)
+                if isinstance(val, bool):
+                    setattr(state.settings, key, db_val.lower() in ("true", "1", "yes"))
+                elif isinstance(val, int):
+                    setattr(state.settings, key, int(db_val))
+                else:
+                    setattr(state.settings, key, db_val)
+            except (ValueError, TypeError):
+                log.warning("Failed to parse config %s = %s", key, db_val)
+        elif db_val is None:
+            env_val = getattr(state.settings, key)
+            if env_val is not None:
+                repo.set_config(state.db_con, key, str(env_val))
 
     app.state.ys2wl = state
     log.info("ys2wl service started")

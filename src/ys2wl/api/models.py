@@ -16,6 +16,11 @@ class ConfigResponse(BaseModel):
     activity_limit: int
     subscription_limit: int
     log_level: str
+    minimum_length: str
+    maximum_length: str
+    published_after: Optional[str] = None
+    no_webbrowser: bool
+    client_secret_json: str = ""
 
 
 class ConfigUpdate(BaseModel):
@@ -28,6 +33,27 @@ class ConfigUpdate(BaseModel):
     activity_limit: Optional[int] = Field(None, ge=0)
     subscription_limit: Optional[int] = Field(None, ge=0)
     log_level: Optional[str] = None
+    minimum_length: Optional[str] = None
+    maximum_length: Optional[str] = None
+    published_after: Optional[str] = None
+    no_webbrowser: Optional[bool] = None
+    client_secret_json: Optional[str] = None
+
+
+class IgnoreEntryCreate(BaseModel):
+    type: str  # subscription, video, words
+    pattern: str
+
+
+class IgnoreEntryUpdate(BaseModel):
+    pattern: str
+
+
+class IgnoreEntryResponse(BaseModel):
+    id: int
+    type: str
+    pattern: str
+    created_at: str
 
 
 class RoutingRuleCreate(BaseModel):
