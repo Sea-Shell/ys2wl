@@ -23,6 +23,10 @@ from ys2wl.db.repository import (
     get_pipeline_run,
     get_config,
     set_config,
+    get_ignore_entries,
+    add_ignore_entry,
+    update_ignore_entry,
+    delete_ignore_entry,
 )
 
 
@@ -43,6 +47,7 @@ def test_init_db_creates_tables(tmp_path):
     assert "routing_rules" in tables
     assert "pipeline_runs" in tables
     assert "app_config" in tables
+    assert "ignore_entries" in tables
 
 
 @pytest.fixture
@@ -130,3 +135,17 @@ def test_app_config(db_con):
     assert get_config(db_con, "test_key") == "test_value"
     assert set_config(db_con, "test_key", "updated")
     assert get_config(db_con, "test_key") == "updated"
+
+
+def test_ignore_entries(db_con):
+    assert get_ignore_entries(db_con, "subscription") == []
+    eid = add_ignore_entry(db_con, "subscription", "test-channel")
+    assert eid is not None
+    entries = get_ignore_entries(db_con, "subscription")
+    assert len(entries) == 1
+    assert entries[0]["pattern"] == "test-channel"
+    assert update_ignore_entry(db_con, eid, "updated-channel")
+    entries = get_ignore_entries(db_con, "subscription")
+    assert entries[0]["pattern"] == "updated-channel"
+    assert delete_ignore_entry(db_con, eid)
+    assert get_ignore_entries(db_con, "subscription") == []
