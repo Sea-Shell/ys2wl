@@ -47,11 +47,19 @@ async def get_subscription_stats(request: Request):
     except (FileNotFoundError, OSError):
         pass
 
+    def _is_ignored(title: str, sub_id: str) -> bool:
+        if title in ignored_set or sub_id in ignored_set:
+            return True
+        for entry in ignored_set:
+            if entry in title or title in entry:
+                return True
+        return False
+
     result = []
     for row in rows:
         sub_id = row[0]
         title = row[1]
-        if title in ignored_set:
+        if _is_ignored(title, sub_id):
             status = "ignored"
         elif _is_in_subscription_table(con, sub_id):
             status = "active"
