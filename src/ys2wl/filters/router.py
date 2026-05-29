@@ -7,20 +7,25 @@ from ys2wl.models.pipeline import RouteResult
 def _get_field_value(
     activity: Activity, channel_title: str, duration_seconds: int, field: Optional[str]
 ) -> Optional[str]:
+    # Normalise aliases from the UI dropdown
+    alias = {"title": "video_title", "duration": "duration_seconds"}
+    resolved = alias.get(field, field)
     mapping = {
         "channel_title": channel_title,
         "video_title": activity.title,
         "video_type": activity.video_type,
     }
-    if field in mapping:
-        return mapping[field]
-    if field == "duration_seconds":
+    if resolved in mapping:
+        return mapping[resolved]
+    if resolved == "duration_seconds":
         return str(duration_seconds)
     return None
 
 
 def _matches(value: Optional[str], operator: str, pattern: Optional[str]) -> bool:
-    if value is None or pattern is None:
+    if value is None:
+        return False
+    if not pattern:
         return False
     if operator == "contains":
         return pattern.lower() in value.lower()

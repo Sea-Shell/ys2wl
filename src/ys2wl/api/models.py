@@ -76,6 +76,26 @@ class PipelineRunResponse(BaseModel):
     trigger: str = "scheduled"
 
 
+class RunDecisionResponse(BaseModel):
+    id: int
+    video_id: Optional[str] = None
+    title: Optional[str] = None
+    subscription_title: Optional[str] = None
+    action: str
+    reason: Optional[str] = None
+    reason_detail: Optional[str] = None
+    routed_to: Optional[str] = None
+    created_at: str
+
+
 class TriggerResponse(BaseModel):
     run_id: int
     message: str = "Pipeline triggered"
+
+
+class SubscriptionStat(BaseModel):
+    subscription_title: str
+    subscription_id: str = ""
+    videos_added: int = 0
+    last_added_at: Optional[str] = None
+    status: str = "inactive"

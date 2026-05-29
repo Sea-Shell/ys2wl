@@ -3,15 +3,21 @@ kind: ConfigMap
 metadata:
   name: ys2wl-config
 data:
-  YS2WL_DATABASE_FILE: /data/ys2wl.db
-  YS2WL_PICKLE_FILE: /data/credentials.pickle
-  YS2WL_CREDENTIALS_FILE: /app/credentials.json
-  YS2WL_SCHEDULE: "0 */6 * * *"
   YS2WL_API_PORT: "8080"
-  YS2WL_LOG_LEVEL: info
-  YS2WL_COMPARE_DISTANCE: "80"
-  YS2WL_REPROCESS_DAYS: "2"
-  YS2WL_PLAYLIST_SLEEP: "10"
-  YS2WL_SUBSCRIPTION_SLEEP: "30"
-  YS2WL_PIPELINE_CONCURRENCY: "1"
+  YS2WL_COMPARE_DISTANCE: "97"
+  YS2WL_CREDENTIALS_FILE: "/data/client_secret.json"
+  YS2WL_DATABASE_FILE: "/data/my.db"
+  YS2WL_LOG_FILE: "stream"
+  YS2WL_LOG_LEVEL: "debug"
+  YS2WL_MAXIMUM_LENGTH: "8m"
+  YS2WL_MINIMUM_LENGTH: "75s"
   YS2WL_NO_WEBBROWSER: "true"
+  YS2WL_PICKLE_FILE: "/data/credentials.pickle"
+  YS2WL_PIPELINE_CONCURRENCY: "1"
+  YS2WL_PLAYLIST_SLEEP: "30"
+  YS2WL_REPROCESS_DAYS: "1"
+  YS2WL_SCHEDULE: "0 */6 * * *"
+  YS2WL_SUBSCRIPTION_IGNORE_FILE: "/data/.subscription-ignore"
+  YS2WL_SUBSCRIPTION_SLEEP: "60"
+  YS2WL_VIDEO_IGNORE_FILE: "/data/.video-ignore"
+  YS2WL_WORDS_IGNORE_FILE: "/data/.words-ignore"

@@ -21,13 +21,6 @@ spec:
           envFrom:
             - configMapRef:
                 name: ys2wl-config
-          env:
-            - name: YS2WL_PICKLE_FILE
-              value: /data/credentials.pickle
-            - name: YS2WL_CREDENTIALS_FILE
-              value: /data/credentials.json
-            - name: YS2WL_DATABASE_FILE
-              value: /data/ys2wl.db
           volumeMounts:
             - mountPath: /data
               name: config

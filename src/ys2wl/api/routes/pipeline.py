@@ -1,6 +1,7 @@
 from typing import List
 from fastapi import APIRouter, HTTPException, Request
-from ys2wl.api.models import TriggerResponse, PipelineRunResponse
+from ys2wl.api.deps import get_state, require_youtube
+from ys2wl.api.models import TriggerResponse, PipelineRunResponse, RunDecisionResponse
 from ys2wl.core.pipeline import PipelineOrchestrator
 from ys2wl.db import repository as repo
 from ys2wl.models.youtube import Channel, Playlist, RoutingRule
@@ -10,13 +11,10 @@ log = logging.getLogger("ys2wl.api.pipeline")
 router = APIRouter()
 
 
-def _get_state(request: Request):
-    return request.app.state.ys2wl
-
-
 @router.post("/pipeline/trigger", response_model=TriggerResponse)
 async def trigger_pipeline(request: Request):
-    state = _get_state(request)
+    state = get_state(request)
+    require_youtube(state)
     run_id = repo.create_pipeline_run(state.db_con, trigger="manual")
     if run_id is None:
         raise HTTPException(status_code=500, detail="Failed to create pipeline run")
@@ -77,6 +75,43 @@ async def trigger_pipeline(request: Request):
         )
 
         summary = orchestrator.run()
+
+        # persist per-video decisions
+        decisions = []
+        for r in summary.video_results:
+            if r.added:
+                action = "added"
+                reason = None
+                reason_detail = None
+            elif r.error:
+                action = "error"
+                reason = "add_failed"
+                reason_detail = r.error
+            elif r.filter_result:
+                action = "skipped"
+                reason = r.filter_result.skipped_by or "filter"
+                reason_detail = r.filter_result.reason
+            else:
+                action = "skipped"
+                reason = "unknown"
+                reason_detail = None
+            decisions.append(
+                {
+                    "video_id": r.video_id,
+                    "title": r.title,
+                    "subscription_title": r.subscription_title,
+                    "action": action,
+                    "reason": reason,
+                    "reason_detail": reason_detail,
+                    "routed_to": r.route_result.playlist_title
+                    if r.route_result
+                    else None,
+                }
+            )
+        if decisions:
+            repo.insert_run_decisions(state.db_con, run_id, decisions)
+        repo.cleanup_old_decisions(state.db_con)
+
         repo.finish_pipeline_run(
             state.db_con,
             run_id,
@@ -111,18 +146,28 @@ async def trigger_pipeline(request: Request):
 
 @router.get("/pipeline/runs", response_model=List[PipelineRunResponse])
 async def list_runs(request: Request):
-    state = _get_state(request)
+    state = get_state(request)
     runs = repo.get_pipeline_runs(state.db_con)
     return [PipelineRunResponse(**r) for r in runs]
 
 
 @router.get("/pipeline/runs/{run_id}", response_model=PipelineRunResponse)
 async def get_run(run_id: int, request: Request):
-    state = _get_state(request)
+    state = get_state(request)
     run = repo.get_pipeline_run(state.db_con, run_id)
     if not run:
         raise HTTPException(status_code=404, detail="Run not found")
     return PipelineRunResponse(**run)
+
+
+@router.get(
+    "/pipeline/runs/{run_id}/decisions",
+    response_model=List[RunDecisionResponse],
+)
+async def get_run_decisions(run_id: int, request: Request):
+    state = get_state(request)
+    decisions = repo.get_run_decisions(state.db_con, run_id)
+    return [RunDecisionResponse(**d) for d in decisions]
 
 
 def _load_file(filepath: str) -> list[str]:
