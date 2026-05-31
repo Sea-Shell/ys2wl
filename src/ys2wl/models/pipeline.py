@@ -41,3 +41,4 @@ class PipelineSummary:
     error_message: str = ""
     trigger: str = "scheduled"
     video_results: list[VideoResult] = field(default_factory=list)
+    subscription_skips: list[dict] = field(default_factory=list)
