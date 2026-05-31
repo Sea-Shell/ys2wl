@@ -30,7 +30,7 @@ async def test_auth_status_returns_not_authenticated():
 
 
 @pytest.mark.asyncio
-async def test_auth_device_returns_400_without_creds():
+async def test_auth_login_returns_400_without_creds():
     from ys2wl.api.app import create_app, AppState
 
     app = create_app()
@@ -39,5 +39,5 @@ async def test_auth_device_returns_400_without_creds():
     app.state.ys2wl = state
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.post("/api/auth/device")
+        resp = await client.get("/api/auth/login")
     assert resp.status_code == 400
