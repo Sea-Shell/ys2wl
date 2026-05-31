@@ -138,8 +138,8 @@ def set_last_run(con: sqlite3.Connection, timestamp: str) -> bool:
 # -- routing_rules --
 def get_routing_rules(con: sqlite3.Connection) -> list[dict]:
     cursor = con.execute(
-        "SELECT id, name, priority, field, operator, pattern, destination_playlist_id, destination_playlist_title, enabled "
-        "FROM routing_rules WHERE enabled = 1 ORDER BY priority DESC"
+        "SELECT id, name, priority, field, operator, pattern, destination_playlist_id, destination_playlist_title, enabled, minimum_length, maximum_length, catch_all "
+        "FROM routing_rules ORDER BY priority DESC"
     )
     results = [dict(row) for row in cursor.fetchall()]
     log.info("get_routing_rules: %d enabled rules", len(results))
@@ -155,12 +155,15 @@ def create_routing_rule(
     pattern: Optional[str],
     dest_playlist_id: str,
     dest_playlist_title: str,
+    minimum_length: str = "0s",
+    maximum_length: str = "0s",
+    catch_all: bool = False,
 ) -> Optional[int]:
     now = datetime.now(timezone.utc).isoformat()
     try:
         cursor = con.execute(
-            "INSERT INTO routing_rules (name, priority, field, operator, pattern, destination_playlist_id, destination_playlist_title, enabled, created_at, updated_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)",
+            "INSERT INTO routing_rules (name, priority, field, operator, pattern, destination_playlist_id, destination_playlist_title, enabled, minimum_length, maximum_length, catch_all, created_at, updated_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, ?)",
             (
                 name,
                 priority,
@@ -169,6 +172,9 @@ def create_routing_rule(
                 pattern,
                 dest_playlist_id,
                 dest_playlist_title,
+                minimum_length,
+                maximum_length,
+                int(catch_all),
                 now,
                 now,
             ),
@@ -190,6 +196,9 @@ def update_routing_rule(con: sqlite3.Connection, rule_id: int, **kwargs) -> bool
         "destination_playlist_id",
         "destination_playlist_title",
         "enabled",
+        "minimum_length",
+        "maximum_length",
+        "catch_all",
     }
     updates = {k: v for k, v in kwargs.items() if k in allowed}
     if not updates:

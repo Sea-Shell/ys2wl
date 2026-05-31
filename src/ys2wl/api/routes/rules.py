@@ -42,6 +42,9 @@ async def create_rule(rule: RoutingRuleCreate, request: Request):
         rule.pattern,
         rule.destination_playlist_id,
         rule.destination_playlist_title,
+        minimum_length=rule.minimum_length,
+        maximum_length=rule.maximum_length,
+        catch_all=rule.catch_all,
     )
     if rid is None:
         log.error("Failed to create rule in database")
@@ -59,6 +62,7 @@ async def update_rule(rule_id: int, update: RoutingRuleUpdate, request: Request)
     updates = {k: v for k, v in update.model_dump(exclude_none=True).items()}
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")
+    log.info("Updating rule id=%d updates=%s", rule_id, updates)
     repo.update_routing_rule(state.db_con, rule_id, **updates)
     cursor = state.db_con.execute(
         "SELECT * FROM routing_rules WHERE id = ?", (rule_id,)
@@ -72,4 +76,6 @@ async def update_rule(rule_id: int, update: RoutingRuleUpdate, request: Request)
 @router.delete("/rules/{rule_id}", status_code=204)
 async def delete_rule(rule_id: int, request: Request):
     state = _get_state(request)
+    log.info("Deleting rule id=%d", rule_id)
     repo.delete_routing_rule(state.db_con, rule_id)
+    log.info("Rule id=%d deleted", rule_id)

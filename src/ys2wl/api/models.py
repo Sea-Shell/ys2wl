@@ -16,11 +16,10 @@ class ConfigResponse(BaseModel):
     activity_limit: int
     subscription_limit: int
     log_level: str
-    minimum_length: str
-    maximum_length: str
     published_after: Optional[str] = None
     no_webbrowser: bool
-    client_secret_json: str = ""
+    public_url: str = ""
+    credentials_file: str = ""
 
 
 class ConfigUpdate(BaseModel):
@@ -33,11 +32,10 @@ class ConfigUpdate(BaseModel):
     activity_limit: Optional[int] = Field(None, ge=0)
     subscription_limit: Optional[int] = Field(None, ge=0)
     log_level: Optional[str] = None
-    minimum_length: Optional[str] = None
-    maximum_length: Optional[str] = None
     published_after: Optional[str] = None
     no_webbrowser: Optional[bool] = None
-    client_secret_json: Optional[str] = None
+    public_url: Optional[str] = None
+    credentials_file: Optional[str] = None
 
 
 class IgnoreEntryCreate(BaseModel):
@@ -64,6 +62,9 @@ class RoutingRuleCreate(BaseModel):
     pattern: Optional[str] = None
     destination_playlist_id: str
     destination_playlist_title: str = ""
+    minimum_length: str = "0s"
+    maximum_length: str = "0s"
+    catch_all: bool = False
 
 
 class RoutingRuleUpdate(BaseModel):
@@ -75,6 +76,9 @@ class RoutingRuleUpdate(BaseModel):
     destination_playlist_id: Optional[str] = None
     destination_playlist_title: Optional[str] = None
     enabled: Optional[bool] = None
+    minimum_length: Optional[str] = None
+    maximum_length: Optional[str] = None
+    catch_all: Optional[bool] = None
 
 
 class RoutingRuleResponse(BaseModel):
@@ -87,6 +91,9 @@ class RoutingRuleResponse(BaseModel):
     destination_playlist_id: str
     destination_playlist_title: str
     enabled: bool
+    minimum_length: str = "0s"
+    maximum_length: str = "0s"
+    catch_all: bool = False
 
 
 class PipelineRunResponse(BaseModel):

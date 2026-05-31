@@ -51,6 +51,9 @@ def app():
             destination_playlist_id TEXT NOT NULL,
             destination_playlist_title TEXT,
             enabled INTEGER NOT NULL DEFAULT 1,
+            minimum_length TEXT NOT NULL DEFAULT '0s',
+            maximum_length TEXT NOT NULL DEFAULT '0s',
+            catch_all INTEGER NOT NULL DEFAULT 0,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
         );
