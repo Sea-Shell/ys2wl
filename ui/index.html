@@ -199,6 +199,11 @@ label { display: block; font-size: 0.875rem; color: var(--text2); margin-bottom:
         <div class="form-group"><label>Pattern</label><input id="rulePattern" placeholder="leave empty to match all (contains/regex only)"></div>
         <div class="form-group"><label>Destination Playlist ID</label><input id="ruleDestId"></div>
         <div class="form-group"><label>Destination Playlist Title</label><input id="ruleDestTitle"></div>
+        <div style="display:flex;gap:1rem">
+          <div class="form-group" style="flex:1"><label>Minimum Length</label><input id="ruleMinLength" value="0s"></div>
+          <div class="form-group" style="flex:1"><label>Maximum Length</label><input id="ruleMaxLength" value="0s"></div>
+        </div>
+        <div class="form-group"><label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer"><input type="checkbox" id="ruleCatchAll" style="width:auto"> Catch-all (no field/pattern needed)</label></div>
         <div style="display:flex;gap:0.5rem;justify-content:flex-end">
           <button id="ruleCancel" style="background:var(--surface2);color:var(--text)">Cancel</button>
           <button id="ruleSave">Save</button>
@@ -395,11 +400,14 @@ renderers.rules = async function() {
       container.innerHTML = '<p style="color:var(--text2)">No rules configured</p>'; return;
     }
     container.innerHTML = `<table><thead><tr>
-      <th>Name</th><th>Priority</th><th>Pattern</th><th>Destination</th><th>Enabled</th><th></th>
+      <th>Name</th><th>Priority</th><th>Pattern</th><th>Min</th><th>Max</th><th>Catch-all</th><th>Destination</th><th>Enabled</th><th></th>
     </tr></thead><tbody>${rules.map(r => `<tr>
       <td>${escapeHtml(r.name)}</td>
       <td>${r.priority}</td>
       <td style="font-family:monospace;font-size:0.75rem">${escapeHtml(r.pattern || '-')}</td>
+      <td style="font-size:0.75rem">${r.minimum_length && r.minimum_length !== '0s' ? r.minimum_length : '-'}</td>
+      <td style="font-size:0.75rem">${r.maximum_length && r.maximum_length !== '0s' ? r.maximum_length : '-'}</td>
+      <td>${r.catch_all ? '✓' : ''}</td>
       <td style="font-size:0.75rem;color:var(--text2)">${escapeHtml(r.destination_playlist_id)}</td>
       <td><input type="checkbox" ${r.enabled ? 'checked' : ''} data-rid="${r.id}" class="toggle-rule"></td>
       <td><button class="edit-rule" data-rid="${r.id}" style="background:var(--surface2);color:var(--text);padding:0.25rem 0.5rem;font-size:0.75rem">Edit</button>
@@ -444,6 +452,9 @@ function openRuleModal(rule) {
   document.getElementById('rulePattern').value = rule ? (rule.pattern || '') : '';
   document.getElementById('ruleDestId').value = rule ? rule.destination_playlist_id : '';
   document.getElementById('ruleDestTitle').value = rule ? rule.destination_playlist_title : '';
+  document.getElementById('ruleMinLength').value = rule ? (rule.minimum_length || '0s') : '0s';
+  document.getElementById('ruleMaxLength').value = rule ? (rule.maximum_length || '0s') : '0s';
+  document.getElementById('ruleCatchAll').checked = rule ? rule.catch_all : false;
   modal.style.display = 'flex';
 }
 
@@ -461,6 +472,9 @@ document.getElementById('ruleSave')?.addEventListener('click', async function() 
     pattern: document.getElementById('rulePattern').value,
     destination_playlist_id: document.getElementById('ruleDestId').value,
     destination_playlist_title: document.getElementById('ruleDestTitle').value,
+    minimum_length: document.getElementById('ruleMinLength').value,
+    maximum_length: document.getElementById('ruleMaxLength').value,
+    catch_all: document.getElementById('ruleCatchAll').checked,
   };
   try {
     if (id) {
@@ -490,11 +504,10 @@ renderers.configRuntime = async function() {
       ['pipeline_concurrency', 'Pipeline Concurrency', 'number'],
       ['activity_limit', 'Activity Limit', 'number'],
       ['subscription_limit', 'Subscription Limit', 'number'],
-      ['minimum_length', 'Minimum Length', 'text'],
-      ['maximum_length', 'Maximum Length', 'text'],
       ['published_after', 'Published After (ISO date)', 'text'],
       ['no_webbrowser', 'No Webbrowser', 'checkbox'],
       ['log_level', 'Log Level', 'text'],
+      ['public_url', 'Public URL', 'text'],
     ];
     container.innerHTML = fields.map(([key, label, type]) =>
       type === 'checkbox'
@@ -530,13 +543,13 @@ renderers.configCredentials = async function() {
     container.innerHTML = `
       <div class="card"><h3>Client Secret JSON</h3>
       <p style="color:var(--text2);font-size:0.75rem;margin-bottom:0.5rem">Paste the contents of your Google OAuth client_secret.json file here.</p>
-      <textarea id="cfg_client_secret_json" rows="12" style="font-family:monospace;font-size:0.75rem;width:100%;background:var(--bg);color:var(--text);border:1px solid var(--surface2);padding:0.5rem;border-radius:var(--radius)">${escapeHtml(cfg.client_secret_json || '')}</textarea>
+      <textarea id="cfg_credentials_file" rows="12" style="font-family:monospace;font-size:0.75rem;width:100%;background:var(--bg);color:var(--text);border:1px solid var(--surface2);padding:0.5rem;border-radius:var(--radius)">${escapeHtml(cfg.credentials_file || '')}</textarea>
       <button id="saveCredentialsBtn" style="margin-top:0.75rem">Save Credentials</button></div>`;
     document.getElementById('saveCredentialsBtn').onclick = async () => {
       try {
         await api('/api/config', {
           method: 'PUT',
-          body: JSON.stringify({ client_secret_json: document.getElementById('cfg_client_secret_json').value })
+          body: JSON.stringify({ credentials_file: document.getElementById('cfg_credentials_file').value })
         });
         showToast('Credentials saved', 'success');
       } catch (e) { showToast('Save failed: ' + e.message); }
@@ -580,25 +593,22 @@ renderers.configIgnores = async function() {
     loadEntries(ignoreType);
   }
   render();
-  container.addEventListener('click', e => {
+  container.onclick = function(e) {
     const tab = e.target.closest('[data-itype]');
-    if (tab) { ignoreType = tab.dataset.itype; render(); }
-  });
-  container.addEventListener('click', async e => {
+    if (tab) { ignoreType = tab.dataset.itype; render(); return; }
     if (e.target.id === 'addIgnoreBtn') {
       const input = document.getElementById('newIgnorePattern');
       if (!input.value.trim()) return;
-      try {
-        await api('/api/config/ignores', {
-          method: 'POST',
-          body: JSON.stringify({ type: ignoreType, pattern: input.value.trim() })
-        });
+      api('/api/config/ignores', {
+        method: 'POST',
+        body: JSON.stringify({ type: ignoreType, pattern: input.value.trim() })
+      }).then(() => {
         input.value = '';
         loadEntries(ignoreType);
         showToast('Entry added', 'success');
-      } catch (e) { showToast('Add failed: ' + e.message); }
+      }).catch(e => showToast('Add failed: ' + e.message));
     }
-  });
+  };
 };
 
 renderers.config = async function() {
@@ -616,6 +626,13 @@ renderers.config = async function() {
   });
 };
 
+function statusBadge(status) {
+  if (!status) return '<span class="badge badge-run">-</span>';
+  if (status === 'completed' || status === 'success') return '<span class="badge badge-ok">completed</span>';
+  if (status === 'failed' || status === 'completed_with_errors') return '<span class="badge badge-fail">' + status.replace(/_/g,' ') + '</span>';
+  return '<span class="badge badge-run">' + status + '</span>';
+}
+
 // ---- Pipeline Runs renderer ----
 renderers.runs = async function() {
   const container = document.getElementById('runsList');
@@ -626,14 +643,16 @@ renderers.runs = async function() {
       container.innerHTML = '<p style="color:var(--text2)">No runs yet</p>'; return;
     }
     container.innerHTML = `<table><thead><tr>
-      <th>ID</th><th>Started</th><th>Status</th><th>Trigger</th><th>Processed</th><th>Skipped</th><th>Errors</th>
+      <th>ID</th><th>Started</th><th>Status</th><th>Trigger</th><th>Subs Proc</th><th>Subs Skip</th><th>Added</th><th>Vid Skip</th><th>Errors</th>
     </tr></thead><tbody>${runs.map(r => `<tr style="cursor:pointer" onclick="location.hash='#run-detail-${r.id}'">
       <td>${r.id}</td>
       <td style="font-size:0.75rem;color:var(--text2)">${r.started_at || '-'}</td>
-      <td><span class="badge ${r.status === 'success' ? 'badge-ok' : r.status === 'failed' ? 'badge-fail' : 'badge-run'}">${r.status || '-'}</span></td>
+      <td>${statusBadge(r.status)}</td>
       <td>${r.trigger || '-'}</td>
       <td>${r.subscriptions_processed ?? '-'}</td>
       <td>${r.subscriptions_skipped ?? '-'}</td>
+      <td>${r.videos_added ?? '-'}</td>
+      <td>${r.videos_skipped ?? '-'}</td>
       <td>${r.errors ?? '-'}</td>
     </tr>`).join('')}</tbody></table>`;
   } catch { container.innerHTML = '<p style="color:var(--error)">Failed to load runs</p>'; }
@@ -651,29 +670,42 @@ renderers.runDetail = async function(runId) {
     summaryEl.innerHTML = `<div class="card" style="margin-bottom:1rem">
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.5rem">
         <div><strong>Run #${run.id}</strong></div>
-        <div>Status: <span class="badge ${run.status === 'success' ? 'badge-ok' : run.status === 'failed' ? 'badge-fail' : 'badge-run'}">${run.status}</span></div>
+        <div>Status: ${statusBadge(run.status)}</div>
         <div>Started: <span style="color:var(--text2);font-size:0.75rem">${run.started_at || '-'}</span></div>
         <div>Finished: <span style="color:var(--text2);font-size:0.75rem">${run.finished_at || '-'}</span></div>
-        <div>Subscriptions: ${run.subscriptions_processed ?? '-'}</div>
-        <div>Added: ${run.videos_added ?? '-'}</div>
-        <div>Skipped: ${run.videos_skipped ?? '-'}</div>
+        <div>Subs Processed: ${run.subscriptions_processed ?? '-'}</div>
+        <div>Subs Skipped: ${run.subscriptions_skipped ?? '-'}</div>
+        <div>Videos Added: ${run.videos_added ?? '-'}</div>
+        <div>Videos Skipped: ${run.videos_skipped ?? '-'}</div>
         <div>Errors: ${run.errors ?? '-'}</div>
       </div>
     </div>`;
     if (!Array.isArray(decisions) || decisions.length === 0) {
       decisionsEl.innerHTML = '<p style="color:var(--text2)">No decisions logged for this run</p>'; return;
     }
-    decisionsEl.innerHTML = `<table><thead><tr>
+    const videoDecisions = decisions.filter(d => d.action !== 'subscription_skipped');
+    const subSkips = decisions.filter(d => d.action === 'subscription_skipped');
+    const counts = { added: 0, skipped: 0, error: 0, sub_skipped: subSkips.length };
+    videoDecisions.forEach(d => { if (d.action === 'added') counts.added++; else if (d.action === 'error') counts.error++; else counts.skipped++; });
+    let html = '';
+    if (subSkips.length) {
+      html += `<div style="margin-bottom:1rem"><h4>Subscription Skips</h4>${subSkips.map(s => `<div style="padding:0.25rem 0;border-bottom:1px solid var(--border)"><strong>${escapeHtml(s.title)}</strong> &mdash; ${escapeHtml(s.reason_detail || s.reason)}</div>`).join('')}</div>`;
+    }
+    html += `<table><thead><tr>
       <th>Video</th><th>Channel</th><th>Action</th><th>Reason</th><th>Routed To</th>
-    </tr></thead><tbody>${decisions.map(d => `<tr>
+    </tr></thead><tbody>${videoDecisions.map(d => `<tr>
       <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis">${escapeHtml(d.title)}</td>
       <td>${escapeHtml(d.subscription_title)}</td>
       <td><span class="badge ${d.action === 'added' ? 'badge-ok' : d.action === 'error' ? 'badge-fail' : 'badge-run'}">${d.action}</span></td>
       <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis">${escapeHtml(d.reason_detail || d.reason || '-')}</td>
       <td>${escapeHtml(d.routed_to || '-')}</td>
-    </tr>`).join('')}</tbody></table>
-    <p style="color:var(--text2);font-size:0.75rem">${decisions.length} decision(s)</p>`;
-  } catch { decisionsEl.innerHTML = '<p style="color:var(--error)">Failed to load run details</p>'; }
+    </tr>`).join('')}</tbody></table>`;
+    if (videoDecisions.length === 0) {
+      html += '<p style="color:var(--text2)">No video decisions</p>';
+    }
+    html += `<p style="color:var(--text2);font-size:0.75rem">${decisions.length} decision(s) &mdash; subs skipped: ${counts.sub_skipped}, added: ${counts.added}, videos skipped: ${counts.skipped}, errors: ${counts.error}</p>`;
+    decisionsEl.innerHTML = html;
+  } catch (e) { decisionsEl.innerHTML = '<p style="color:var(--error)">Failed to load run details: ' + e.message + '</p>'; }
 };
 
 renderers.stats = async function() {
@@ -749,40 +781,21 @@ renderers.auth = async function() {
 };
 
 async function startAuthFlow() {
-  const container = document.getElementById('authStatus');
-  container.innerHTML = '<p style="color:var(--text2)">Starting device flow...</p>';
   try {
-    const data = await api('/api/auth/device', { method: 'POST' });
-    container.innerHTML = `
-      <div class="card" style="text-align:center">
-        <h3 style="margin-bottom:1rem">Authorize with Google</h3>
-        <p style="color:var(--text2);margin-bottom:1rem">Visit the URL below and enter the code:</p>
-        <p style="font-size:1.5rem;font-weight:700;margin-bottom:0.5rem">
-          <a href="${escapeHtml(data.verification_url)}" target="_blank" style="color:var(--accent)">${escapeHtml(data.verification_url)}</a>
-        </p>
-        <div style="font-size:3rem;font-weight:700;letter-spacing:0.5rem;background:var(--bg);padding:1rem;border-radius:var(--radius);margin:1rem 0;font-family:monospace">${escapeHtml(data.user_code)}</div>
-        <p style="color:var(--text2);font-size:0.875rem">Waiting for authorization...</p>
-        <div class="spinner" style="margin:1rem auto"></div>
+    const data = await api('/api/auth/login');
+    window.open(data.authorization_url, '_blank');
+    document.getElementById('authStatus').innerHTML = `
+      <div class="card">
+        <h3 style="margin-bottom:0.5rem">Google Authorization</h3>
+        <p style="color:var(--text2)">Opened Google consent page in a new tab.</p>
+        <p style="color:var(--text2);margin-top:0.5rem">After authorizing, you will be redirected back to this app.</p>
+        <button id="checkAuthBtn" style="margin-top:1rem">Check Auth Status</button>
       </div>`;
-    pollAuthStatus();
+    document.getElementById('checkAuthBtn')?.addEventListener('click', () => renderers.auth());
   } catch (e) {
-    container.innerHTML = '<p style="color:var(--error)">Failed: ' + e.message + '</p>';
+    document.getElementById('authStatus').innerHTML =
+      '<p style="color:var(--error)">Failed: ' + e.message + '</p>';
   }
-}
-
-let pollTimer = null;
-async function pollAuthStatus() {
-  if (pollTimer) clearInterval(pollTimer);
-  pollTimer = setInterval(async () => {
-    try {
-      const result = await api('/api/auth/poll', { method: 'POST' });
-      if (result.status === 'success') {
-        clearInterval(pollTimer);
-        pollTimer = null;
-        renderers.auth();
-      }
-    } catch { /* continue polling */ }
-  }, 3000);
 }
 
 // ---- Init ----

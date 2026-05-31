@@ -40,6 +40,9 @@ CREATE TABLE IF NOT EXISTS routing_rules (
     destination_playlist_id TEXT NOT NULL,
     destination_playlist_title TEXT,
     enabled INTEGER NOT NULL DEFAULT 1,
+    minimum_length TEXT NOT NULL DEFAULT '0s',
+    maximum_length TEXT NOT NULL DEFAULT '0s',
+    catch_all INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL
 );
@@ -79,6 +82,7 @@ CREATE TABLE IF NOT EXISTS ignore_entries (
     created_at TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_ignore_type ON ignore_entries(type);
+DELETE FROM app_config WHERE key IN ('minimum_length', 'maximum_length');
 """
 
 
@@ -86,6 +90,17 @@ def init_db(db_path: str) -> bool:
     try:
         con = sqlite3.connect(db_path)
         con.executescript(SCHEMA_SQL)
+        # Migrate existing routing_rules table (add columns if missing)
+        for stmt in [
+            "ALTER TABLE routing_rules ADD COLUMN minimum_length TEXT NOT NULL DEFAULT '0s'",
+            "ALTER TABLE routing_rules ADD COLUMN maximum_length TEXT NOT NULL DEFAULT '0s'",
+            "ALTER TABLE routing_rules ADD COLUMN catch_all INTEGER NOT NULL DEFAULT 0",
+        ]:
+            try:
+                con.execute(stmt)
+            except sqlite3.OperationalError:
+                pass  # column already exists
+        con.commit()
         con.close()
         return True
     except sqlite3.Error as err:

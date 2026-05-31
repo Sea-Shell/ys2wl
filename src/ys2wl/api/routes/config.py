@@ -43,12 +43,11 @@ async def get_config(request: Request):
             _get_db_val(state, "subscription_limit", s.subscription_limit)
         ),
         log_level=_get_db_val(state, "log_level", s.log_level),
-        minimum_length=_get_db_val(state, "minimum_length", s.minimum_length),
-        maximum_length=_get_db_val(state, "maximum_length", s.maximum_length),
         published_after=_get_db_val(state, "published_after", s.published_after),
         no_webbrowser=_get_db_val(state, "no_webbrowser", str(s.no_webbrowser))
         == "True",
-        client_secret_json=_get_db_val(state, "client_secret_json", ""),
+        credentials_file=_get_db_val(state, "credentials_file", s.credentials_file),
+        public_url=_get_db_val(state, "public_url", s.public_url),
     )
 
 
@@ -57,6 +56,9 @@ async def update_config(update: ConfigUpdate, request: Request):
     state = _get_state(request)
     s = state.settings
     for k, v in update.model_dump(exclude_none=True).items():
+        # Migrate legacy key
+        if k == "client_secret_json":
+            k = "credentials_file"
         if hasattr(s, k):
             setattr(s, k, v)
             repo.set_config(state.db_con, k, str(v))

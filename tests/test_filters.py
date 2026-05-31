@@ -86,7 +86,7 @@ class TestTitleSimilarity:
 
 
 class TestRouter:
-    def test_default_rule(self):
+    def test_no_rules_returns_none(self):
         rules = []
         activity = Activity(
             video_id="v1", title="Test", published_at="now", video_type="upload"
@@ -94,8 +94,30 @@ class TestRouter:
         result = evaluate_rules(
             activity, "Music Channel", 300, rules, "PL_DEFAULT", "Default"
         )
-        assert result.playlist_id == "PL_DEFAULT"
-        assert result.rule_name == "default"
+        assert result is None
+
+    def test_catch_all_returns_playlist(self):
+        rules = [
+            RoutingRule(
+                name="Catch All",
+                priority=0,
+                field=None,
+                operator="contains",
+                pattern=None,
+                destination_playlist_id="PL_CATCH",
+                destination_playlist_title="Catch All",
+                enabled=True,
+                catch_all=True,
+            ),
+        ]
+        activity = Activity(
+            video_id="v1", title="Test", published_at="now", video_type="upload"
+        )
+        result = evaluate_rules(
+            activity, "Music Channel", 300, rules, "PL_DEFAULT", "Default"
+        )
+        assert result is not None
+        assert result.playlist_id == "PL_CATCH"
 
     def test_channel_title_match(self):
         rules = [
@@ -213,7 +235,109 @@ class TestRouter:
         result = evaluate_rules(
             activity, "Test Channel", 120, rules, "PL_DEFAULT", "Default"
         )
-        assert result.playlist_id == "PL_DEFAULT"
+        assert result is None
+
+    def test_rule_minimum_length_bounds(self):
+        rules = [
+            RoutingRule(
+                name="Long Only",
+                priority=10,
+                field="channel_title",
+                operator="contains",
+                pattern="test",
+                destination_playlist_id="PL_LONG",
+                destination_playlist_title="Long Only",
+                enabled=True,
+                minimum_length="60s",
+                maximum_length="0s",
+            ),
+        ]
+        activity = Activity(
+            video_id="v1", title="Video", published_at="now", video_type="upload"
+        )
+        # 30s < 60s minimum → falls through → None
+        result = evaluate_rules(
+            activity, "Test Channel", 30, rules, "PL_DEFAULT", "Default"
+        )
+        assert result is None
+        # 120s >= 60s → matches
+        result = evaluate_rules(
+            activity, "Test Channel", 120, rules, "PL_DEFAULT", "Default"
+        )
+        assert result is not None
+        assert result.playlist_id == "PL_LONG"
+
+    def test_rule_maximum_length_bounds(self):
+        rules = [
+            RoutingRule(
+                name="Shorts Only",
+                priority=10,
+                field="channel_title",
+                operator="contains",
+                pattern="test",
+                destination_playlist_id="PL_SHORTS",
+                destination_playlist_title="Shorts",
+                enabled=True,
+                minimum_length="0s",
+                maximum_length="60s",
+            ),
+        ]
+        activity = Activity(
+            video_id="v1", title="Video", published_at="now", video_type="upload"
+        )
+        # 30s <= 60s → matches
+        result = evaluate_rules(
+            activity, "Test Channel", 30, rules, "PL_DEFAULT", "Default"
+        )
+        assert result is not None
+        assert result.playlist_id == "PL_SHORTS"
+        # 120s > 60s → falls through → None
+        result = evaluate_rules(
+            activity, "Test Channel", 120, rules, "PL_DEFAULT", "Default"
+        )
+        assert result is None
+
+    def test_catch_all_fallback_after_no_match(self):
+        rules = [
+            RoutingRule(
+                name="Specific",
+                priority=10,
+                field="channel_title",
+                operator="contains",
+                pattern="gaming",
+                destination_playlist_id="PL_GAMING",
+                destination_playlist_title="Gaming",
+                enabled=True,
+                minimum_length="0s",
+                maximum_length="0s",
+            ),
+            RoutingRule(
+                name="Everything Else",
+                priority=0,
+                field=None,
+                operator="contains",
+                pattern=None,
+                destination_playlist_id="PL_CATCH",
+                destination_playlist_title="Catch All",
+                enabled=True,
+                catch_all=True,
+            ),
+        ]
+        activity = Activity(
+            video_id="v1", title="Video", published_at="now", video_type="upload"
+        )
+        # No matching rule → falls through to catch-all
+        result = evaluate_rules(
+            activity, "Music Channel", 300, rules, "PL_DEFAULT", "Default"
+        )
+        assert result is not None
+        assert result.playlist_id == "PL_CATCH"
+        # Gaming channel matches the specific rule
+        result = evaluate_rules(
+            activity, "Gaming Channel", 300, rules, "PL_DEFAULT", "Default"
+        )
+        assert result is not None
+        assert result.playlist_id == "PL_GAMING"
 
 
 class TestFuzzRatio:

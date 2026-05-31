@@ -28,10 +28,9 @@ class Settings(BaseSettings):
     pipeline_concurrency: int = Field(default=1, ge=1, le=10)
     activity_limit: int = Field(default=0, ge=0)
     subscription_limit: int = Field(default=0, ge=0)
-    minimum_length: str = Field(default="0s")
-    maximum_length: str = Field(default="0s")
     published_after: Optional[str] = Field(default=None)
     no_webbrowser: bool = Field(default=False)
+    public_url: str = Field(default="http://localhost:8080")
 
 
 def load_settings() -> Settings:

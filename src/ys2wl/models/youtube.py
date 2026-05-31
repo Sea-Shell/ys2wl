@@ -50,3 +50,6 @@ class RoutingRule:
     destination_playlist_id: str = ""
     destination_playlist_title: str = ""
     enabled: bool = True
+    minimum_length: str = "0s"
+    maximum_length: str = "0s"
+    catch_all: bool = False
