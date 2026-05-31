@@ -4,6 +4,7 @@ from typing import Optional
 
 class HealthResponse(BaseModel):
     status: str = "ok"
+    next_scheduled_run: str | None = None
 
 
 class ConfigResponse(BaseModel):
