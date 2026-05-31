@@ -3,7 +3,6 @@ from fastapi import APIRouter, Request, HTTPException
 from pydantic import BaseModel
 from fastapi.responses import RedirectResponse
 
-log = logging.getLogger("ys2wl.auth_routes")
 from ys2wl.core.auth import (
     get_client_config,
     get_authorization_url,
@@ -12,6 +11,8 @@ from ys2wl.core.auth import (
     credentials_status,
 )
 from ys2wl.core.youtube import YouTubeAPIClient
+
+log = logging.getLogger("ys2wl.auth_routes")
 
 router = APIRouter()
 
@@ -49,7 +50,9 @@ async def auth_login(request: Request):
 
 
 @router.get("/auth/callback")
-async def auth_callback(request: Request, code: str | None = None, error: str | None = None):
+async def auth_callback(
+    request: Request, code: str | None = None, error: str | None = None
+):
     state = _get_state(request)
     if error:
         log.warning("OAuth callback error: %s", error)
@@ -62,7 +65,9 @@ async def auth_callback(request: Request, code: str | None = None, error: str | 
     redirect_uri = f"{state.settings.public_url}/api/auth/callback"
     creds = exchange_code_for_tokens(config, code, redirect_uri)
     if not creds:
-        raise HTTPException(status_code=400, detail="Failed to exchange authorisation code")
+        raise HTTPException(
+            status_code=400, detail="Failed to exchange authorisation code"
+        )
     save_credentials(state.db_con, creds)
     state.credentials = creds
     state.youtube = YouTubeAPIClient(credentials=creds)

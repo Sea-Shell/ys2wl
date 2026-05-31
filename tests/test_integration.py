@@ -17,12 +17,14 @@ def db_path() -> Iterator[str]:
     yield path
     os.unlink(path)
 
+
 @pytest.fixture
 def db_con(db_path: str) -> Iterator[sqlite3.Connection]:
     con = sqlite3.connect(db_path)
     con.row_factory = sqlite3.Row
     yield con
     con.close()
+
 
 @pytest.fixture
 def app(db_path: str) -> FastAPI:
@@ -44,6 +46,7 @@ def app(db_path: str) -> FastAPI:
     app.include_router(rules.router, prefix="/api")
     return app
 
+
 @pytest.mark.asyncio
 async def test_health_returns_ok(app: FastAPI):
     transport = ASGITransport(app=app)
@@ -51,6 +54,7 @@ async def test_health_returns_ok(app: FastAPI):
         resp = await client.get("/api/health")
     assert resp.status_code == 200
     assert resp.json()["status"] == "ok"
+
 
 @pytest.mark.asyncio
 async def test_config_get_and_update(app: FastAPI):
@@ -66,6 +70,7 @@ async def test_config_get_and_update(app: FastAPI):
         assert resp2.status_code == 200
         data2 = resp2.json()
         assert data2["compare_distance"] == 7
+
 
 @pytest.mark.asyncio
 async def test_rule_lifecycle(app: FastAPI):
@@ -87,16 +92,16 @@ async def test_rule_lifecycle(app: FastAPI):
     rule = resp.json()
     assert rule["name"] == "Test Rule"
     assert rule["enabled"] is True
-    rid = rule["id"]
-
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         resp2 = await client.get("/api/rules")
     assert resp2.status_code == 200
 
+
 ##################################
 # New test: config/settings sync #
 ##################################
+
 
 def test_config_keys_match_settings():
     """
@@ -104,8 +109,7 @@ def test_config_keys_match_settings():
     Fails if code is out of sync (typos, old key, rename).
     """
     from ys2wl.config import Settings
-    from ys2wl.db import repository as repo
-    import inspect
+
     # All Settings fields (excluding excluded/internal)
     s = Settings()
     settings_keys = set(vars(s).keys())
@@ -140,21 +144,27 @@ def test_overlay_warns_on_invalid_key(tmp_path):
     from ys2wl.api.app import AppState
     from ys2wl.config import Settings
     from ys2wl.db import repository as repo
+
     db_path = tmp_path / "testsettings.db"
     init_db(str(db_path))
     s = Settings(database_file=str(db_path))
     con = sqlite3.connect(str(db_path))
     con.row_factory = sqlite3.Row
-    con.execute("INSERT INTO app_config (key, value) VALUES (?, ?)", ("totally_wrong_keyz", "oops"))
+    con.execute(
+        "INSERT INTO app_config (key, value) VALUES (?, ?)",
+        ("totally_wrong_keyz", "oops"),
+    )
     con.commit()
     state = AppState()
     state.settings = s
     state.db_con = con
     # Patch logger to capture log output
     records = []
+
     class CapHandler(logging.Handler):
         def emit(self, record):
             records.append(record)
+
     lh = CapHandler()
     log = logging.getLogger("ys2wl.api")
     log.addHandler(lh)
@@ -176,4 +186,6 @@ def test_overlay_warns_on_invalid_key(tmp_path):
         elif db_val is not None:
             log.warning("Config key not present in Settings: %s", key)
     log.removeHandler(lh)
-    assert any("totally_wrong_keyz" in r.getMessage() for r in records), "Should log for invalid key"
+    assert any("totally_wrong_keyz" in r.getMessage() for r in records), (
+        "Should log for invalid key"
+    )
