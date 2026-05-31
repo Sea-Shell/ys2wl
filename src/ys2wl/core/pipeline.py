@@ -5,10 +5,8 @@ from typing import Optional
 from sqlite3 import Connection
 from ys2wl.config import Settings
 from ys2wl.core.youtube import YouTubeAPIClient
-from ys2wl.core.utils import time_to_seconds
 from ys2wl.db import repository as repo
 from ys2wl.filters.word_filter import word_filter
-from ys2wl.filters.duration_filter import duration_filter
 from ys2wl.filters.title_similarity import title_similarity
 from ys2wl.filters.ignore_list import ignore_list_filter
 from ys2wl.filters.router import evaluate_rules
@@ -64,6 +62,13 @@ class PipelineOrchestrator:
             if sub.title in self.ignore_subscriptions:
                 log.info("Skipping ignored subscription: %s", sub.title)
                 summary.subscriptions_skipped += 1
+                summary.subscription_skips.append(
+                    dict(
+                        subscription_title=sub.title,
+                        reason="ignored",
+                        reason_detail="Subscription is in the ignore list",
+                    )
+                )
                 continue
 
             last_processed = repo.get_subscription_timestamp(self.db_con, sub.id)
@@ -80,6 +85,13 @@ class PipelineOrchestrator:
                             self.settings.reprocess_days,
                         )
                         summary.subscriptions_skipped += 1
+                        summary.subscription_skips.append(
+                            dict(
+                                subscription_title=sub.title,
+                                reason="already_up_to_date",
+                                reason_detail=f"Checked within {self.settings.reprocess_days} day reprocess window",
+                            )
+                        )
                         continue
                 except ValueError:
                     pass
@@ -199,19 +211,6 @@ class PipelineOrchestrator:
         except Exception as e:
             log.warning("Could not get duration for %s: %s", activity.video_id, e)
 
-        min_sec = time_to_seconds(self.settings.minimum_length)
-        max_sec = time_to_seconds(self.settings.maximum_length)
-        fr = duration_filter(video_length, min_sec, max_sec)
-        if not fr.passed:
-            result.filter_result = fr
-            log.info(
-                "Filtered by duration: %s - %s (%ds)",
-                channel_title,
-                activity.title,
-                video_length,
-            )
-            return result
-
         route_result = evaluate_rules(
             activity,
             channel_title,
@@ -220,6 +219,13 @@ class PipelineOrchestrator:
             self.default_playlist_id,
             self.default_playlist_title,
         )
+        if route_result is None:
+            result.filter_result = FilterResult(
+                passed=False, reason="No matching rule", skipped_by="no_rule_match"
+            )
+            log.info("No rule matched: %s - %s", channel_title, activity.title)
+            return result
+
         result.route_result = route_result
 
         try:

@@ -40,3 +40,4 @@ def test_pipeline_summary_defaults():
     s = PipelineSummary(started_at="now")
     assert s.status == "running"
     assert s.videos_added == 0
+    assert s.subscription_skips == []

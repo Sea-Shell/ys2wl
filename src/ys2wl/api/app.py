@@ -11,6 +11,7 @@ from google.auth.transport.requests import Request
 from ys2wl.core.youtube import YouTubeAPIClient
 from ys2wl.core.auth import load_credentials
 from ys2wl.core.scheduler import PipelineScheduler
+from ys2wl.core.pipeline_runner import execute_pipeline
 from ys2wl.db.migrations import init_db
 from ys2wl.db import repository as repo
 from ys2wl.api.routes import (
@@ -34,7 +35,6 @@ class AppState:
         self.credentials = None
         self.youtube: YouTubeAPIClient | None = None
         self.scheduler: PipelineScheduler | None = None
-        self.device_flow: dict | None = None
 
 
 @asynccontextmanager
@@ -75,11 +75,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator:
         "activity_limit",
         "subscription_limit",
         "log_level",
-        "minimum_length",
-        "maximum_length",
         "published_after",
         "no_webbrowser",
-        "client_secret_json",
+        "public_url",
     ]:
         db_val = repo.get_config(state.db_con, key)
         if db_val is not None and hasattr(state.settings, key):
@@ -97,6 +95,24 @@ async def lifespan(app: FastAPI) -> AsyncIterator:
             env_val = getattr(state.settings, key)
             if env_val is not None:
                 repo.set_config(state.db_con, key, str(env_val))
+
+    # --- SCHEDULER WIRING ---
+    # Only start scheduler if a cron is set and credentials are valid
+    if (
+        getattr(state.settings, "schedule", None)
+        and state.youtube is not None
+        and hasattr(state.settings, "schedule")
+        and state.settings.schedule.strip() != ""
+    ):
+
+        async def pipeline_callback():
+            await execute_pipeline(state, trigger="auto")
+
+        state.scheduler = PipelineScheduler(state.settings.schedule, pipeline_callback)
+        state.scheduler.start()
+        log.info(f"PipelineScheduler started with cron: {state.settings.schedule}")
+    else:
+        log.info("Scheduler not started: schedule not set or credentials missing.")
 
     app.state.ys2wl = state
     log.info("ys2wl service started")
