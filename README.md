@@ -84,6 +84,22 @@ uv tool install pre-commit
 pre-commit install
 ```
 
+## 🕑 Scheduling & Pipeline
+
+- **Automated schedule:** The pipeline now runs via an internal scheduler (APScheduler) started with the app process. It is configured using the `YS2WL_SCHEDULE` environment variable (default: every 6 hours, `0 */6 * * *`).
+- **No external cron job required:** You do not need a separate Kubernetes CronJob — the web service handles scheduled pipeline runs automatically.
+- **Manual triggers:** Hitting the `/api/pipeline/trigger` endpoint or using the UI runs the exact same pipeline logic as the scheduler.
+- **Shared logic:** Both automatic and manual runs use the same core execution pathway for reliability and DRYness.
+
+## Type Checking
+
+To run mypy type checks (if installed):
+
+```sh
+uv run mypy src/ys2wl/
+# Or if defined: make type-check
+```
+
 ## Kubernetes
 
 Manifests in `k8s/` — deploy with `kubectl apply -f k8s/`.
