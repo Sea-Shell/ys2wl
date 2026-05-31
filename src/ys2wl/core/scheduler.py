@@ -27,6 +27,13 @@ class PipelineScheduler:
         )
         await self.pipeline_fn()
 
+    @property
+    def next_run_time(self) -> str | None:
+        job = self.scheduler.get_job("pipeline")
+        if job and job.next_run_time:
+            return job.next_run_time.isoformat()
+        return None
+
     def stop(self) -> None:
         if self.scheduler.running:
             self.scheduler.shutdown(wait=False)
