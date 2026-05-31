@@ -4,6 +4,7 @@ import logging
 import pickle
 import sqlite3
 from typing import Optional
+from urllib.parse import urlencode
 from google.auth.credentials import Credentials
 from google.oauth2.credentials import Credentials as OAuth2Credentials
 from google.auth.transport.requests import Request
@@ -19,16 +20,16 @@ SCOPES = [
     "https://www.googleapis.com/auth/youtube.readonly",
 ]
 
-DEVICE_CODE_URL = "https://oauth2.googleapis.com/device/code"
+AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 TOKEN_URL = "https://oauth2.googleapis.com/token"
 
 
 def get_client_config(db_con: sqlite3.Connection) -> Optional[dict]:
     """Extract client_id and client_secret from Google OAuth credentials JSON in DB."""
     try:
-        raw = repo.get_config(db_con, "client_secret_json")
+        raw = repo.get_config(db_con, "credentials_file")
         if not raw:
-            log.error("No client_secret_json in app_config")
+            log.error("No credentials_file in app_config")
             return None
         data = json.loads(raw)
         installed = data.get("installed") or data.get("web", {})
@@ -41,51 +42,46 @@ def get_client_config(db_con: sqlite3.Connection) -> Optional[dict]:
         return None
 
 
-def start_device_flow(client_id: str) -> dict:
-    """Start OAuth 2.0 Device Flow. Returns device_code, user_code, verification_url, interval."""
-    with httpx.Client() as client:
-        resp = client.post(
-            DEVICE_CODE_URL,
-            data={
-                "client_id": client_id,
-                "scope": " ".join(SCOPES),
-            },
-        )
-        resp.raise_for_status()
-        return resp.json()
+def get_authorization_url(client_config: dict, redirect_uri: str) -> str:
+    """Build Google OAuth authorization URL for browser redirect."""
+    params = {
+        "client_id": client_config["client_id"],
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": " ".join(SCOPES),
+        "access_type": "offline",
+        "prompt": "consent",
+    }
+    return f"{AUTH_URL}?{urlencode(params)}"
 
 
-def poll_device_flow(
-    client_id: str, client_secret: str, device_code: str
-) -> tuple[Optional[Credentials], Optional[str]]:
-    """Poll Google for token. Returns (credentials, None) on success, (None, status) if pending/failed."""
+def exchange_code_for_tokens(
+    client_config: dict, code: str, redirect_uri: str
+) -> Optional[Credentials]:
+    """Exchange authorization code for OAuth credentials."""
     with httpx.Client() as client:
         resp = client.post(
             TOKEN_URL,
             data={
-                "client_id": client_id,
-                "client_secret": client_secret,
-                "device_code": device_code,
-                "grant_type": "urn:ietf:params:oauth:grant-type:device_code",
+                "client_id": client_config["client_id"],
+                "client_secret": client_config["client_secret"],
+                "code": code,
+                "redirect_uri": redirect_uri,
+                "grant_type": "authorization_code",
             },
         )
         data = resp.json()
-    if "access_token" in data:
-        creds = OAuth2Credentials(
-            token=data["access_token"],
-            refresh_token=data.get("refresh_token"),
-            token_uri=TOKEN_URL,
-            client_id=client_id,
-            client_secret=client_secret,
-            scopes=SCOPES,
-        )
-        return creds, None
-    error = data.get("error", "unknown")
-    if error in ("authorization_pending",):
-        return None, "pending"
-    if error == "slow_down":
-        return None, "slow_down"
-    return None, error
+    if "access_token" not in data:
+        log.error("Token exchange failed: %s", data.get("error", "unknown"))
+        return None
+    return OAuth2Credentials(
+        token=data["access_token"],
+        refresh_token=data.get("refresh_token"),
+        token_uri=TOKEN_URL,
+        client_id=client_config["client_id"],
+        client_secret=client_config["client_secret"],
+        scopes=SCOPES,
+    )
 
 
 def save_credentials(db_con: sqlite3.Connection, credentials: Credentials) -> None:

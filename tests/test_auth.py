@@ -26,7 +26,7 @@ def test_get_client_config_parses_installed():
     db_con = _db()
     repo.set_config(
         db_con,
-        "client_secret_json",
+        "credentials_file",
         json.dumps({"installed": {"client_id": "abc", "client_secret": "def"}}),
     )
     result = get_client_config(db_con)
@@ -37,7 +37,7 @@ def test_get_client_config_parses_web():
     db_con = _db()
     repo.set_config(
         db_con,
-        "client_secret_json",
+        "credentials_file",
         json.dumps({"web": {"client_id": "xyz", "client_secret": "123"}}),
     )
     result = get_client_config(db_con)
