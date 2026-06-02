@@ -19,6 +19,7 @@ from ys2wl.api.routes import (
     config,
     rules,
     pipeline as pipeline_routes,
+    pipelines as pipelines_routes,
     subscriptions,
     stats as stats_routes,
 )
@@ -139,6 +140,7 @@ def create_app() -> FastAPI:
     app.include_router(config.router, prefix="/api", tags=["config"])
     app.include_router(rules.router, prefix="/api", tags=["rules"])
     app.include_router(pipeline_routes.router, prefix="/api", tags=["pipeline"])
+    app.include_router(pipelines_routes.router, prefix="/api", tags=["pipelines"])
     app.include_router(subscriptions.router, prefix="/api", tags=["subscriptions"])
     app.include_router(stats_routes.router, prefix="/api", tags=["stats"])
     app.include_router(auth_routes.router, prefix="/api", tags=["auth"])

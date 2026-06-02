@@ -15,8 +15,11 @@ format:
 check:
 	uv run ruff check src/ tests/ && uv run ruff format --check src/ tests/
 
-docker:
-	docker build -t ys2wl .
+IMAGE ?= ys2wl
+
+image:
+	podman build -t $(IMAGE) .
+	podman push $(IMAGE)
 
 clean:
 	rm -rf .venv .ruff_cache .pytest_cache
