@@ -40,7 +40,7 @@ class ConfigUpdate(BaseModel):
 
 
 class IgnoreEntryCreate(BaseModel):
-    type: str  # subscription, video, words
+    type: str  # subscription, video, words (legacy)
     pattern: str
 
 
@@ -97,6 +97,55 @@ class RoutingRuleResponse(BaseModel):
     catch_all: bool = False
 
 
+# --- Pipeline models ---
+
+
+class PipelineCreate(BaseModel):
+    name: str
+    selector_mode: str = "AND"
+    duration_min_seconds: int = 0
+    duration_max_seconds: int = 0
+    check_db_exists: bool = False
+    check_title_similarity: bool = False
+    compare_distance: int = 80
+    subscription_scope: str = "all"
+    destination_playlist_id: str
+    destination_playlist_title: str = ""
+
+
+class PipelineUpdate(BaseModel):
+    name: Optional[str] = None
+    enabled: Optional[bool] = None
+    selector_mode: Optional[str] = None
+    duration_min_seconds: Optional[int] = None
+    duration_max_seconds: Optional[int] = None
+    check_db_exists: Optional[bool] = None
+    check_title_similarity: Optional[bool] = None
+    compare_distance: Optional[int] = None
+    subscription_scope: Optional[str] = None
+    destination_playlist_id: Optional[str] = None
+    destination_playlist_title: Optional[str] = None
+
+
+class PipelineResponse(BaseModel):
+    id: str
+    name: str
+    enabled: bool
+    selector_mode: str
+    duration_min_seconds: int
+    duration_max_seconds: int
+    check_db_exists: bool
+    check_title_similarity: bool
+    compare_distance: int
+    subscription_scope: str
+    destination_playlist_id: str
+    destination_playlist_title: str
+    created_at: str
+    updated_at: str
+    ignore_list_ids: list[str] = []
+    selectors: list[dict] = []
+
+
 class PipelineRunResponse(BaseModel):
     id: int
     started_at: str
@@ -108,6 +157,9 @@ class PipelineRunResponse(BaseModel):
     videos_skipped: int = 0
     errors: int = 0
     trigger: str = "scheduled"
+    pipelines_invoked: int = 0
+    pipelines_with_errors: int = 0
+    dry_run: bool = False
 
 
 class RunDecisionResponse(BaseModel):
@@ -119,6 +171,8 @@ class RunDecisionResponse(BaseModel):
     reason: Optional[str] = None
     reason_detail: Optional[str] = None
     routed_to: Optional[str] = None
+    pipeline_id: Optional[str] = None
+    pipeline_name: Optional[str] = None
     created_at: str
 
 
@@ -127,9 +181,31 @@ class TriggerResponse(BaseModel):
     message: str = "Pipeline triggered"
 
 
+class IgnoreListResponse(BaseModel):
+    id: str
+    name: str
+    list_type: str
+    created_at: str
+    entries: list[str] = []
+
+
+class IgnoreListCreate(BaseModel):
+    name: str
+    list_type: str  # "word" | "video" | "subscription"
+
+
+class IgnoreListEntryCreate(BaseModel):
+    value: str
+
+
 class SubscriptionStat(BaseModel):
     subscription_title: str
     subscription_id: str = ""
     videos_added: int = 0
     last_added_at: Optional[str] = None
     status: str = "inactive"
+
+
+class PlaylistResponse(BaseModel):
+    id: str
+    title: str

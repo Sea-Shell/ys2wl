@@ -117,6 +117,7 @@ tr:hover td { background: var(--surface2); }
 .badge-ok { background: var(--success); color: #0f172a; }
 .badge-fail { background: var(--error); color: #fff; }
 .badge-run { background: var(--warning); color: #0f172a; }
+.tag-dryrun { background: var(--surface2); color: var(--accent); font-size: 0.65rem; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 4px; border: 1px solid var(--accent); }
 input, select {
   background: var(--bg); color: var(--text); border: 1px solid var(--surface2);
   padding: 0.5rem; border-radius: var(--radius); font-size: 0.875rem; width: 100%;
@@ -148,7 +149,7 @@ label { display: block; font-size: 0.875rem; color: var(--text2); margin-bottom:
   <h1>ys2wl</h1>
   <a class="active" data-page="dashboard" href="#dashboard">Dashboard</a>
   <a data-page="subscriptions" href="#subscriptions">Subscriptions</a>
-  <a data-page="rules" href="#rules">Routing Rules</a>
+  <a data-page="pipelines" href="#pipelines">Pipelines</a>
   <a data-page="config" href="#config">Config</a>
   <a data-page="runs" href="#runs">Pipeline Runs</a>
   <a data-page="stats" href="#stats">Stats</a>
@@ -165,11 +166,14 @@ label { display: block; font-size: 0.875rem; color: var(--text2); margin-bottom:
     <h2>Dashboard</h2>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem">
       <div class="card"><h3>Subscriptions</h3><div class="value" id="statSubs">-</div></div>
-      <div class="card"><h3>Routing Rules</h3><div class="value" id="statRules">-</div></div>
+      <div class="card"><h3>Pipelines</h3><div class="value" id="statPipelines">-</div></div>
       <div class="card"><h3>Last Run</h3><div class="value" id="statLastRun">-</div></div>
       <div class="card"><h3>Videos Added</h3><div class="value" id="statVideosAdded">-</div></div>
     </div>
-    <button id="triggerBtn">▶ Run Pipeline</button>
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+      <button id="triggerBtn">▶ Run Pipeline</button>
+      <button id="dryRunBtn" style="background:var(--surface2);color:var(--text)">🧪 Dry Run</button>
+    </div>
     <div id="triggerResult" style="margin-top:0.75rem"></div>
   </section>
   <section id="subscriptions" class="page">
@@ -177,36 +181,46 @@ label { display: block; font-size: 0.875rem; color: var(--text2); margin-bottom:
     <input id="subSearch" placeholder="Filter channels..." style="max-width:300px;margin-bottom:1rem">
     <div id="subList"></div>
   </section>
-  <section id="rules" class="page">
+  <section id="pipelines" class="page">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-      <h2 style="margin:0">Routing Rules</h2>
-      <button id="addRuleBtn">+ Add Rule</button>
+      <h2 style="margin:0">Pipelines</h2>
+      <button id="addPipelineBtn">+ Add Pipeline</button>
     </div>
-    <div id="rulesList"></div>
-    <div id="ruleModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:999;
-         align-items:center;justify-content:center">
-      <div style="background:var(--surface);padding:2rem;border-radius:var(--radius);width:480px;max-width:90vw">
-        <h3 id="ruleModalTitle" style="margin-bottom:1rem">Add Rule</h3>
-        <input type="hidden" id="ruleId">
-        <div class="form-group"><label>Name</label><input id="ruleName"></div>
-        <div class="form-group"><label>Priority</label><input id="rulePriority" type="number" value="0"></div>
-        <div class="form-group"><label>Field</label>
-          <select id="ruleField"><option value="">Any</option><option value="video_title">Title</option>
-          <option value="channel_title">Channel Title</option><option value="duration_seconds">Duration</option></select></div>
-        <div class="form-group"><label>Operator</label>
-          <select id="ruleOperator"><option>contains</option><option>regex</option><option>eq</option>
-          <option>lt</option><option>gt</option></select></div>
-        <div class="form-group"><label>Pattern</label><input id="rulePattern" placeholder="leave empty to match all (contains/regex only)"></div>
-        <div class="form-group"><label>Destination Playlist ID</label><input id="ruleDestId"></div>
-        <div class="form-group"><label>Destination Playlist Title</label><input id="ruleDestTitle"></div>
+    <div id="pipelinesList"></div>
+    <div id="dryRunResult" style="margin-top:1rem"></div>
+    <div id="pipelineModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:999;
+         align-items:center;justify-content:center;overflow-y:auto">
+      <div style="background:var(--surface);padding:2rem;border-radius:var(--radius);width:560px;max-width:90vw;margin:2rem auto">
+        <h3 id="pipelineModalTitle" style="margin-bottom:1rem">Add Pipeline</h3>
+        <input type="hidden" id="pipelineId">
+        <div class="form-group"><label>Name</label><input id="pipelineName"></div>
+        <div class="form-group"><label>Subscription Scope</label>
+          <select id="pipelineScope"><option value="all">All Subscriptions</option><option value="selected">Selected Only</option></select></div>
         <div style="display:flex;gap:1rem">
-          <div class="form-group" style="flex:1"><label>Minimum Length</label><input id="ruleMinLength" value="0s"></div>
-          <div class="form-group" style="flex:1"><label>Maximum Length</label><input id="ruleMaxLength" value="0s"></div>
+          <div class="form-group" style="flex:1"><label>Min Duration</label><input id="pipelineMinDuration" type="text" value="0" placeholder="e.g. 75 or 2m or 1h"></div>
+          <div class="form-group" style="flex:1"><label>Max Duration</label><input id="pipelineMaxDuration" type="text" value="0" placeholder="e.g. 480 or 8m or 1h"></div>
         </div>
-        <div class="form-group"><label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer"><input type="checkbox" id="ruleCatchAll" style="width:auto"> Catch-all (no field/pattern needed)</label></div>
-        <div style="display:flex;gap:0.5rem;justify-content:flex-end">
-          <button id="ruleCancel" style="background:var(--surface2);color:var(--text)">Cancel</button>
-          <button id="ruleSave">Save</button>
+        <div class="form-group"><label>Destination Playlist</label>
+          <select id="pipelineDestPlaylist" style="width:100%"><option value="">— Select playlist —</option></select></div>
+        <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.875rem;color:var(--text2)">
+            <input type="checkbox" id="pipelineCheckDb" style="width:auto"> Check DB exists</label>
+          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.875rem;color:var(--text2)">
+            <input type="checkbox" id="pipelineCheckTitle" style="width:auto"> Title similarity</label>
+        </div>
+        <div class="form-group" id="pipelineDistanceGroup" style="display:none">
+          <label>Compare Distance</label><input id="pipelineDistance" type="number" value="80" min="0" max="100">
+        </div>
+        <hr style="border:none;border-top:1px solid var(--surface2);margin:1rem 0">
+        <h4 style="font-size:0.875rem;color:var(--text2);margin-bottom:0.5rem">Selectors</h4>
+        <div id="pipelineSelectors"></div>
+        <button id="addSelectorBtn" style="background:var(--surface2);color:var(--text);padding:0.25rem 0.5rem;font-size:0.75rem;margin-bottom:1rem">+ Add Selector</button>
+        <hr style="border:none;border-top:1px solid var(--surface2);margin:1rem 0">
+        <h4 style="font-size:0.875rem;color:var(--text2);margin-bottom:0.5rem">Attached Ignore Lists</h4>
+        <div id="pipelineIgnoreLists"></div>
+        <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem">
+          <button id="pipelineCancel" style="background:var(--surface2);color:var(--text)">Cancel</button>
+          <button id="pipelineSave">Save</button>
         </div>
       </div>
     </div>
@@ -265,6 +279,43 @@ function showToast(msg, type = 'error') {
   setTimeout(() => { t.className = 'toast'; }, 4000);
 }
 
+function parseDurationSeconds(val) {
+  if (val == null || val === '') return 0;
+  const s = String(val).trim().toLowerCase();
+  const m = s.match(/^(\d+(?:\.\d+)?)\s*([smh])?$/);
+  if (!m) return parseInt(s) || 0;
+  const num = parseFloat(m[1]);
+  const unit = m[2] || 's';
+  if (unit === 'h') return Math.round(num * 3600);
+  if (unit === 'm') return Math.round(num * 60);
+  return Math.round(num);
+}
+
+function formatTime(iso) {
+  if (!iso) return '-';
+  const d = typeof iso === 'string' ? new Date(iso) : iso;
+  if (isNaN(d.getTime())) return typeof iso === 'string' ? iso : '-';
+  const pad = n => String(n).padStart(2, '0');
+  return pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()) + ' ' +
+         pad(d.getDate()) + '.' + pad(d.getMonth() + 1) + '.' + d.getFullYear();
+}
+
+function formatDurationShort(seconds) {
+  if (seconds == null || seconds === 0) return '0';
+  if (seconds % 3600 === 0) return (seconds / 3600) + 'h';
+  if (seconds % 60 === 0) return (seconds / 60) + 'm';
+  return seconds + 's';
+}
+
+function formatDuration(seconds) {
+  if (seconds == null || seconds === 0) return '-';
+  if (seconds < 60) return seconds + 's';
+  if (seconds < 3600) return Math.floor(seconds / 60) + 'm';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  return m ? h + 'h ' + m + 'm' : h + 'h';
+}
+
 function escapeHtml(s) {
   if (s == null) return '';
   const d = document.createElement('div');
@@ -272,13 +323,14 @@ function escapeHtml(s) {
 }
 
 // ---- Routing ----
-const PAGES = ['dashboard','subscriptions','rules','config','runs','stats','auth'];
+const PAGES = ['dashboard','subscriptions','pipelines','config','runs','stats','auth'];
 
 function navigate(page) {
   location.hash = '#' + page;
 }
 
 function renderPage(page) {
+  if (window._runDetailTimeout) { clearTimeout(window._runDetailTimeout); window._runDetailTimeout = null; }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
   const el = document.getElementById(page);
@@ -320,7 +372,7 @@ async function updateHealth() {
       const fmt = diff > 0
         ? (h > 0 ? h+'h ' : '') + m+'m ' + s+'s'
         : 'now';
-      nextEl.textContent = 'Next automatic run: ' + next.toLocaleString() + ' (' + fmt + ')';
+      nextEl.textContent = 'Next automatic run: ' + formatTime(next) + ' (' + fmt + ')';
     } else {
       nextEl.textContent = '';
     }
@@ -334,13 +386,13 @@ async function updateHealth() {
 const renderers = {};
 renderers.dashboard = async function() {
   try {
-    const [subs, rules, runs] = await Promise.all([
+    const [subs, pipelines, runs] = await Promise.all([
       api('/api/subscriptions'),
-      api('/api/rules'),
+      api('/api/pipelines'),
       api('/api/pipeline/runs'),
     ]);
     document.getElementById('statSubs').textContent = Array.isArray(subs) ? subs.length : '-';
-    document.getElementById('statRules').textContent = Array.isArray(rules) ? rules.length : '-';
+    document.getElementById('statPipelines').textContent = Array.isArray(pipelines) ? pipelines.length : '-';
     if (Array.isArray(runs) && runs.length > 0) {
       const last = runs[0];
       document.getElementById('statLastRun').textContent = last.status || '-';
@@ -355,13 +407,27 @@ document.getElementById('triggerBtn')?.addEventListener('click', async function(
   document.getElementById('triggerResult').innerHTML = '';
   try {
     const data = await api('/api/pipeline/trigger', { method: 'POST' });
-    showToast('Pipeline started (run #' + data.run_id + ')', 'success');
+    showToast('Pipeline completed (run #' + data.run_id + ')', 'success');
     renderers.dashboard();
   } catch (e) {
     document.getElementById('triggerResult').innerHTML =
       '<span style="color:var(--error)">' + e.message + '</span>';
   } finally {
     this.disabled = false; this.textContent = '▶ Run Pipeline';
+  }
+});
+
+document.getElementById('dryRunBtn')?.addEventListener('click', async function() {
+  this.disabled = true; this.innerHTML = '<span class="spinner"></span>Dry-running...';
+  document.getElementById('triggerResult').innerHTML = '';
+  try {
+    const data = await api('/api/pipeline/trigger?dry_run=true', { method: 'POST' });
+    showToast('Dry-run complete - Run #' + data.run_id, 'success');
+  } catch (e) {
+    document.getElementById('triggerResult').innerHTML =
+      '<span style="color:var(--error)">' + e.message + '</span>';
+  } finally {
+    this.disabled = false; this.textContent = '🧪 Dry Run';
   }
 });
 
@@ -395,7 +461,7 @@ renderers.subscriptions = async function() {
             <table style="font-size:0.75rem">
               <thead><tr><th>Video</th><th>Type</th><th>Published</th></tr></thead>
               <tbody>${Array.isArray(acts) ? acts.map(a => `<tr>
-                <td>${escapeHtml(a.title)}</td><td>${a.video_type}</td><td>${a.published_at}</td>
+                <td>${escapeHtml(a.title)}</td><td>${a.video_type}</td><td>${formatTime(a.published_at)}</td>
               </tr>`).join('') : ''}</tbody></table>
           </td>`;
           this.parentNode.insertBefore(row, this.nextSibling);
@@ -405,102 +471,241 @@ renderers.subscriptions = async function() {
   } catch { container.innerHTML = '<p style="color:var(--error)">Failed to load subscriptions</p>'; }
 };
 
-// ---- Rules renderer + modal ----
-renderers.rules = async function() {
-  const container = document.getElementById('rulesList');
+// ---- Pipelines renderer + modal ----
+let pipelineIgnoreListCache = [];
+
+async function loadPipelineIgnoreLists() {
+  try { pipelineIgnoreListCache = await api('/api/ignore-lists'); }
+  catch { pipelineIgnoreListCache = []; }
+  return pipelineIgnoreListCache;
+}
+
+renderers.pipelines = async function() {
+  const container = document.getElementById('pipelinesList');
   container.innerHTML = '<p style="color:var(--text2)">Loading...</p>';
   try {
-    const rules = await api('/api/rules');
-    if (!Array.isArray(rules) || rules.length === 0) {
-      container.innerHTML = '<p style="color:var(--text2)">No rules configured</p>'; return;
+    const pipelines = await api('/api/pipelines');
+    await loadPipelineIgnoreLists();
+    if (!Array.isArray(pipelines) || pipelines.length === 0) {
+      container.innerHTML = '<p style="color:var(--text2)">No pipelines configured</p>'; return;
     }
     container.innerHTML = `<table><thead><tr>
-      <th>Name</th><th>Priority</th><th>Pattern</th><th>Min</th><th>Max</th><th>Catch-all</th><th>Destination</th><th>Enabled</th><th></th>
-    </tr></thead><tbody>${rules.map(r => `<tr>
-      <td>${escapeHtml(r.name)}</td>
-      <td>${r.priority}</td>
-      <td style="font-family:monospace;font-size:0.75rem">${escapeHtml(r.pattern || '-')}</td>
-      <td style="font-size:0.75rem">${r.minimum_length && r.minimum_length !== '0s' ? r.minimum_length : '-'}</td>
-      <td style="font-size:0.75rem">${r.maximum_length && r.maximum_length !== '0s' ? r.maximum_length : '-'}</td>
-      <td>${r.catch_all ? '✓' : ''}</td>
-      <td style="font-size:0.75rem;color:var(--text2)">${escapeHtml(r.destination_playlist_id)}</td>
-      <td><input type="checkbox" ${r.enabled ? 'checked' : ''} data-rid="${r.id}" class="toggle-rule"></td>
-      <td><button class="edit-rule" data-rid="${r.id}" style="background:var(--surface2);color:var(--text);padding:0.25rem 0.5rem;font-size:0.75rem">Edit</button>
-      <button class="del-rule" data-rid="${r.id}" style="background:var(--error);color:#fff;padding:0.25rem 0.5rem;font-size:0.75rem">Del</button></td>
+      <th>Name</th><th>Scope</th><th>Duration</th><th>Selectors</th><th>Mode</th><th>Destination</th><th>Enabled</th><th></th>
+    </tr></thead><tbody>${pipelines.map(p => `<tr>
+      <td><strong>${escapeHtml(p.name)}</strong></td>
+      <td>${p.subscription_scope}</td>
+      <td style="font-size:0.75rem">${formatDuration(p.duration_min_seconds)} / ${formatDuration(p.duration_max_seconds)}</td>
+      <td style="font-size:0.75rem">${(p.selectors || []).length} selector(s)</td>
+      <td style="font-size:0.75rem">${p.selector_mode}</td>
+      <td style="font-size:0.75rem;color:var(--text2)">${escapeHtml(p.destination_playlist_id)}</td>
+      <td><input type="checkbox" ${p.enabled ? 'checked' : ''} data-pid="${p.id}" class="toggle-pipeline"></td>
+      <td><button class="dryrun-pipeline" data-pid="${p.id}" style="background:var(--surface2);color:var(--text);padding:0.25rem 0.5rem;font-size:0.75rem">🧪 Dry Run</button>
+      <button class="edit-pipeline" data-pid="${p.id}" style="background:var(--surface2);color:var(--text);padding:0.25rem 0.5rem;font-size:0.75rem">Edit</button>
+      <button class="del-pipeline" data-pid="${p.id}" style="background:var(--error);color:#fff;padding:0.25rem 0.5rem;font-size:0.75rem">Del</button></td>
     </tr>`).join('')}</tbody></table>`;
 
-    document.querySelectorAll('.toggle-rule').forEach(cb => {
+    document.querySelectorAll('.toggle-pipeline').forEach(cb => {
       cb.addEventListener('change', async function() {
         try {
-          await api('/api/rules/' + this.dataset.rid, {
+          await api('/api/pipelines/' + this.dataset.pid, {
             method: 'PUT', body: JSON.stringify({ enabled: this.checked }),
           });
         } catch (e) { showToast('Toggle failed: ' + e.message); }
       });
     });
-    document.querySelectorAll('.del-rule').forEach(btn => {
+    document.querySelectorAll('.del-pipeline').forEach(btn => {
       btn.addEventListener('click', async function() {
-        if (!confirm('Delete this rule?')) return;
+        if (!confirm('Delete this pipeline?')) return;
         try {
-          await api('/api/rules/' + this.dataset.rid, { method: 'DELETE' });
-          renderers.rules();
+          await api('/api/pipelines/' + this.dataset.pid, { method: 'DELETE' });
+          renderers.pipelines();
         } catch (e) { showToast('Delete failed: ' + e.message); }
       });
     });
-    document.querySelectorAll('.edit-rule').forEach(btn => {
+    document.querySelectorAll('.edit-pipeline').forEach(btn => {
       btn.addEventListener('click', function() {
-        const row = rules.find(r => r.id == this.dataset.rid);
-        if (row) openRuleModal(row);
+        const row = pipelines.find(p => p.id == this.dataset.pid);
+        if (row) openPipelineModal(row);
       });
     });
-  } catch { container.innerHTML = '<p style="color:var(--error)">Failed to load rules</p>'; }
+    document.querySelectorAll('.dryrun-pipeline').forEach(btn => {
+      btn.addEventListener('click', async function() {
+        this.disabled = true; this.textContent = '...';
+        const pid = this.dataset.pid;
+        try {
+          const data = await api('/api/pipeline/trigger?dry_run=true&pipeline_id=' + pid, { method: 'POST' });
+          showToast('Dry run #' + data.run_id + ' complete', 'success');
+        } catch (e) {
+          showToast('Dry run failed: ' + e.message, 'error');
+        } finally {
+          this.disabled = false; this.textContent = '🧪 Dry Run';
+        }
+      });
+    });
+  } catch { container.innerHTML = '<p style="color:var(--error)">Failed to load pipelines</p>'; }
 };
 
-function openRuleModal(rule) {
-  const modal = document.getElementById('ruleModal');
-  document.getElementById('ruleModalTitle').textContent = rule ? 'Edit Rule' : 'Add Rule';
-  document.getElementById('ruleId').value = rule ? rule.id : '';
-  document.getElementById('ruleName').value = rule ? rule.name : '';
-  document.getElementById('rulePriority').value = rule ? rule.priority : 0;
-  document.getElementById('ruleField').value = rule ? (rule.field || '') : '';
-  document.getElementById('ruleOperator').value = rule ? rule.operator : 'contains';
-  document.getElementById('rulePattern').value = rule ? (rule.pattern || '') : '';
-  document.getElementById('ruleDestId').value = rule ? rule.destination_playlist_id : '';
-  document.getElementById('ruleDestTitle').value = rule ? rule.destination_playlist_title : '';
-  document.getElementById('ruleMinLength').value = rule ? (rule.minimum_length || '0s') : '0s';
-  document.getElementById('ruleMaxLength').value = rule ? (rule.maximum_length || '0s') : '0s';
-  document.getElementById('ruleCatchAll').checked = rule ? rule.catch_all : false;
+function openPipelineModal(pipeline) {
+  const modal = document.getElementById('pipelineModal');
+  document.getElementById('pipelineModalTitle').textContent = pipeline ? 'Edit Pipeline' : 'Add Pipeline';
+  document.getElementById('pipelineId').value = pipeline ? pipeline.id : '';
+  document.getElementById('pipelineName').value = pipeline ? pipeline.name : '';
+  document.getElementById('pipelineScope').value = pipeline ? pipeline.subscription_scope : 'all';
+  document.getElementById('pipelineMinDuration').value = pipeline ? formatDurationShort(pipeline.duration_min_seconds) : '0';
+  document.getElementById('pipelineMaxDuration').value = pipeline ? formatDurationShort(pipeline.duration_max_seconds) : '0';
+  document.getElementById('pipelineCheckDb').checked = pipeline ? pipeline.check_db_exists : false;
+  document.getElementById('pipelineCheckTitle').checked = pipeline ? pipeline.check_title_similarity : false;
+  document.getElementById('pipelineDistance').value = pipeline ? (pipeline.compare_distance || 80) : 80;
+  document.getElementById('pipelineDistanceGroup').style.display = document.getElementById('pipelineCheckTitle').checked ? 'block' : 'none';
+
+  // Fetch playlists async — modal not blocked, dropdown shows throbber
+  const sel = document.getElementById('pipelineDestPlaylist');
+  sel.innerHTML = '<option value="">⏳ Loading...</option>';
+  sel.disabled = true;
+  api('/api/playlists').then(playlists => {
+    sel.innerHTML = '<option value="">— Select playlist —</option>';
+    (playlists || []).forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.title;
+      sel.appendChild(opt);
+    });
+    if (pipeline && pipeline.destination_playlist_id) {
+      sel.value = pipeline.destination_playlist_id;
+    }
+    sel.disabled = false;
+  }).catch(() => {
+    sel.innerHTML = '<option value="">— Failed to load —</option>';
+    sel.disabled = false;
+  });
+
+  // Selectors
+  const selectors = pipeline ? (pipeline.selectors || []) : [];
+  renderSelectorRows(selectors);
+
+  // Ignore lists
+  const attached = pipeline ? (pipeline.ignore_list_ids || []) : [];
+  renderIgnoreListCheckboxes(attached);
+
   modal.style.display = 'flex';
 }
 
-document.getElementById('addRuleBtn')?.addEventListener('click', () => openRuleModal(null));
-document.getElementById('ruleCancel')?.addEventListener('click', () => {
-  document.getElementById('ruleModal').style.display = 'none';
+function renderSelectorRows(selectors) {
+  const container = document.getElementById('pipelineSelectors');
+  container.innerHTML = selectors.map((s, i) => `
+    <div class="selector-row" style="display:flex;gap:0.5rem;margin-bottom:0.5rem;align-items:center">
+      ${i > 0 ? `<select class="sel-combine" style="width:auto;padding:0.25rem;font-size:0.75rem">
+        <option value="AND" ${(s.combine_operator||'AND') === 'AND' ? 'selected' : ''}>AND</option>
+        <option value="OR" ${(s.combine_operator||'AND') === 'OR' ? 'selected' : ''}>OR</option>
+      </select>` : ''}
+      <select class="sel-field" style="flex:1;width:auto;padding:0.25rem;font-size:0.75rem">
+        <option value="title" ${s.field === 'title' ? 'selected' : ''}>Title</option>
+        <option value="channel_title" ${s.field === 'channel_title' ? 'selected' : ''}>Channel Title</option>
+        <option value="description" ${s.field === 'description' ? 'selected' : ''}>Description</option>
+      </select>
+      <select class="sel-operator" style="flex:1;width:auto;padding:0.25rem;font-size:0.75rem">
+        <option value="contains" ${s.operator === 'contains' ? 'selected' : ''}>contains</option>
+        <option value="regex" ${s.operator === 'regex' ? 'selected' : ''}>regex</option>
+        <option value="equals" ${s.operator === 'equals' ? 'selected' : ''}>equals</option>
+      </select>
+      <input class="sel-pattern" value="${escapeHtml(s.pattern)}" placeholder="pattern" style="flex:2;padding:0.25rem;font-size:0.75rem">
+      <button class="del-selector" style="background:var(--error);color:#fff;border:none;padding:0.25rem 0.5rem;border-radius:4px;cursor:pointer;font-size:0.75rem">X</button>
+    </div>
+  `).join('') || '<p style="color:var(--text2);font-size:0.875rem">No selectors</p>';
+  document.querySelectorAll('.del-selector').forEach(btn => {
+    btn.onclick = function() { this.closest('.selector-row').remove(); };
+  });
+}
+
+function renderIgnoreListCheckboxes(attached) {
+  const container = document.getElementById('pipelineIgnoreLists');
+  const lists = pipelineIgnoreListCache;
+  if (lists.length === 0) {
+    container.innerHTML = '<p style="color:var(--text2);font-size:0.875rem">No ignore lists available. Create them in Config first.</p>';
+    return;
+  }
+  container.innerHTML = lists.map(l => `
+    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.875rem;color:var(--text2);margin-bottom:0.25rem">
+      <input type="checkbox" class="ignore-list-cb" data-lid="${l.id}" ${attached.includes(l.id) ? 'checked' : ''} style="width:auto">
+      ${escapeHtml(l.name)} <span class="badge" style="font-size:0.625rem;background:var(--surface2);color:var(--text2)">${l.list_type}</span>
+    </label>
+  `).join('');
+}
+
+document.getElementById('addPipelineBtn')?.addEventListener('click', () => openPipelineModal(null));
+document.getElementById('pipelineCancel')?.addEventListener('click', () => {
+  document.getElementById('pipelineModal').style.display = 'none';
 });
-document.getElementById('ruleSave')?.addEventListener('click', async function() {
-  const id = document.getElementById('ruleId').value;
+document.getElementById('addSelectorBtn')?.addEventListener('click', function() {
+  const container = document.getElementById('pipelineSelectors');
+  const empty = container.querySelector('p');
+  if (empty) empty.remove();
+  const div = document.createElement('div');
+  div.className = 'selector-row';
+  div.style.cssText = 'display:flex;gap:0.5rem;margin-bottom:0.5rem;align-items:center';
+  div.innerHTML = `
+    <select class="sel-combine" style="width:auto;padding:0.25rem;font-size:0.75rem">
+      <option value="AND">AND</option>
+      <option value="OR">OR</option>
+    </select>
+    <select class="sel-field" style="flex:1;width:auto;padding:0.25rem;font-size:0.75rem">
+      <option value="title">Title</option>
+      <option value="channel_title">Channel Title</option>
+      <option value="description">Description</option>
+    </select>
+    <select class="sel-operator" style="flex:1;width:auto;padding:0.25rem;font-size:0.75rem">
+      <option value="contains">contains</option>
+      <option value="regex">regex</option>
+      <option value="equals">equals</option>
+    </select>
+    <input class="sel-pattern" value="" placeholder="pattern" style="flex:2;padding:0.25rem;font-size:0.75rem">
+    <button class="del-selector" style="background:var(--error);color:#fff;border:none;padding:0.25rem 0.5rem;border-radius:4px;cursor:pointer;font-size:0.75rem">X</button>`;
+  container.appendChild(div);
+  div.querySelector('.del-selector').onclick = function() { div.remove(); };
+});
+document.getElementById('pipelineCheckTitle')?.addEventListener('change', function() {
+  document.getElementById('pipelineDistanceGroup').style.display = this.checked ? 'block' : 'none';
+});
+document.getElementById('pipelineSave')?.addEventListener('click', async function() {
+  const id = document.getElementById('pipelineId').value;
+  const selectorRows = document.querySelectorAll('#pipelineSelectors .selector-row');
+  const selectors = Array.from(selectorRows).map(row => ({
+    field: row.querySelector('.sel-field').value,
+    operator: row.querySelector('.sel-operator').value,
+    pattern: row.querySelector('.sel-pattern').value,
+    combine_operator: row.querySelector('.sel-combine')?.value || 'AND',
+  })).filter(s => s.pattern.trim());
+  const ignoreListIds = Array.from(document.querySelectorAll('.ignore-list-cb:checked')).map(cb => cb.dataset.lid);
   const body = {
-    name: document.getElementById('ruleName').value,
-    priority: parseInt(document.getElementById('rulePriority').value) || 0,
-    field: document.getElementById('ruleField').value || null,
-    operator: document.getElementById('ruleOperator').value,
-    pattern: document.getElementById('rulePattern').value,
-    destination_playlist_id: document.getElementById('ruleDestId').value,
-    destination_playlist_title: document.getElementById('ruleDestTitle').value,
-    minimum_length: document.getElementById('ruleMinLength').value,
-    maximum_length: document.getElementById('ruleMaxLength').value,
-    catch_all: document.getElementById('ruleCatchAll').checked,
+    name: document.getElementById('pipelineName').value,
+    subscription_scope: document.getElementById('pipelineScope').value,
+    duration_min_seconds: parseDurationSeconds(document.getElementById('pipelineMinDuration').value),
+    duration_max_seconds: parseDurationSeconds(document.getElementById('pipelineMaxDuration').value),
+    destination_playlist_id: document.getElementById('pipelineDestPlaylist').value,
+    destination_playlist_title: document.getElementById('pipelineDestPlaylist').selectedOptions[0]?.text || '',
+    check_db_exists: document.getElementById('pipelineCheckDb').checked,
+    check_title_similarity: document.getElementById('pipelineCheckTitle').checked,
+    compare_distance: parseInt(document.getElementById('pipelineDistance').value) || 80,
   };
   try {
+    let pipeline;
     if (id) {
-      await api('/api/rules/' + id, { method: 'PUT', body: JSON.stringify(body) });
-      showToast('Rule updated', 'success');
+      pipeline = await api('/api/pipelines/' + id, { method: 'PUT', body: JSON.stringify(body) });
+      showToast('Pipeline updated', 'success');
     } else {
-      await api('/api/rules', { method: 'POST', body: JSON.stringify(body) });
-      showToast('Rule created', 'success');
+      pipeline = await api('/api/pipelines', { method: 'POST', body: JSON.stringify(body) });
+      showToast('Pipeline created', 'success');
     }
-    document.getElementById('ruleModal').style.display = 'none';
-    renderers.rules();
+    // Save selectors + ignore lists
+    const pid = pipeline ? pipeline.id : id;
+    await api('/api/pipelines/' + pid + '/selectors', {
+      method: 'PUT', body: JSON.stringify({ selectors }),
+    });
+    await api('/api/pipelines/' + pid + '/ignore-lists', {
+      method: 'PUT', body: JSON.stringify({ ignore_list_ids: ignoreListIds }),
+    });
+    document.getElementById('pipelineModal').style.display = 'none';
+    renderers.pipelines();
   } catch (e) { showToast('Save failed: ' + e.message); }
 });
 
@@ -573,57 +778,93 @@ renderers.configCredentials = async function() {
 };
 
 renderers.configIgnores = async function() {
-  let ignoreType = 'subscription';
   const container = document.getElementById('configIgnores');
-  async function loadEntries(type) {
-    const entries = await api(`/api/config/ignores?type=${type}`);
-    document.getElementById('ignoreTableBody').innerHTML = entries.length === 0
-      ? '<tr><td style="color:var(--text2)">No entries</td><td></td></tr>'
-      : entries.map(e => `<tr>
-        <td>${escapeHtml(e.pattern)}</td>
-        <td><button class="del-ignore" data-id="${e.id}" style="background:var(--error);color:#fff;padding:0.25rem 0.5rem;font-size:0.75rem;border:none;border-radius:4px;cursor:pointer">Del</button></td>
-      </tr>`).join('');
-    document.querySelectorAll('.del-ignore').forEach(btn => {
+  container.innerHTML = '<p style="color:var(--text2)">Loading...</p>';
+  try {
+    const lists = await api('/api/ignore-lists');
+    container.innerHTML = `
+      <div style="display:flex;gap:0.5rem;margin-bottom:1rem">
+        <input id="newListName" placeholder="List name..." style="flex:1">
+        <select id="newListType" style="width:auto">
+          <option value="word">Word</option>
+          <option value="video">Video ID</option>
+          <option value="subscription">Subscription</option>
+        </select>
+        <button id="addListBtn">Create</button>
+      </div>
+      <div id="ignoreListsContainer">${lists.map(l => `
+        <div class="card" style="margin-bottom:0.75rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+            <span><strong>${escapeHtml(l.name)}</strong> <span class="badge" style="background:var(--surface2);color:var(--text2);font-size:0.625rem">${l.list_type}</span></span>
+            <button class="del-ignore-list" data-lid="${l.id}" style="background:var(--error);color:#fff;padding:0.25rem 0.5rem;font-size:0.75rem;border:none;border-radius:4px;cursor:pointer">Delete</button>
+          </div>
+          <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem">
+            <input class="new-entry-input" data-lid="${l.id}" placeholder="Add entry..." style="flex:1;font-size:0.75rem;padding:0.25rem">
+            <button class="add-entry-btn" data-lid="${l.id}" style="background:var(--accent);color:#0f172a;border:none;padding:0.25rem 0.5rem;border-radius:4px;cursor:pointer;font-size:0.75rem">Add</button>
+          </div>
+          <div class="entry-list" data-lid="${l.id}">${l.entries.length === 0 ? '<span style="color:var(--text2);font-size:0.75rem">No entries</span>' : l.entries.map(e => `
+            <span style="display:inline-block;background:var(--bg);padding:0.125rem 0.5rem;border-radius:4px;font-size:0.75rem;margin:0.125rem 0.25rem">
+              ${escapeHtml(e)}
+              <button class="del-entry" data-lid="${l.id}" data-value="${escapeHtml(e)}" style="background:none;border:none;color:var(--error);cursor:pointer;font-size:0.75rem;padding:0 0.25rem">&times;</button>
+            </span>
+          `).join('')}</div>
+        </div>
+      `).join('')}</div>`;
+
+    async function refresh() { await renderers.configIgnores(); }
+
+    document.getElementById('addListBtn').onclick = async function() {
+      const name = document.getElementById('newListName').value.trim();
+      const type = document.getElementById('newListType').value;
+      if (!name) return;
+      try {
+        await api('/api/ignore-lists', { method: 'POST', body: JSON.stringify({ name, list_type: type }) });
+        document.getElementById('newListName').value = '';
+        await refresh();
+        showToast('List created', 'success');
+      } catch (e) { showToast('Create failed: ' + e.message); }
+    };
+
+    container.querySelectorAll('.del-ignore-list').forEach(btn => {
       btn.onclick = async function() {
+        if (!confirm('Delete this ignore list?')) return;
         try {
-          await api(`/api/config/ignores/${this.dataset.id}`, { method: 'DELETE' });
-          loadEntries(ignoreType);
+          await api('/api/ignore-lists/' + this.dataset.lid, { method: 'DELETE' });
+          await refresh();
+          showToast('List deleted', 'success');
         } catch (e) { showToast('Delete failed: ' + e.message); }
       };
     });
-  }
-  function render() {
-    container.innerHTML = `
-      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem">
-        ${['subscription','video','words'].map(t =>
-          `<button class="config-tab ${t === ignoreType ? 'active' : ''}" data-itype="${t}">${t}</button>`
-        ).join('')}
-      </div>
-      <div class="form-group" style="display:flex;gap:0.5rem">
-        <input id="newIgnorePattern" placeholder="Add pattern..." style="flex:1">
-        <button id="addIgnoreBtn">Add</button>
-      </div>
-      <table style="width:100%"><thead><tr><th>Pattern</th><th></th></tr></thead>
-      <tbody id="ignoreTableBody"><tr><td style="color:var(--text2)">Loading...</td><td></td></tr></tbody></table>`;
-    loadEntries(ignoreType);
-  }
-  render();
-  container.onclick = function(e) {
-    const tab = e.target.closest('[data-itype]');
-    if (tab) { ignoreType = tab.dataset.itype; render(); return; }
-    if (e.target.id === 'addIgnoreBtn') {
-      const input = document.getElementById('newIgnorePattern');
-      if (!input.value.trim()) return;
-      api('/api/config/ignores', {
-        method: 'POST',
-        body: JSON.stringify({ type: ignoreType, pattern: input.value.trim() })
-      }).then(() => {
-        input.value = '';
-        loadEntries(ignoreType);
-        showToast('Entry added', 'success');
-      }).catch(e => showToast('Add failed: ' + e.message));
-    }
-  };
+
+    container.querySelectorAll('.add-entry-btn').forEach(btn => {
+      btn.onclick = async function() {
+        const lid = this.dataset.lid;
+        const input = container.querySelector(`.new-entry-input[data-lid="${lid}"]`);
+        const value = input.value.trim();
+        if (!value) return;
+        try {
+          await api(`/api/ignore-lists/${lid}/entries`, { method: 'POST', body: JSON.stringify({ value }) });
+          await refresh();
+          showToast('Entry added', 'success');
+        } catch (e) { showToast('Add failed: ' + e.message); }
+      };
+    });
+
+    container.querySelectorAll('.del-entry').forEach(btn => {
+      btn.onclick = async function() {
+        const lid = this.dataset.lid;
+        const value = this.dataset.value;
+        try {
+          const entries = await api(`/api/ignore-lists/${lid}/entries`);
+          const entry = entries.find(e => e.value === value);
+          if (!entry) { showToast('Entry not found', 'error'); return; }
+          await api(`/api/ignore-lists/${lid}/entries/${entry.id}`, { method: 'DELETE' });
+          await refresh();
+          showToast('Entry deleted', 'success');
+        } catch (e) { showToast('Delete failed: ' + e.message); }
+      };
+    });
+  } catch { container.innerHTML = '<p style="color:var(--error)">Failed to load ignore lists</p>'; }
 };
 
 renderers.config = async function() {
@@ -658,12 +899,12 @@ renderers.runs = async function() {
       container.innerHTML = '<p style="color:var(--text2)">No runs yet</p>'; return;
     }
     container.innerHTML = `<table><thead><tr>
-      <th>ID</th><th>Started</th><th>Status</th><th>Trigger</th><th>Subs Proc</th><th>Subs Skip</th><th>Added</th><th>Vid Skip</th><th>Errors</th>
+      <th>ID</th><th>Started</th><th>Status</th><th>Trigger</th><th>Subs Proc</th><th>Subs Skip</th><th>Added</th><th>Vid Skip</th><th>Errors</th><th></th>
     </tr></thead><tbody>${runs.map(r => `<tr style="cursor:pointer" onclick="location.hash='#run-detail-${r.id}'">
       <td>${r.id}</td>
-      <td style="font-size:0.75rem;color:var(--text2)">${r.started_at || '-'}</td>
+      <td style="font-size:0.75rem;color:var(--text2)">${formatTime(r.started_at)}</td>
       <td>${statusBadge(r.status)}</td>
-      <td>${r.trigger || '-'}</td>
+      <td>${r.trigger || '-'}${r.dry_run ? ' <span class="tag-dryrun">DRY</span>' : ''}</td>
       <td>${r.subscriptions_processed ?? '-'}</td>
       <td>${r.subscriptions_skipped ?? '-'}</td>
       <td>${r.videos_added ?? '-'}</td>
@@ -674,53 +915,71 @@ renderers.runs = async function() {
 };
 
 renderers.runDetail = async function(runId) {
+  if (window._runDetailTimeout) { clearTimeout(window._runDetailTimeout); window._runDetailTimeout = null; }
+  const gen = ++window._runDetailGen || (window._runDetailGen = 1);
   const summaryEl = document.getElementById('runDetailSummary');
   const decisionsEl = document.getElementById('runDetailDecisions');
   decisionsEl.innerHTML = '<p style="color:var(--text2)">Loading...</p>';
-  try {
-    const [run, decisions] = await Promise.all([
-      api('/api/pipeline/runs/' + runId),
-      api('/api/pipeline/runs/' + runId + '/decisions'),
-    ]);
-    summaryEl.innerHTML = `<div class="card" style="margin-bottom:1rem">
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.5rem">
-        <div><strong>Run #${run.id}</strong></div>
-        <div>Status: ${statusBadge(run.status)}</div>
-        <div>Started: <span style="color:var(--text2);font-size:0.75rem">${run.started_at || '-'}</span></div>
-        <div>Finished: <span style="color:var(--text2);font-size:0.75rem">${run.finished_at || '-'}</span></div>
-        <div>Subs Processed: ${run.subscriptions_processed ?? '-'}</div>
-        <div>Subs Skipped: ${run.subscriptions_skipped ?? '-'}</div>
-        <div>Videos Added: ${run.videos_added ?? '-'}</div>
-        <div>Videos Skipped: ${run.videos_skipped ?? '-'}</div>
-        <div>Errors: ${run.errors ?? '-'}</div>
-      </div>
-    </div>`;
-    if (!Array.isArray(decisions) || decisions.length === 0) {
-      decisionsEl.innerHTML = '<p style="color:var(--text2)">No decisions logged for this run</p>'; return;
+  async function _load() {
+    if (window._runDetailGen !== gen) return;
+    try {
+      const [run, decisions] = await Promise.all([
+        api('/api/pipeline/runs/' + runId),
+        api('/api/pipeline/runs/' + runId + '/decisions'),
+      ]);
+      if (window._runDetailGen !== gen) return;
+      summaryEl.innerHTML = `<div class="card" style="margin-bottom:1rem">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.5rem">
+          <div><strong>Run #${run.id}${run.dry_run ? ' <span class="tag-dryrun">DRY RUN</span>' : ''}</strong></div>
+          <div>Status: ${statusBadge(run.status)}</div>
+          <div>Started: <span style="color:var(--text2);font-size:0.75rem">${formatTime(run.started_at)}</span></div>
+          <div>Finished: <span style="color:var(--text2);font-size:0.75rem">${formatTime(run.finished_at)}</span></div>
+          <div>Subs Processed: ${run.subscriptions_processed ?? '-'}</div>
+          <div>Subs Skipped: ${run.subscriptions_skipped ?? '-'}</div>
+          <div>Videos Added: ${run.videos_added ?? '-'}</div>
+          <div>Videos Skipped: ${run.videos_skipped ?? '-'}</div>
+          <div>Errors: ${run.errors ?? '-'}</div>
+        </div>
+      </div>`;
+      if (!Array.isArray(decisions) || decisions.length === 0) {
+        decisionsEl.innerHTML = '<p style="color:var(--text2)">No decisions yet...</p>';
+      } else {
+        const videoDecisions = decisions.filter(d => d.action !== 'subscription_skipped');
+        const subSkips = decisions.filter(d => d.action === 'subscription_skipped');
+        const counts = { added: 0, skipped: 0, error: 0, sub_skipped: subSkips.length };
+        videoDecisions.forEach(d => { if (d.action === 'added') counts.added++; else if (d.action === 'error') counts.error++; else counts.skipped++; });
+        let html = '';
+        if (subSkips.length) {
+          html += `<div style="margin-bottom:1rem"><h4>Subscription Skips</h4>${subSkips.map(s => `<div style="padding:0.25rem 0;border-bottom:1px solid var(--border)"><strong>${escapeHtml(s.title)}</strong> &mdash; ${escapeHtml(s.reason_detail || s.reason)}</div>`).join('')}</div>`;
+        }
+        html += `<table><thead><tr>
+          <th>Video</th><th>Channel</th><th>Action</th><th>Reason</th><th>Routed To</th>
+        </tr></thead><tbody>${videoDecisions.map(d => `<tr>
+          <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis">${escapeHtml(d.title)}</td>
+          <td>${escapeHtml(d.subscription_title)}</td>
+          <td><span class="badge ${d.action === 'added' ? 'badge-ok' : d.action === 'error' ? 'badge-fail' : 'badge-run'}">${d.action}</span></td>
+          <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis">${escapeHtml(d.reason_detail || d.reason || '-')}</td>
+          <td>${escapeHtml(d.routed_to || '-')}</td>
+        </tr>`).join('')}</tbody></table>`;
+        if (videoDecisions.length === 0) {
+          html += '<p style="color:var(--text2)">No video decisions</p>';
+        }
+        html += `<p style="color:var(--text2);font-size:0.75rem">${decisions.length} decision(s) &mdash; subs skipped: ${counts.sub_skipped}, added: ${counts.added}, videos skipped: ${counts.skipped}, errors: ${counts.error}</p>`;
+        decisionsEl.innerHTML = html;
+      }
+      if (window._runDetailGen !== gen) return;
+      if (run.status === 'running') {
+        window._runDetailTimeout = setTimeout(window._loadRunDetail, 2000);
+      }
+    } catch (e) {
+      decisionsEl.innerHTML = '<p style="color:var(--error)">Failed to load run details: ' + e.message + '</p>';
+      if (window._runDetailGen === gen) {
+        window._runDetailTimeout = setTimeout(window._loadRunDetail, 2000);
+      }
     }
-    const videoDecisions = decisions.filter(d => d.action !== 'subscription_skipped');
-    const subSkips = decisions.filter(d => d.action === 'subscription_skipped');
-    const counts = { added: 0, skipped: 0, error: 0, sub_skipped: subSkips.length };
-    videoDecisions.forEach(d => { if (d.action === 'added') counts.added++; else if (d.action === 'error') counts.error++; else counts.skipped++; });
-    let html = '';
-    if (subSkips.length) {
-      html += `<div style="margin-bottom:1rem"><h4>Subscription Skips</h4>${subSkips.map(s => `<div style="padding:0.25rem 0;border-bottom:1px solid var(--border)"><strong>${escapeHtml(s.title)}</strong> &mdash; ${escapeHtml(s.reason_detail || s.reason)}</div>`).join('')}</div>`;
-    }
-    html += `<table><thead><tr>
-      <th>Video</th><th>Channel</th><th>Action</th><th>Reason</th><th>Routed To</th>
-    </tr></thead><tbody>${videoDecisions.map(d => `<tr>
-      <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis">${escapeHtml(d.title)}</td>
-      <td>${escapeHtml(d.subscription_title)}</td>
-      <td><span class="badge ${d.action === 'added' ? 'badge-ok' : d.action === 'error' ? 'badge-fail' : 'badge-run'}">${d.action}</span></td>
-      <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis">${escapeHtml(d.reason_detail || d.reason || '-')}</td>
-      <td>${escapeHtml(d.routed_to || '-')}</td>
-    </tr>`).join('')}</tbody></table>`;
-    if (videoDecisions.length === 0) {
-      html += '<p style="color:var(--text2)">No video decisions</p>';
-    }
-    html += `<p style="color:var(--text2);font-size:0.75rem">${decisions.length} decision(s) &mdash; subs skipped: ${counts.sub_skipped}, added: ${counts.added}, videos skipped: ${counts.skipped}, errors: ${counts.error}</p>`;
-    decisionsEl.innerHTML = html;
-  } catch (e) { decisionsEl.innerHTML = '<p style="color:var(--error)">Failed to load run details: ' + e.message + '</p>'; }
+  };
+  window._loadRunDetail = _load;
+  await _load();
 };
 
 renderers.stats = async function() {
@@ -758,7 +1017,7 @@ renderers.stats = async function() {
       </tr></thead><tbody>${sorted.map(d => `<tr>
         <td>${escapeHtml(d.subscription_title)}</td>
         <td>${d.videos_added}</td>
-        <td style="font-size:0.75rem;color:var(--text2)">${d.last_added_at || '-'}</td>
+        <td style="font-size:0.75rem;color:var(--text2)">${formatTime(d.last_added_at)}</td>
         <td><span class="badge ${statusClass(d.status)}">${d.status}</span></td>
       </tr>`).join('')}</tbody></table>
       <p style="color:var(--text2);font-size:0.75rem">${data.length} subscription(s)</p>`;
@@ -777,7 +1036,7 @@ renderers.auth = async function() {
       container.innerHTML = `
         <div class="card" style="border-left:4px solid var(--success)">
           <h3>✅ Authenticated</h3>
-          <p style="color:var(--text2);margin-top:0.5rem">Expires: ${status.expires_at || 'Unknown'}</p>
+          <p style="color:var(--text2);margin-top:0.5rem">Expires: ${formatTime(status.expires_at)}</p>
         </div>
         <button id="reauthBtn" style="margin-top:0.5rem;background:var(--surface2);color:var(--text)">Re-authenticate</button>`;
       document.getElementById('reauthBtn')?.addEventListener('click', startAuthFlow);

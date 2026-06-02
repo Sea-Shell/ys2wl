@@ -27,6 +27,7 @@ class Activity:
     title: str
     published_at: str
     video_type: str  # "upload" or "playlistItem"
+    description: str = ""
 
 
 @dataclass
@@ -37,6 +38,7 @@ class Video:
     subscription_id: str = ""
     playlist_id: str = ""
     route_rule: str = ""
+    pipeline_id: str = ""
 
 
 @dataclass

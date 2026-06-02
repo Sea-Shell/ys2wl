@@ -10,10 +10,14 @@ log = logging.getLogger("ys2wl.api.pipeline")
 router = APIRouter()
 
 
-@router.post("/pipeline/trigger", response_model=TriggerResponse)
-async def trigger_pipeline(request: Request):
+@router.post("/pipeline/trigger")
+async def trigger_pipeline(
+    request: Request, dry_run: bool = False, pipeline_id: str | None = None
+):
     state = get_state(request)
-    run_id = await execute_pipeline(state, trigger="manual")
+    run_id = await execute_pipeline(
+        state, trigger="manual", dry_run=dry_run, pipeline_id=pipeline_id
+    )
     if not run_id:
         raise HTTPException(status_code=500, detail="Pipeline run failed")
     return TriggerResponse(run_id=run_id)

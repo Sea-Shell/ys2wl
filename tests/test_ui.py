@@ -48,7 +48,7 @@ async def test_index_has_dark_theme(client):
 @pytest.mark.asyncio
 async def test_index_has_five_nav_links(client):
     resp = await client.get("/ui/index.html")
-    for page in ["dashboard", "subscriptions", "rules", "config", "runs"]:
+    for page in ["dashboard", "subscriptions", "pipelines", "config", "runs"]:
         assert f'data-page="{page}"' in resp.text
 
 
@@ -62,7 +62,7 @@ async def test_index_has_api_wrapper(client):
 async def test_dashboard_has_stats_cards(client):
     resp = await client.get("/ui/index.html")
     assert "statSubs" in resp.text or "Subscriptions" in resp.text
-    assert "statRules" in resp.text or "Routing Rules" in resp.text
+    assert "statPipelines" in resp.text or "Pipelines" in resp.text
 
 
 @pytest.mark.asyncio
@@ -75,13 +75,13 @@ async def test_dashboard_has_trigger_button(client):
 @pytest.mark.asyncio
 async def test_rules_section_has_table(client):
     resp = await client.get("/ui/index.html")
-    assert "rulesList" in resp.text or "Add Rule" in resp.text
+    assert "pipelinesList" in resp.text or "Add Pipeline" in resp.text
 
 
 @pytest.mark.asyncio
 async def test_rules_section_has_modal(client):
     resp = await client.get("/ui/index.html")
-    assert "ruleModal" in resp.text
+    assert "pipelineModal" in resp.text
 
 
 @pytest.mark.asyncio
