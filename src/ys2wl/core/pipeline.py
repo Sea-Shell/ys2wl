@@ -183,7 +183,9 @@ class PipelineOrchestrator:
                 if sub.title in ignore_subs:
                     summary.subscriptions_skipped += 1
                     skip = dict(
+                        subscription_id=sub.id,
                         subscription_title=sub.title,
+                        channel_id=sub.channel_id,
                         reason="ignored",
                         reason_detail="Subscription in pipeline ignore list",
                     )
@@ -205,7 +207,9 @@ class PipelineOrchestrator:
                         if last_dt.replace(tzinfo=timezone.utc) > threshold:
                             summary.subscriptions_skipped += 1
                             skip = dict(
+                                subscription_id=sub.id,
                                 subscription_title=sub.title,
+                                channel_id=sub.channel_id,
                                 reason="already_up_to_date",
                                 reason_detail=f"Checked within {self.settings.reprocess_days}d reprocess window",
                             )

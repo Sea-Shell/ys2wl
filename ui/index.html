@@ -175,6 +175,14 @@ label { display: block; font-size: 0.875rem; color: var(--text2); margin-bottom:
       <button id="dryRunBtn" style="background:var(--surface2);color:var(--text)">🧪 Dry Run</button>
     </div>
     <div id="triggerResult" style="margin-top:0.75rem"></div>
+
+    <hr style="border:none;border-top:1px solid var(--surface2);margin:1.5rem 0">
+    <h3 style="font-size:1rem;color:var(--text2);margin-bottom:0.75rem">Video Lookup</h3>
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem">
+      <input id="videoSearchInput" type="text" placeholder="Enter YouTube video ID (e.g. dQw4w9WgXcQ)" style="flex:1;min-width:300px;padding:0.5rem;border-radius:var(--radius);border:1px solid var(--surface2);background:var(--bg);color:var(--text)">
+      <button id="videoSearchBtn" style="padding:0.5rem 1rem">Search</button>
+    </div>
+    <div id="videoSearchResult" style="display:none"></div>
   </section>
   <section id="subscriptions" class="page">
     <h2>Subscriptions</h2>
@@ -429,6 +437,61 @@ document.getElementById('dryRunBtn')?.addEventListener('click', async function()
   } finally {
     this.disabled = false; this.textContent = '🧪 Dry Run';
   }
+});
+
+// ---- Video Lookup ----
+document.getElementById('videoSearchBtn')?.addEventListener('click', async function() {
+  const input = document.getElementById('videoSearchInput');
+  const resultDiv = document.getElementById('videoSearchResult');
+  const videoId = input.value.trim();
+  if (!videoId) {
+    showToast('Enter a YouTube video ID', 'warning');
+    return;
+  }
+  this.disabled = true; this.textContent = 'Searching...';
+  resultDiv.style.display = 'none';
+  resultDiv.innerHTML = '';
+  try {
+    const data = await api('/api/videos/' + encodeURIComponent(videoId));
+    resultDiv.style.display = 'block';
+    resultDiv.innerHTML = `
+      <div class="card" style="margin-top:0.5rem">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+          <h4 style="margin:0;color:var(--accent)">${escapeHtml(data.title || 'Unknown')}</h4>
+          <code style="font-size:0.75rem;color:var(--text2)">${escapeHtml(data.video_id)}</code>
+        </div>
+        <table style="width:100%;font-size:0.8rem;border-collapse:collapse">
+          <tr><td style="color:var(--text2);padding:0.25rem 0">Pipeline</td><td style="text-align:right;font-family:monospace">${escapeHtml(data.pipeline_id || '—')}</td></tr>
+          <tr><td style="color:var(--text2);padding:0.25rem 0">Subscription</td><td style="text-align:right;font-family:monospace">${escapeHtml(data.subscription_id || '—')}</td></tr>
+          <tr><td style="color:var(--text2);padding:0.25rem 0">Playlist</td><td style="text-align:right;font-family:monospace">${escapeHtml(data.playlist_id || '—')}</td></tr>
+          <tr><td style="color:var(--text2);padding:0.25rem 0">Duration</td><td style="text-align:right">${data.duration_seconds ? Math.floor(data.duration_seconds/60)+'m '+(data.duration_seconds%60)+'s' : '—'}</td></tr>
+          <tr><td style="color:var(--text2);padding:0.25rem 0">Added</td><td style="text-align:right;font-family:monospace;font-size:0.7rem">${escapeHtml(data.timestamp || '—')}</td></tr>
+          <tr><td style="color:var(--text2);padding:0.25rem 0">Route Rule</td><td style="text-align:right;font-family:monospace;font-size:0.7rem">${escapeHtml(data.route_rule || '—')}</td></tr>
+        </table>
+        <p style="margin-top:0.5rem;color:var(--success);font-size:0.8rem">✓ Found in database</p>
+      </div>
+    `;
+    showToast('Video found', 'success');
+  } catch (e) {
+    if (e.status === 404 || e.message?.includes('404')) {
+      resultDiv.style.display = 'block';
+      resultDiv.innerHTML = `
+        <div class="card" style="margin-top:0.5rem;border:1px solid var(--error)">
+          <p style="color:var(--error);margin:0">Video <code>${escapeHtml(videoId)}</code> not found in database</p>
+        </div>
+      `;
+      showToast('Video not found', 'warning');
+    } else {
+      showToast('Error: ' + e.message, 'error');
+    }
+  } finally {
+    this.disabled = false; this.textContent = 'Search';
+  }
+});
+
+// Allow Enter key in input
+document.getElementById('videoSearchInput')?.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') document.getElementById('videoSearchBtn').click();
 });
 
 // ---- Subscriptions renderer ----
@@ -950,13 +1013,13 @@ renderers.runDetail = async function(runId) {
         videoDecisions.forEach(d => { if (d.action === 'added') counts.added++; else if (d.action === 'error') counts.error++; else counts.skipped++; });
         let html = '';
         if (subSkips.length) {
-          html += `<div style="margin-bottom:1rem"><h4>Subscription Skips</h4>${subSkips.map(s => `<div style="padding:0.25rem 0;border-bottom:1px solid var(--border)"><strong>${escapeHtml(s.title)}</strong> &mdash; ${escapeHtml(s.reason_detail || s.reason)}</div>`).join('')}</div>`;
+          html += `<div style="margin-bottom:1rem"><h4>Subscription Skips</h4>${subSkips.map(s => `<div style="padding:0.25rem 0;border-bottom:1px solid var(--border)"><strong><a href="https://www.youtube.com/channel/${escapeHtml(s.channel_id || s.subscription_id || '')}" target="_blank" rel="noopener" style="color:var(--accent)">${escapeHtml(s.title)}</a></strong> &mdash; ${escapeHtml(s.reason_detail || s.reason)}</div>`).join('')}</div>`;
         }
         html += `<table><thead><tr>
           <th>Video</th><th>Channel</th><th>Action</th><th>Reason</th><th>Routed To</th>
         </tr></thead><tbody>${videoDecisions.map(d => `<tr>
-          <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis">${escapeHtml(d.title)}</td>
-          <td>${escapeHtml(d.subscription_title)}</td>
+          <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis"><a href="https://www.youtube.com/watch?v=${escapeHtml(d.video_id || '')}" target="_blank" rel="noopener" style="color:var(--accent)">${escapeHtml(d.title)}</a></td>
+          <td><a href="https://www.youtube.com/channel/${escapeHtml(d.channel_id || d.subscription_id || '')}" target="_blank" rel="noopener" style="color:var(--accent)">${escapeHtml(d.subscription_title)}</a></td>
           <td><span class="badge ${d.action === 'added' ? 'badge-ok' : d.action === 'error' ? 'badge-fail' : 'badge-run'}">${d.action}</span></td>
           <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis">${escapeHtml(d.reason_detail || d.reason || '-')}</td>
           <td>${escapeHtml(d.routed_to || '-')}</td>
