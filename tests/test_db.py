@@ -1,7 +1,7 @@
 import pytest
 import sqlite3
 from ys2wl.db.migrations import init_db
-from ys2wl.db.repository import (
+from ys2wl.db.repository.videos import (
     video_exists,
     insert_video,
     get_all_video_titles,
@@ -13,14 +13,20 @@ from ys2wl.db.repository import (
     get_subscription_timestamp,
     get_last_run,
     set_last_run,
+)
+from ys2wl.db.repository.pipeline import (
     get_routing_rules,
     create_routing_rule,
     update_routing_rule,
     delete_routing_rule,
+)
+from ys2wl.db.repository.pipeline_runs import (
     create_pipeline_run,
     finish_pipeline_run,
     get_pipeline_runs,
     get_pipeline_run,
+)
+from ys2wl.db.repository.config import (
     get_config,
     set_config,
     get_ignore_entries,

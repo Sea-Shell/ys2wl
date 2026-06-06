@@ -7,7 +7,7 @@ from ys2wl.api.models import (
     IgnoreEntryUpdate,
     IgnoreEntryResponse,
 )
-from ys2wl.db import repository as repo
+from ys2wl.db.repository import config as repo
 
 router = APIRouter()
 
