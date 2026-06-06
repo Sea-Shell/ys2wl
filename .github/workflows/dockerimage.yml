@@ -11,7 +11,7 @@ on:
 env:
   IMAGE_REGISTRY: registry.hub.docker.com
   IMAGE_REPOSITORY: bateau
-  IMAGE_NAME: ys2wl
+  IMAGE_NAME: sortarr
 
 permissions:
   contents: read

@@ -1,26 +1,26 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: ys2wl
+  name: sortarr
   namespace: seashell
   annotations:
     cert-manager.io/acme-challenge-type: http01
     cert-manager.io/cluster-issuer: letsencrypt-prod
-    traefik.ingress.kubernetes.io/router.middlewares: seashell-ys2wl-auth@kubernetescrd
+    traefik.ingress.kubernetes.io/router.middlewares: seashell-sortarr-auth@kubernetescrd
 spec:
   ingressClassName: traefik
   rules:
-    - host: ys2wl.bateau.cloud
+    - host: sortarr.bateau.cloud
       http:
         paths:
           - pathType: Prefix
             path: "/"
             backend:
               service:
-                name: ys2wl
+                name: sortarr
                 port:
                   number: 8080
   tls:
     - hosts:
-        - ys2wl.bateau.cloud
-      secretName: ys2wl-tls
+        - sortarr.bateau.cloud
+      secretName: sortarr-tls

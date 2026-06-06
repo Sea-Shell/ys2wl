@@ -1,26 +1,26 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: ys2wl
+  name: sortarr
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: ys2wl
+      app: sortarr
   template:
     metadata:
       labels:
-        app: ys2wl
+        app: sortarr
     spec:
       containers:
-        - name: ys2wl
-          image: registry.hub.docker.com/bateau/ys2wl:v2.1.0
+        - name: sortarr
+          image: registry.hub.docker.com/bateau/sortarr:v2.1.0
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
           envFrom:
             - configMapRef:
-                name: ys2wl-config
+                name: sortarr-config
           volumeMounts:
             - mountPath: /data
               name: config
@@ -38,6 +38,6 @@ spec:
             periodSeconds: 10
       volumes:
         - hostPath:
-            path: /data/disk2/opt/ys2wl
+            path: /data/disk2/opt/sortarr
             type: ""
           name: config

@@ -89,7 +89,7 @@ def test_http_error_429():
 def test_execute_with_mock():
     """_execute_with_retry works with a mocked request."""
     from unittest.mock import MagicMock
-    from ys2wl.core.youtube import YouTubeAPIClient
+    from sortarr.core.youtube import YouTubeAPIClient
     from google.oauth2.credentials import Credentials as OAuth2Credentials
 
     creds = OAuth2Credentials(

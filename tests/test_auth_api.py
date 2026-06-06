@@ -15,12 +15,12 @@ def _db() -> sqlite3.Connection:
 
 @pytest.mark.asyncio
 async def test_auth_status_returns_not_authenticated():
-    from ys2wl.api.app import create_app, AppState
+    from sortarr.api.app import create_app, AppState
 
     app = create_app()
     state = AppState()
     state.db_con = _db()
-    app.state.ys2wl = state
+    app.state.sortarr = state
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         resp = await client.get("/api/auth/status")
@@ -31,12 +31,12 @@ async def test_auth_status_returns_not_authenticated():
 
 @pytest.mark.asyncio
 async def test_auth_login_returns_400_without_creds():
-    from ys2wl.api.app import create_app, AppState
+    from sortarr.api.app import create_app, AppState
 
     app = create_app()
     state = AppState()
     state.db_con = _db()
-    app.state.ys2wl = state
+    app.state.sortarr = state
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         resp = await client.get("/api/auth/login")

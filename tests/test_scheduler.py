@@ -1,5 +1,5 @@
 import pytest
-from ys2wl.core.scheduler import PipelineScheduler
+from sortarr.core.scheduler import PipelineScheduler
 
 
 @pytest.mark.asyncio

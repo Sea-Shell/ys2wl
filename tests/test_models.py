@@ -1,5 +1,5 @@
-from ys2wl.models.youtube import Channel, Subscription, Activity
-from ys2wl.models.pipeline import FilterResult, RouteResult, PipelineSummary
+from sortarr.models.youtube import Channel, Subscription, Activity
+from sortarr.models.pipeline import FilterResult, RouteResult, PipelineSummary
 
 
 def test_channel():
