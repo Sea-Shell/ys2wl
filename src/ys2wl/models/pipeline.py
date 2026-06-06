@@ -7,6 +7,9 @@ class FilterResult:
     passed: bool
     reason: str = ""
     skipped_by: str = ""
+    matched_video_id: str = ""
+    matched_title: str = ""
+    match_type: str = ""  # "exact", "title_similarity", etc.
 
 
 @dataclass

@@ -228,3 +228,25 @@ async def list_playlists(request: Request):
         raise HTTPException(status_code=404, detail="No channel found")
     playlists = youtube.get_user_playlists(channel_id)
     return [PlaylistResponse(id=p.id, title=p.title) for p in playlists]
+
+
+# ── Video Lookup ───────────────────────────────────────────────────────
+
+
+@router.get("/videos/{video_id}")
+async def get_video_by_id(video_id: str, request: Request):
+    """Look up video details by YouTube video ID across all pipelines."""
+    state = _get_state(request)
+    result = v.get_video_by_id(state.db_con, video_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Video not found in database")
+    return {
+        "video_id": video_id,
+        "title": result.get("title"),
+        "timestamp": result.get("timestamp"),
+        "subscription_id": result.get("subscriptionId"),
+        "playlist_id": result.get("playlistId"),
+        "duration_seconds": result.get("duration_seconds"),
+        "route_rule": result.get("route_rule"),
+        "pipeline_id": result.get("pipeline_id"),
+    }

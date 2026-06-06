@@ -337,11 +337,17 @@ class PipelineOrchestrator:
 
         # 2.3.4: Per-pipeline DB exists
         if pipeline.check_db_exists:
-            if v.video_exists_for_pipeline(self.db_con, activity.video_id, pipeline.id):
+            exists, existing_video = v.video_exists_for_pipeline(
+                self.db_con, activity.video_id, pipeline.id
+            )
+            if exists and existing_video:
                 result.filter_result = FilterResult(
                     passed=False,
-                    reason="Already in DB for this pipeline",
+                    reason=f"Video {activity.video_id} already exists in DB for this pipeline (matched: {existing_video.get('videoId', activity.video_id)}, title: '{existing_video.get('title', 'N/A')}')",
                     skipped_by="db_exists",
+                    matched_video_id=existing_video.get("videoId", activity.video_id),
+                    matched_title=existing_video.get("title", ""),
+                    match_type="exact",
                 )
                 return result
 
@@ -368,6 +374,9 @@ class PipelineOrchestrator:
                 passed=False,
                 reason=f"Duration {video_length}s below min {pipeline.duration_min_seconds}s",
                 skipped_by="duration",
+                matched_video_id=activity.video_id,
+                matched_title=activity.title,
+                match_type="duration_min",
             )
             return result
         if (
@@ -378,12 +387,18 @@ class PipelineOrchestrator:
                 passed=False,
                 reason=f"Duration {video_length}s above max {pipeline.duration_max_seconds}s",
                 skipped_by="duration",
+                matched_video_id=activity.video_id,
+                matched_title=activity.title,
+                match_type="duration_max",
             )
             return result
 
         # 2.3.7: Pipeline selectors
         fr = selector_filter(activity, sub.title, selectors, pipeline.selector_mode)
         if not fr.passed:
+            fr.matched_video_id = activity.video_id
+            fr.matched_title = activity.title
+            fr.match_type = "selector"
             result.filter_result = fr
             return result
 
