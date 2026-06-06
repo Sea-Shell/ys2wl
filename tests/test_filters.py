@@ -1,7 +1,7 @@
-from ys2wl.filters.word_filter import word_filter
-from ys2wl.filters.title_similarity import title_similarity
-from ys2wl.filters.ignore_list import ignore_list_filter
-from ys2wl.models.youtube import Activity
+from sortarr.filters.word_filter import word_filter
+from sortarr.filters.title_similarity import title_similarity
+from sortarr.filters.ignore_list import ignore_list_filter
+from sortarr.models.youtube import Activity
 
 
 class TestWordFilter:
@@ -62,34 +62,34 @@ class TestTitleSimilarity:
 
 class TestFuzzRatio:
     def test_identical_strings(self):
-        from ys2wl.filters.title_similarity import _fuzz_ratio
+        from sortarr.filters.title_similarity import _fuzz_ratio
 
         assert _fuzz_ratio("hello", "hello") == 100
 
     def test_completely_different(self):
-        from ys2wl.filters.title_similarity import _fuzz_ratio
+        from sortarr.filters.title_similarity import _fuzz_ratio
 
         assert _fuzz_ratio("abc", "xyz") == 0
 
     def test_kitten_sitting(self):
-        from ys2wl.filters.title_similarity import _fuzz_ratio
+        from sortarr.filters.title_similarity import _fuzz_ratio
 
         ratio = _fuzz_ratio("kitten", "sitting")
         assert 55 <= ratio <= 60
 
     def test_empty_strings(self):
-        from ys2wl.filters.title_similarity import _fuzz_ratio
+        from sortarr.filters.title_similarity import _fuzz_ratio
 
         # early return for falsy input, not the max_len==0 branch
         assert _fuzz_ratio("", "") == 0
 
     def test_one_empty(self):
-        from ys2wl.filters.title_similarity import _fuzz_ratio
+        from sortarr.filters.title_similarity import _fuzz_ratio
 
         assert _fuzz_ratio("abc", "") == 0
 
     def test_reversed_args_same_result(self):
-        from ys2wl.filters.title_similarity import _fuzz_ratio
+        from sortarr.filters.title_similarity import _fuzz_ratio
 
         a = _fuzz_ratio("abcdef", "abcxyz")
         b = _fuzz_ratio("abcxyz", "abcdef")
@@ -98,7 +98,7 @@ class TestFuzzRatio:
 
 class TestSelectorFilter:
     def test_no_selectors_passes(self):
-        from ys2wl.filters.selector_filter import selector_filter
+        from sortarr.filters.selector_filter import selector_filter
 
         activity = Activity(
             video_id="v1", title="Test", published_at="now", video_type="upload"
@@ -107,8 +107,8 @@ class TestSelectorFilter:
         assert result.passed
 
     def test_title_contains_match(self):
-        from ys2wl.filters.selector_filter import selector_filter
-        from ys2wl.models.pipeline import PipelineSelector
+        from sortarr.filters.selector_filter import selector_filter
+        from sortarr.models.pipeline import PipelineSelector
 
         activity = Activity(
             video_id="v1",
@@ -123,8 +123,8 @@ class TestSelectorFilter:
         assert result.passed
 
     def test_title_contains_no_match(self):
-        from ys2wl.filters.selector_filter import selector_filter
-        from ys2wl.models.pipeline import PipelineSelector
+        from sortarr.filters.selector_filter import selector_filter
+        from sortarr.models.pipeline import PipelineSelector
 
         activity = Activity(
             video_id="v1", title="Hello World", published_at="now", video_type="upload"
@@ -137,8 +137,8 @@ class TestSelectorFilter:
         assert result.skipped_by == "selector"
 
     def test_channel_title_match(self):
-        from ys2wl.filters.selector_filter import selector_filter
-        from ys2wl.models.pipeline import PipelineSelector
+        from sortarr.filters.selector_filter import selector_filter
+        from sortarr.models.pipeline import PipelineSelector
 
         activity = Activity(
             video_id="v1", title="Song", published_at="now", video_type="upload"
@@ -152,8 +152,8 @@ class TestSelectorFilter:
         assert result.passed
 
     def test_selector_and_mode_all_match(self):
-        from ys2wl.filters.selector_filter import selector_filter
-        from ys2wl.models.pipeline import PipelineSelector
+        from sortarr.filters.selector_filter import selector_filter
+        from sortarr.models.pipeline import PipelineSelector
 
         activity = Activity(
             video_id="v1",
@@ -169,8 +169,8 @@ class TestSelectorFilter:
         assert result.passed
 
     def test_selector_and_mode_one_fails(self):
-        from ys2wl.filters.selector_filter import selector_filter
-        from ys2wl.models.pipeline import PipelineSelector
+        from sortarr.filters.selector_filter import selector_filter
+        from sortarr.models.pipeline import PipelineSelector
 
         activity = Activity(
             video_id="v1",
@@ -186,8 +186,8 @@ class TestSelectorFilter:
         assert not result.passed
 
     def test_selector_or_mode_any_match(self):
-        from ys2wl.filters.selector_filter import selector_filter
-        from ys2wl.models.pipeline import PipelineSelector
+        from sortarr.filters.selector_filter import selector_filter
+        from sortarr.models.pipeline import PipelineSelector
 
         activity = Activity(
             video_id="v1",
@@ -208,8 +208,8 @@ class TestSelectorFilter:
         assert result.passed
 
     def test_regex_selector(self):
-        from ys2wl.filters.selector_filter import selector_filter
-        from ys2wl.models.pipeline import PipelineSelector
+        from sortarr.filters.selector_filter import selector_filter
+        from sortarr.models.pipeline import PipelineSelector
 
         activity = Activity(
             video_id="v1",
@@ -224,8 +224,8 @@ class TestSelectorFilter:
         assert result.passed
 
     def test_equals_selector(self):
-        from ys2wl.filters.selector_filter import selector_filter
-        from ys2wl.models.pipeline import PipelineSelector
+        from sortarr.filters.selector_filter import selector_filter
+        from sortarr.models.pipeline import PipelineSelector
 
         activity = Activity(
             video_id="v1", title="Exact Title", published_at="now", video_type="upload"
@@ -237,8 +237,8 @@ class TestSelectorFilter:
         assert result.passed
 
     def test_description_field(self):
-        from ys2wl.filters.selector_filter import selector_filter
-        from ys2wl.models.pipeline import PipelineSelector
+        from sortarr.filters.selector_filter import selector_filter
+        from sortarr.models.pipeline import PipelineSelector
 
         activity = Activity(
             video_id="v1",

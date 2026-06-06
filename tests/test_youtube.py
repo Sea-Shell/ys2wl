@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
-from ys2wl.core.youtube import YouTubeAPIClient
-from ys2wl.models.youtube import Channel, Playlist, Subscription, Activity
+from sortarr.core.youtube import YouTubeAPIClient
+from sortarr.models.youtube import Channel, Playlist, Subscription, Activity
 
 
 @pytest.fixture

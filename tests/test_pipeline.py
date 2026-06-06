@@ -1,13 +1,13 @@
 import pytest
 from unittest.mock import MagicMock
-from ys2wl.core.pipeline import PipelineOrchestrator
-from ys2wl.core.pipeline_runner import execute_pipeline
-from ys2wl.models.youtube import Subscription, Activity, Channel, Playlist
-from ys2wl.models.pipeline import PipelineConfig
-from ys2wl.config import Settings
+from sortarr.core.pipeline import PipelineOrchestrator
+from sortarr.core.pipeline_runner import execute_pipeline
+from sortarr.models.youtube import Subscription, Activity, Channel, Playlist
+from sortarr.models.pipeline import PipelineConfig
+from sortarr.config import Settings
 import sqlite3
-from ys2wl.db.migrations import init_db
-from ys2wl.db import repository as repo
+from sortarr.db.migrations import init_db
+from sortarr.db import repository as repo
 
 
 @pytest.fixture
@@ -272,9 +272,9 @@ def test_execute_pipeline_filters_by_pipeline_id(tmp_path):
     """execute_pipeline with pipeline_id runs only that pipeline in dry-run."""
     from unittest.mock import MagicMock
     import sqlite3
-    from ys2wl.db.migrations import init_db
-    from ys2wl.db import repository as repo
-    from ys2wl.core.youtube import Channel as YTChannel
+    from sortarr.db.migrations import init_db
+    from sortarr.db import repository as repo
+    from sortarr.core.youtube import Channel as YTChannel
 
     db_path = str(tmp_path / "test.db")
     init_db(db_path)
@@ -291,7 +291,7 @@ def test_execute_pipeline_filters_by_pipeline_id(tmp_path):
     con.close()
 
     # Build mock state with real Settings object
-    from ys2wl.config import Settings
+    from sortarr.config import Settings
 
     state = MagicMock()
     s = Settings()

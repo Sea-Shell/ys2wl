@@ -1,7 +1,7 @@
 import pytest
 from httpx import ASGITransport, AsyncClient
 from prometheus_client import make_asgi_app
-from ys2wl.metrics import (
+from sortarr.metrics import (
     api_calls_total,
     videos_added_total,
     videos_skipped_total,
@@ -13,9 +13,9 @@ from ys2wl.metrics import (
 
 
 def test_metrics_exist():
-    assert api_calls_total._name == "ys2wl_api_calls"
-    assert videos_added_total._name == "ys2wl_videos_added"
-    assert errors_total._name == "ys2wl_errors"
+    assert api_calls_total._name == "sortarr_api_calls"
+    assert videos_added_total._name == "sortarr_videos_added"
+    assert errors_total._name == "sortarr_errors"
 
 
 def test_counter_increment():

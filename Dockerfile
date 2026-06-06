@@ -21,8 +21,8 @@ ARG APP_VERSION=dev
 ARG BUILD_DATE
 ARG VCS_REF
 
-LABEL org.opencontainers.image.source="https://github.com/Sea-Shell/ys2wl" \
-  org.opencontainers.image.description="ys2wl" \
+LABEL org.opencontainers.image.source="https://github.com/Sea-Shell/sortarr" \
+  org.opencontainers.image.description="sortarr" \
   org.opencontainers.image.licenses="MIT" \
   org.opencontainers.image.version="${APP_VERSION}" \
   org.opencontainers.image.created="${BUILD_DATE}" \
@@ -38,7 +38,7 @@ WORKDIR /app
 COPY --from=builder --chown=${UID}:${GID} /app /app
 
 ENV PATH="/app/.venv/bin:$PATH" \
-  YS2WL_NO_WEBBROWSER=true \
+  SORTARR_NO_WEBBROWSER=true \
   PYTHONUNBUFFERED=1
 
 EXPOSE ${APP_PORT}
@@ -46,7 +46,7 @@ EXPOSE ${APP_PORT}
 USER appuser
 
 ENTRYPOINT ["tini", "--"]
-CMD ["python", "-m", "ys2wl"]
+CMD ["python", "-m", "sortarr"]
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD python -c "import urllib.request; exit(0) if urllib.request.urlopen('http://localhost:8080/api/health').status == 200 else exit(1)"

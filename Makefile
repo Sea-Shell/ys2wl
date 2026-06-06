@@ -15,7 +15,7 @@ format:
 check:
 	uv run ruff check src/ tests/ && uv run ruff format --check src/ tests/
 
-IMAGE ?= ys2wl
+IMAGE ?= sortarr
 
 image:
 	podman build -t $(IMAGE) .

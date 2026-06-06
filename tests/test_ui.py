@@ -4,7 +4,7 @@ from httpx import ASGITransport, AsyncClient
 
 @pytest.fixture
 async def client():
-    from ys2wl.api.app import create_app
+    from sortarr.api.app import create_app
 
     app = create_app()
     transport = ASGITransport(app=app)
@@ -24,7 +24,7 @@ async def test_index_html_returns_html(client):
     resp = await client.get("/ui/index.html")
     assert resp.status_code == 200
     assert "text/html" in resp.headers.get("content-type", "")
-    assert "ys2wl" in resp.text
+    assert "sortarr" in resp.text
 
 
 @pytest.mark.asyncio

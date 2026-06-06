@@ -1,5 +1,5 @@
 import pytest
-from ys2wl.config import Settings
+from sortarr.config import Settings
 
 
 @pytest.fixture

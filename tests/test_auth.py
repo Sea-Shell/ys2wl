@@ -1,7 +1,7 @@
 import json
 import sqlite3
-from ys2wl.db import repository as repo
-from ys2wl.core.auth import (
+from sortarr.db import repository as repo
+from sortarr.core.auth import (
     get_client_config,
     credentials_status,
 )
@@ -85,7 +85,7 @@ def test_oauth2_credentials_pickle_roundtrip():
 
 def test_credentials_status_with_valid_creds():
     from google.oauth2.credentials import Credentials
-    from ys2wl.core.auth import credentials_status
+    from sortarr.core.auth import credentials_status
 
     creds = Credentials(
         token="ya29.test_token",

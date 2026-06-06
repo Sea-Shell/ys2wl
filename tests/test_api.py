@@ -5,13 +5,13 @@ from httpx import ASGITransport, AsyncClient
 
 @pytest.fixture
 def app():
-    from ys2wl.api.app import create_app
+    from sortarr.api.app import create_app
 
     app = create_app()
-    from ys2wl.api.app import AppState
+    from sortarr.api.app import AppState
 
     state = AppState()
-    app.state.ys2wl = state
+    app.state.sortarr = state
     state.db_con = sqlite3.connect(":memory:")
     state.db_con.row_factory = sqlite3.Row
     state.db_con.executescript("""

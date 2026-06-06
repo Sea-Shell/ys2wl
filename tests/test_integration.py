@@ -5,8 +5,8 @@ import os
 from typing import Iterator
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
-from ys2wl.config import Settings
-from ys2wl.db.migrations import init_db
+from sortarr.config import Settings
+from sortarr.db.migrations import init_db
 
 
 @pytest.fixture
@@ -29,8 +29,8 @@ def db_con(db_path: str) -> Iterator[sqlite3.Connection]:
 @pytest.fixture
 def app(db_path: str) -> FastAPI:
     """Create app with test DB and minimal settings."""
-    from ys2wl.api.app import AppState
-    from ys2wl.api.routes import (
+    from sortarr.api.app import AppState
+    from sortarr.api.routes import (
         health,
         config,
         rules,
@@ -46,7 +46,7 @@ def app(db_path: str) -> FastAPI:
     state.db_con.row_factory = sqlite3.Row
 
     app = FastAPI()
-    app.state.ys2wl = state
+    app.state.sortarr = state
     app.include_router(health.router, prefix="/api")
     app.include_router(config.router, prefix="/api")
     app.include_router(rules.router, prefix="/api")
@@ -324,7 +324,7 @@ def test_config_keys_match_settings():
     Ensure every DB config key used for overlay exists as a Settings attribute, and vice versa.
     Fails if code is out of sync (typos, old key, rename).
     """
-    from ys2wl.config import Settings
+    from sortarr.config import Settings
 
     # All Settings fields (excluding excluded/internal)
     s = Settings()
@@ -357,9 +357,9 @@ def test_overlay_warns_on_invalid_key(tmp_path):
     Simulate DB with typo key; app overlays and should not crash, should log warning.
     """
     import logging
-    from ys2wl.api.app import AppState
-    from ys2wl.config import Settings
-    from ys2wl.db import repository as repo
+    from sortarr.api.app import AppState
+    from sortarr.config import Settings
+    from sortarr.db import repository as repo
 
     db_path = tmp_path / "testsettings.db"
     init_db(str(db_path))
@@ -382,7 +382,7 @@ def test_overlay_warns_on_invalid_key(tmp_path):
             records.append(record)
 
     lh = CapHandler()
-    log = logging.getLogger("ys2wl.api")
+    log = logging.getLogger("sortarr.api")
     log.addHandler(lh)
     # Run overlay part: mimic overlay loop
     # Should not crash, should log warning if it cannot set
