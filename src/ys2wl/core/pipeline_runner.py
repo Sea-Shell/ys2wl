@@ -102,7 +102,9 @@ async def execute_pipeline(state, trigger="manual", dry_run=False, pipeline_id=N
                         d = {
                             "video_id": None,
                             "title": decision.get("subscription_title"),
+                            "subscription_id": decision.get("subscription_id"),
                             "subscription_title": decision.get("subscription_title"),
+                            "channel_id": decision.get("channel_id"),
                             "action": "subscription_skipped",
                             "reason": decision.get("reason"),
                             "reason_detail": decision.get("reason_detail"),
@@ -140,7 +142,10 @@ async def execute_pipeline(state, trigger="manual", dry_run=False, pipeline_id=N
                         d = {
                             "video_id": r.video_id,
                             "title": r.title,
+                            "subscription_id": r.subscription_id,
                             "subscription_title": r.subscription_title,
+                            "channel_id": getattr(r, "channel_id", None)
+                            or getattr(r, "_channel_id", None),
                             "action": action,
                             "reason": reason,
                             "reason_detail": reason_detail,

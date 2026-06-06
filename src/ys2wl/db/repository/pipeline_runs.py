@@ -120,13 +120,15 @@ def insert_run_decision(con: sqlite3.Connection, run_id: int, decision: dict) ->
     try:
         now = datetime.now(timezone.utc).isoformat()
         con.execute(
-            "INSERT INTO pipeline_run_decisions (run_id, video_id, title, subscription_title, action, reason, reason_detail, routed_to, created_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO pipeline_run_decisions (run_id, video_id, title, subscription_id, subscription_title, channel_id, action, reason, reason_detail, routed_to, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 run_id,
                 decision.get("video_id"),
                 decision.get("title"),
+                decision.get("subscription_id"),
                 decision.get("subscription_title"),
+                decision.get("channel_id"),
                 decision.get("action"),
                 decision.get("reason"),
                 decision.get("reason_detail"),

@@ -166,7 +166,9 @@ class RunDecisionResponse(BaseModel):
     id: int
     video_id: Optional[str] = None
     title: Optional[str] = None
+    subscription_id: Optional[str] = None
     subscription_title: Optional[str] = None
+    channel_id: Optional[str] = None
     action: str
     reason: Optional[str] = None
     reason_detail: Optional[str] = None

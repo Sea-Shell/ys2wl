@@ -68,7 +68,9 @@ CREATE TABLE IF NOT EXISTS pipeline_run_decisions (
     run_id INTEGER NOT NULL REFERENCES pipeline_runs(id),
     video_id TEXT,
     title TEXT,
+    subscription_id TEXT,
     subscription_title TEXT,
+    channel_id TEXT,
     action TEXT NOT NULL,
     reason TEXT,
     reason_detail TEXT,
@@ -209,6 +211,12 @@ def init_db(db_path: str) -> bool:
             con,
             "ALTER TABLE pipeline_selectors ADD COLUMN combine_operator TEXT NOT NULL DEFAULT 'AND'",
         )
+        # V5: add subscription_id and channel_id to pipeline_run_decisions
+        for stmt in [
+            "ALTER TABLE pipeline_run_decisions ADD COLUMN subscription_id TEXT",
+            "ALTER TABLE pipeline_run_decisions ADD COLUMN channel_id TEXT",
+        ]:
+            _run_migration_safe(con, stmt)
         # Migrate ignore_entries → ignore_lists if not done
         rows = con.execute("SELECT COUNT(*) as cnt FROM ignore_lists").fetchone()
         if rows["cnt"] == 0:
