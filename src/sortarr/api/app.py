@@ -43,8 +43,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator:
     state = AppState()
     app.state.sortarr = state
 
-    init_db(state.settings.database_file)
-    state.db_con = sqlite3.connect(state.settings.database_file)
+    # Ensure database directory exists
+    db_path = state.settings.database_file
+    db_dir = os.path.dirname(db_path)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
+
+    init_db(db_path)
+    state.db_con = sqlite3.connect(db_path)
     state.db_con.row_factory = sqlite3.Row
 
     state.credentials = load_credentials(state.db_con)
