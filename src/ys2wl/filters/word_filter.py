@@ -15,5 +15,7 @@ def word_filter(title: str, ignore_words: list[str]) -> FilterResult:
                 passed=False,
                 reason=f"Title contains ignored word '{word}'",
                 skipped_by="word_filter",
+                matched_title=title,
+                match_type="word",
             )
     return FilterResult(passed=True)

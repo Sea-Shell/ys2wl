@@ -121,7 +121,20 @@ async def execute_pipeline(state, trigger="manual", dry_run=False, pipeline_id=N
                         elif r.filter_result:
                             action = "skipped"
                             reason = r.filter_result.skipped_by or "filter"
-                            reason_detail = r.filter_result.reason
+                            # Build detailed reason_detail with matched video info
+                            fr = r.filter_result
+                            detail_parts = [fr.reason]
+                            if fr.matched_video_id:
+                                detail_parts.append(
+                                    f"matched_video_id={fr.matched_video_id}"
+                                )
+                            if fr.matched_title:
+                                detail_parts.append(
+                                    f"matched_title='{fr.matched_title}'"
+                                )
+                            if fr.match_type:
+                                detail_parts.append(f"match_type={fr.match_type}")
+                            reason_detail = " | ".join(detail_parts)
                         else:
                             action, reason, reason_detail = "skipped", "unknown", None
                         d = {

@@ -44,5 +44,8 @@ def title_similarity(
                 passed=False,
                 reason=f"Title '{new_title}' is {ratio}% similar to existing video '{video_id}' (threshold: {threshold}%)",
                 skipped_by="title_similarity",
+                matched_video_id=video_id,
+                matched_title=existing_title,
+                match_type="title_similarity",
             )
     return FilterResult(passed=True)

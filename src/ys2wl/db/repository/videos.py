@@ -22,6 +22,7 @@ __all__ = [
     "clear_activity_cache",
     "video_exists_for_pipeline",
     "get_all_video_titles_for_pipeline",
+    "get_video_by_id",
 ]
 
 
@@ -200,12 +201,16 @@ def clear_activity_cache(con: sqlite3.Connection) -> None:
 
 def video_exists_for_pipeline(
     con: sqlite3.Connection, video_id: str, pipeline_id: str
-) -> bool:
+) -> tuple[bool, Optional[dict]]:
+    """Check if video exists for pipeline. Returns (exists, video_details) where video_details has videoId, title, timestamp, etc."""
     cursor = con.execute(
-        "SELECT 1 FROM videos WHERE videoId = ? AND pipeline_id = ? LIMIT 1",
+        "SELECT videoId, title, timestamp, subscriptionId, playlistId, duration_seconds, route_rule, pipeline_id FROM videos WHERE videoId = ? AND pipeline_id = ? LIMIT 1",
         (video_id, pipeline_id),
     )
-    return cursor.fetchone() is not None
+    row = cursor.fetchone()
+    if row:
+        return True, dict(row)
+    return False, None
 
 
 def get_all_video_titles_for_pipeline(
@@ -215,3 +220,15 @@ def get_all_video_titles_for_pipeline(
         "SELECT videoId, title FROM videos WHERE pipeline_id = ?", (pipeline_id,)
     )
     return cursor.fetchall()
+
+
+def get_video_by_id(con: sqlite3.Connection, video_id: str) -> Optional[dict]:
+    """Get video details by video ID across all pipelines."""
+    cursor = con.execute(
+        "SELECT videoId, title, timestamp, subscriptionId, playlistId, duration_seconds, route_rule, pipeline_id FROM videos WHERE videoId = ?",
+        (video_id,),
+    )
+    row = cursor.fetchone()
+    if row:
+        return dict(row)
+    return None
