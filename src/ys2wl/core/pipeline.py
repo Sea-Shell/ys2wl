@@ -4,7 +4,7 @@ from datetime import datetime, timezone, timedelta
 from sqlite3 import Connection
 from ys2wl.config import Settings
 from ys2wl.core.youtube import YouTubeAPIClient
-from ys2wl.db import repository as repo
+from ys2wl.db.repository import pipeline as pl, videos as v, ignore_lists as il
 from ys2wl.filters.word_filter import word_filter
 from ys2wl.filters.title_similarity import title_similarity
 from ys2wl.filters.ignore_list import ignore_list_filter
@@ -79,7 +79,7 @@ class PipelineOrchestrator:
                     description=getattr(a, "description", ""),
                 )
                 activity_objects.append(obj)
-                repo.cache_activity(
+                v.cache_activity(
                     self.db_con,
                     sub.id,
                     obj.video_id,
@@ -102,7 +102,7 @@ class PipelineOrchestrator:
     def _compute_published_after(self, sub) -> str:
         """Compute the earliest time we need data for this subscription
         across all pipelines."""
-        min_ts = repo.get_min_tracking_for_subscription(self.db_con, sub.id)
+        min_ts = pl.get_min_tracking_for_subscription(self.db_con, sub.id)
         candidates = []
         if self.settings.published_after:
             candidates.append(self.settings.published_after)
@@ -139,7 +139,7 @@ class PipelineOrchestrator:
             pipeline_errors = 0
 
             # Resolve ignore lists for this pipeline
-            pipeline_ignore_list_ids = repo.get_pipeline_ignore_list_ids(
+            pipeline_ignore_list_ids = pl.get_pipeline_ignore_list_ids(
                 self.db_con, pipeline.id
             )
             ignore_videos: list[str] = []
@@ -156,7 +156,7 @@ class PipelineOrchestrator:
                     ignore_subs.extend(entries)
 
             # Resolve selectors
-            selector_rows = repo.get_pipeline_selectors(self.db_con, pipeline.id)
+            selector_rows = pl.get_pipeline_selectors(self.db_con, pipeline.id)
             selectors = [
                 PipelineSelector(
                     id=r["id"],
@@ -171,7 +171,7 @@ class PipelineOrchestrator:
 
             # Determine subscription scope
             if pipeline.subscription_scope == "selected":
-                selected_ids = repo.get_pipeline_subscription_ids(
+                selected_ids = pl.get_pipeline_subscription_ids(
                     self.db_con, pipeline.id
                 )
                 target_subs = [s for s in subscriptions if s.id in selected_ids]
@@ -193,7 +193,7 @@ class PipelineOrchestrator:
                     continue
 
                 # 2.2: Reprocess window
-                last_processed = repo.get_pipeline_tracking(
+                last_processed = pl.get_pipeline_tracking(
                     self.db_con, pipeline.id, sub.id
                 )
                 if last_processed:
@@ -252,7 +252,7 @@ class PipelineOrchestrator:
 
                     # Per-activity watermark
                     if not self.dry_run:
-                        repo.upsert_pipeline_tracking(
+                        pl.upsert_pipeline_tracking(
                             self.db_con,
                             pipeline.id,
                             sub.id,
@@ -265,7 +265,7 @@ class PipelineOrchestrator:
                 # End-activity loop — final watermark to ensure we captured
                 # the latest activity even if it was the last one
                 if activities and not self.dry_run:
-                    repo.upsert_pipeline_tracking(
+                    pl.upsert_pipeline_tracking(
                         self.db_con,
                         pipeline.id,
                         sub.id,
@@ -301,7 +301,7 @@ class PipelineOrchestrator:
                 metrics.quota_estimate.set(self.youtube.api_calls[0])
 
             # Clear activity cache
-            repo.clear_activity_cache(self.db_con)
+            v.clear_activity_cache(self.db_con)
 
         return summary
 
@@ -337,9 +337,7 @@ class PipelineOrchestrator:
 
         # 2.3.4: Per-pipeline DB exists
         if pipeline.check_db_exists:
-            if repo.video_exists_for_pipeline(
-                self.db_con, activity.video_id, pipeline.id
-            ):
+            if v.video_exists_for_pipeline(self.db_con, activity.video_id, pipeline.id):
                 result.filter_result = FilterResult(
                     passed=False,
                     reason="Already in DB for this pipeline",
@@ -349,7 +347,7 @@ class PipelineOrchestrator:
 
         # 2.3.5: Per-pipeline title similarity
         if pipeline.check_title_similarity:
-            existing = repo.get_all_video_titles_for_pipeline(self.db_con, pipeline.id)
+            existing = v.get_all_video_titles_for_pipeline(self.db_con, pipeline.id)
             fr = title_similarity(activity.title, existing, pipeline.compare_distance)
             if not fr.passed:
                 result.filter_result = fr
@@ -412,7 +410,7 @@ class PipelineOrchestrator:
                     route_result.playlist_id, activity.video_id
                 )
                 if success:
-                    repo.insert_video(
+                    v.insert_video(
                         self.db_con,
                         activity.video_id,
                         datetime.now(timezone.utc).isoformat(),
@@ -441,7 +439,7 @@ class PipelineOrchestrator:
 
     def _get_list_type(self, list_id: str) -> str:
         """Determine ignore list type from the list_id."""
-        list_info = repo.get_ignore_list(self.db_con, list_id)
+        list_info = il.get_ignore_list(self.db_con, list_id)
         return list_info["list_type"] if list_info else ""
 
     def run(self) -> PipelineSummary:
@@ -455,5 +453,5 @@ class PipelineOrchestrator:
             summary.errors = 1
             summary.finished_at = self._now_iso()
             if not self.dry_run:
-                repo.clear_activity_cache(self.db_con)
+                v.clear_activity_cache(self.db_con)
             return summary

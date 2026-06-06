@@ -2,7 +2,7 @@ import logging
 from typing import List
 from fastapi import APIRouter, Request
 from ys2wl.api.models import SubscriptionStat
-from ys2wl.db import repository as repo
+from ys2wl.db.repository import config as repo
 
 log = logging.getLogger("ys2wl.api.stats")
 router = APIRouter()

@@ -12,7 +12,7 @@ from ys2wl.api.models import (
     PlaylistResponse,
 )
 from ys2wl.api.deps import get_state, require_youtube
-from ys2wl.db import repository as repo
+from ys2wl.db.repository import pipeline as pl, ignore_lists as il, videos as v
 
 log = logging.getLogger("ys2wl.api.pipelines")
 router = APIRouter()
@@ -27,24 +27,24 @@ def _get_state(request: Request):
 
 def _enrich_pipeline(state, db_pipeline: dict) -> dict:
     data = dict(db_pipeline)
-    data["ignore_list_ids"] = repo.get_pipeline_ignore_list_ids(
+    data["ignore_list_ids"] = pl.get_pipeline_ignore_list_ids(
         state.db_con, db_pipeline["id"]
     )
-    data["selectors"] = repo.get_pipeline_selectors(state.db_con, db_pipeline["id"])
+    data["selectors"] = pl.get_pipeline_selectors(state.db_con, db_pipeline["id"])
     return data
 
 
 @router.get("/pipelines", response_model=List[PipelineResponse])
 async def list_pipelines(request: Request):
     state = _get_state(request)
-    pipelines = repo.get_pipelines(state.db_con)
+    pipelines = pl.get_pipelines(state.db_con)
     return [_enrich_pipeline(state, p) for p in pipelines]
 
 
 @router.get("/pipelines/{pipeline_id}", response_model=PipelineResponse)
 async def get_pipeline(pipeline_id: str, request: Request):
     state = _get_state(request)
-    pipelines = repo.get_pipelines(state.db_con)
+    pipelines = pl.get_pipelines(state.db_con)
     match = [p for p in pipelines if p["id"] == pipeline_id]
     if not match:
         raise HTTPException(status_code=404, detail="Pipeline not found")
@@ -55,7 +55,7 @@ async def get_pipeline(pipeline_id: str, request: Request):
 async def create_pipeline(pipeline: PipelineCreate, request: Request):
     state = _get_state(request)
     pid = str(uuid.uuid4())
-    ok = repo.create_pipeline(
+    ok = pl.create_pipeline(
         state.db_con,
         pid,
         pipeline.name,
@@ -71,7 +71,7 @@ async def create_pipeline(pipeline: PipelineCreate, request: Request):
     )
     if not ok:
         raise HTTPException(status_code=500, detail="Failed to create pipeline")
-    pipelines = repo.get_pipelines(state.db_con)
+    pipelines = pl.get_pipelines(state.db_con)
     match = [p for p in pipelines if p["id"] == pid]
     return _enrich_pipeline(state, match[0])
 
@@ -82,8 +82,8 @@ async def update_pipeline(pipeline_id: str, update: PipelineUpdate, request: Req
     updates = {k: v for k, v in update.model_dump(exclude_none=True).items()}
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")
-    repo.update_pipeline(state.db_con, pipeline_id, **updates)
-    pipelines = repo.get_pipelines(state.db_con)
+    pl.update_pipeline(state.db_con, pipeline_id, **updates)
+    pipelines = pl.get_pipelines(state.db_con)
     match = [p for p in pipelines if p["id"] == pipeline_id]
     if not match:
         raise HTTPException(status_code=404, detail="Pipeline not found")
@@ -93,7 +93,7 @@ async def update_pipeline(pipeline_id: str, update: PipelineUpdate, request: Req
 @router.delete("/pipelines/{pipeline_id}", status_code=204)
 async def delete_pipeline(pipeline_id: str, request: Request):
     state = _get_state(request)
-    repo.delete_pipeline(state.db_con, pipeline_id)
+    pl.delete_pipeline(state.db_con, pipeline_id)
 
 
 # ── Pipeline ignore lists ─────────────────────────────────────────
@@ -103,7 +103,7 @@ async def delete_pipeline(pipeline_id: str, request: Request):
 async def set_pipeline_ignore_lists(pipeline_id: str, body: dict, request: Request):
     state = _get_state(request)
     list_ids = body.get("ignore_list_ids", [])
-    repo.set_pipeline_ignore_lists(state.db_con, pipeline_id, list_ids)
+    pl.set_pipeline_ignore_lists(state.db_con, pipeline_id, list_ids)
 
 
 # ── Pipeline selectors ────────────────────────────────────────────
@@ -113,7 +113,7 @@ async def set_pipeline_ignore_lists(pipeline_id: str, body: dict, request: Reque
 async def set_pipeline_selectors(pipeline_id: str, body: dict, request: Request):
     state = _get_state(request)
     selectors = body.get("selectors", [])
-    repo.set_pipeline_selectors(state.db_con, pipeline_id, selectors)
+    pl.set_pipeline_selectors(state.db_con, pipeline_id, selectors)
 
 
 # ── Pipeline subscriptions (scope=selected) ────────────────────────
@@ -123,7 +123,7 @@ async def set_pipeline_selectors(pipeline_id: str, body: dict, request: Request)
 async def set_pipeline_subscriptions(pipeline_id: str, body: dict, request: Request):
     state = _get_state(request)
     sub_ids = body.get("subscription_ids", [])
-    repo.set_pipeline_subscriptions(state.db_con, pipeline_id, sub_ids)
+    pl.set_pipeline_subscriptions(state.db_con, pipeline_id, sub_ids)
 
 
 # ── Ignore Lists ──────────────────────────────────────────────────
@@ -132,10 +132,10 @@ async def set_pipeline_subscriptions(pipeline_id: str, body: dict, request: Requ
 @router.get("/ignore-lists", response_model=List[IgnoreListResponse])
 async def list_ignore_lists(request: Request):
     state = _get_state(request)
-    lists = repo.get_ignore_lists(state.db_con)
+    lists = il.get_ignore_lists(state.db_con)
     result = []
     for lst in lists:
-        entries = repo.get_ignore_list_entries(state.db_con, lst["id"])
+        entries = il.get_ignore_list_entries(state.db_con, lst["id"])
         result.append({**lst, "entries": entries})  # list of str values
     return result
 
@@ -157,15 +157,15 @@ async def create_ignore_list(body: IgnoreListCreate, request: Request):
     if body.list_type not in ("word", "video", "subscription"):
         raise HTTPException(status_code=400, detail="Invalid list_type")
     lid = str(uuid.uuid4())
-    ok = repo.create_ignore_list(state.db_con, lid, body.name, body.list_type)
+    ok = il.create_ignore_list(state.db_con, lid, body.name, body.list_type)
     if not ok:
         raise HTTPException(status_code=500, detail="Failed to create ignore list")
-    lst = repo.get_ignore_list(state.db_con, lid)
+    lst = il.get_ignore_list(state.db_con, lid)
     if not lst:
         raise HTTPException(
             status_code=500, detail="Ignore list not found after create"
         )
-    entries = repo.get_ignore_list_entries(state.db_con, lid)
+    entries = il.get_ignore_list_entries(state.db_con, lid)
     return {**lst, "entries": entries}
 
 
@@ -174,20 +174,20 @@ async def update_ignore_list(list_id: str, body: IgnoreListCreate, request: Requ
     state = _get_state(request)
     if body.list_type not in ("word", "video", "subscription"):
         raise HTTPException(status_code=400, detail="Invalid list_type")
-    ok = repo.update_ignore_list(state.db_con, list_id, body.name)
+    ok = il.update_ignore_list(state.db_con, list_id, body.name)
     if not ok:
         raise HTTPException(status_code=404, detail="Ignore list not found")
-    lst = repo.get_ignore_list(state.db_con, list_id)
+    lst = il.get_ignore_list(state.db_con, list_id)
     if not lst:
         raise HTTPException(status_code=404, detail="Ignore list not found")
-    entries = repo.get_ignore_list_entries(state.db_con, list_id)
+    entries = il.get_ignore_list_entries(state.db_con, list_id)
     return {**lst, "entries": entries}
 
 
 @router.delete("/ignore-lists/{list_id}", status_code=204)
 async def delete_ignore_list(list_id: str, request: Request):
     state = _get_state(request)
-    repo.delete_ignore_list(state.db_con, list_id)
+    il.delete_ignore_list(state.db_con, list_id)
 
 
 @router.post("/ignore-lists/{list_id}/entries", status_code=201)
@@ -195,11 +195,11 @@ async def add_ignore_list_entry(
     list_id: str, body: IgnoreListEntryCreate, request: Request
 ):
     state = _get_state(request)
-    lst = repo.get_ignore_list(state.db_con, list_id)
+    lst = il.get_ignore_list(state.db_con, list_id)
     if not lst:
         raise HTTPException(status_code=404, detail="Ignore list not found")
     eid = str(uuid.uuid4())
-    ok = repo.add_ignore_list_entry(state.db_con, eid, list_id, body.value)
+    ok = il.add_ignore_list_entry(state.db_con, eid, list_id, body.value)
     if not ok:
         raise HTTPException(status_code=500, detail="Failed to add entry")
     return {"id": eid, "value": body.value}
@@ -208,7 +208,7 @@ async def add_ignore_list_entry(
 @router.delete("/ignore-lists/{list_id}/entries/{entry_id}", status_code=204)
 async def remove_ignore_list_entry(list_id: str, entry_id: str, request: Request):
     state = _get_state(request)
-    repo.remove_ignore_list_entry(state.db_con, entry_id)
+    il.remove_ignore_list_entry(state.db_con, entry_id)
 
 
 @router.get("/playlists", response_model=List[PlaylistResponse])
@@ -216,7 +216,7 @@ async def list_playlists(request: Request):
     """Return user's YouTube playlists for pipeline config."""
     state = get_state(request)
     youtube = require_youtube(state)
-    channel = repo.get_channel(state.db_con)
+    channel = v.get_channel(state.db_con)
     channel_id = None
     if channel:
         channel_id = channel["id"]

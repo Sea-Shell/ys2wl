@@ -13,7 +13,7 @@ from ys2wl.core.auth import load_credentials
 from ys2wl.core.scheduler import PipelineScheduler
 from ys2wl.core.pipeline_runner import execute_pipeline
 from ys2wl.db.migrations import init_db
-from ys2wl.db import repository as repo
+from ys2wl.db.repository import config as repo
 from ys2wl.api.routes import (
     health,
     config,
@@ -69,6 +69,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator:
     for key in [
         "schedule",
         "compare_distance",
+        "credentials_file",
         "reprocess_days",
         "playlist_sleep",
         "subscription_sleep",

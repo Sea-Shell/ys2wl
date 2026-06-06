@@ -2,7 +2,12 @@ from ys2wl.api.deps import require_youtube
 from ys2wl.core.pipeline import PipelineOrchestrator
 from ys2wl.models.youtube import Channel, Playlist
 from ys2wl.models.pipeline import PipelineConfig
-from ys2wl.db import repository as repo
+from ys2wl.db.repository import (
+    pipeline_runs as pr,
+    videos as v,
+    pipeline as pl,
+    ignore_lists as il,
+)
 import logging
 import sqlite3
 
@@ -11,24 +16,24 @@ log = logging.getLogger("ys2wl.core.pipeline_runner")
 
 async def execute_pipeline(state, trigger="manual", dry_run=False, pipeline_id=None):
     require_youtube(state)
-    run_id = repo.create_pipeline_run(state.db_con, trigger=trigger, dry_run=dry_run)
+    run_id = pr.create_pipeline_run(state.db_con, trigger=trigger, dry_run=dry_run)
     if run_id is None:
         log.error("Failed to create pipeline run")
         return None
     try:
-        channel_data = repo.get_channel(state.db_con)
-        playlist_data = repo.get_playlist(state.db_con)
+        channel_data = v.get_channel(state.db_con)
+        playlist_data = v.get_playlist(state.db_con)
         if not channel_data:
             channels = state.youtube.get_channel_id()
             if channels:
                 channel_data = {"id": channels[0].id, "title": channels[0].title}
-                repo.insert_channel(
+                v.insert_channel(
                     state.db_con, channel_data["id"], channel_data["title"]
                 )
-        channel_data = repo.get_channel(state.db_con)
+        channel_data = v.get_channel(state.db_con)
         if not channel_data:
             log.error("No channel found, aborting pipeline run.")
-            repo.finish_pipeline_run(
+            pr.finish_pipeline_run(
                 state.db_con,
                 run_id,
                 {"status": "failed", "error_message": "No channel found."},
@@ -39,13 +44,13 @@ async def execute_pipeline(state, trigger="manual", dry_run=False, pipeline_id=N
             playlists = state.youtube.get_user_playlists(channel_data["id"])
             if playlists:
                 playlist_data = {"id": playlists[0].id, "title": playlists[0].title}
-                repo.insert_playlist(
+                v.insert_playlist(
                     state.db_con, playlist_data["id"], playlist_data["title"]
                 )
-        playlist_data = repo.get_playlist(state.db_con)
+        playlist_data = v.get_playlist(state.db_con)
         if not playlist_data:
             log.error("No playlist found, aborting pipeline run.")
-            repo.finish_pipeline_run(
+            pr.finish_pipeline_run(
                 state.db_con,
                 run_id,
                 {"status": "failed", "error_message": "No playlist found."},
@@ -56,7 +61,7 @@ async def execute_pipeline(state, trigger="manual", dry_run=False, pipeline_id=N
         playlist = Playlist(id=playlist_data["id"], title=playlist_data["title"])
 
         # Load pipelines
-        db_pipelines = repo.get_pipelines(state.db_con)
+        db_pipelines = pl.get_pipelines(state.db_con)
         if pipeline_id is not None:
             db_pipelines = [p for p in db_pipelines if p["id"] == pipeline_id]
         pipelines = [
@@ -81,9 +86,9 @@ async def execute_pipeline(state, trigger="manual", dry_run=False, pipeline_id=N
 
         # Load all ignore lists (entries pre-fetched)
         all_ignore_lists: dict[str, list[str]] = {}
-        db_lists = repo.get_ignore_lists(state.db_con)
+        db_lists = il.get_ignore_lists(state.db_con)
         for lst in db_lists:
-            entries = repo.get_ignore_list_entries(state.db_con, lst["id"])
+            entries = il.get_ignore_list_entries(state.db_con, lst["id"])
             all_ignore_lists[lst["id"]] = entries
 
         import asyncio
@@ -130,8 +135,8 @@ async def execute_pipeline(state, trigger="manual", dry_run=False, pipeline_id=N
                             if r.route_result
                             else None,
                         }
-                    repo.insert_run_decision(tcon, run_id, d)
-                    repo.update_pipeline_run_progress(
+                    pr.insert_run_decision(tcon, run_id, d)
+                    pr.update_pipeline_run_progress(
                         tcon,
                         run_id,
                         {
@@ -174,9 +179,9 @@ async def execute_pipeline(state, trigger="manual", dry_run=False, pipeline_id=N
         summary = await asyncio.to_thread(_run_orchestrator)
 
         # Decisions already saved incrementally — no bulk insert needed
-        repo.cleanup_old_decisions(state.db_con)
+        pr.cleanup_old_decisions(state.db_con)
 
-        repo.finish_pipeline_run(
+        pr.finish_pipeline_run(
             state.db_con,
             run_id,
             {
@@ -193,11 +198,11 @@ async def execute_pipeline(state, trigger="manual", dry_run=False, pipeline_id=N
         )
 
         if summary.errors == 0:
-            repo.set_last_run(state.db_con, summary.started_at)
+            v.set_last_run(state.db_con, summary.started_at)
 
     except Exception as e:
         log.error("Pipeline run %d failed: %s", run_id, e)
-        repo.finish_pipeline_run(
+        pr.finish_pipeline_run(
             state.db_con,
             run_id,
             {"status": "failed", "error_message": str(e)},

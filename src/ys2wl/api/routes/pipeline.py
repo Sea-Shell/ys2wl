@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException, Request
 from ys2wl.api.deps import get_state
 from ys2wl.api.models import TriggerResponse, PipelineRunResponse, RunDecisionResponse
 from ys2wl.core.pipeline_runner import execute_pipeline
-from ys2wl.db import repository as repo
+from ys2wl.db.repository import pipeline_runs as repo
 import logging
 
 log = logging.getLogger("ys2wl.api.pipeline")

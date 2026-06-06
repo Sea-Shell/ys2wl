@@ -1,5 +1,4 @@
 from ys2wl.filters.word_filter import word_filter
-from ys2wl.filters.duration_filter import duration_filter
 from ys2wl.filters.title_similarity import title_similarity
 from ys2wl.filters.ignore_list import ignore_list_filter
 from ys2wl.models.youtube import Activity
@@ -26,29 +25,6 @@ class TestWordFilter:
     def test_empty_title(self):
         result = word_filter("", ["test"])
         assert result.passed
-
-
-class TestDurationFilter:
-    def test_pass_when_no_limits(self):
-        assert duration_filter(120, 0, 0).passed
-
-    def test_too_short(self):
-        result = duration_filter(30, 60, 0)
-        assert not result.passed
-        assert result.skipped_by == "duration_filter"
-
-    def test_too_long(self):
-        result = duration_filter(5000, 0, 3600)
-        assert not result.passed
-
-    def test_within_bounds(self):
-        assert duration_filter(180, 60, 3600).passed
-
-    def test_exact_minimum(self):
-        assert duration_filter(60, 60, 0).passed
-
-    def test_exact_maximum(self):
-        assert duration_filter(3600, 0, 3600).passed
 
 
 class TestIgnoreListFilter:

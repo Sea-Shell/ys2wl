@@ -9,7 +9,7 @@ from google.auth.credentials import Credentials
 from google.oauth2.credentials import Credentials as OAuth2Credentials
 from google.auth.transport.requests import Request
 import httpx
-from ys2wl.db import repository as repo
+from ys2wl.db.repository import config as repo
 
 log = logging.getLogger("ys2wl.auth")
 
