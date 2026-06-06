@@ -12,13 +12,6 @@ spec:
       labels:
         app: sortarr
     spec:
-      initContainers:
-        - name: init-data-dir
-          image: busybox:latest
-          command: ["sh", "-c", "mkdir -p /data/disk2/opt/sortarr"]
-          volumeMounts:
-            - mountPath: /data
-              name: config
       containers:
         - name: sortarr
           image: registry.hub.docker.com/bateau/sortarr:v2.1.0
