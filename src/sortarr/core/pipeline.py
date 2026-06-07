@@ -260,7 +260,7 @@ class PipelineOrchestrator:
                             self.db_con,
                             pipeline.id,
                             sub.id,
-                            activity.published_at,
+                            now_iso,  # Use run time as watermark, not video's published_at
                         )
 
                     if activity_count < len(activities):
@@ -273,7 +273,7 @@ class PipelineOrchestrator:
                         self.db_con,
                         pipeline.id,
                         sub.id,
-                        activities[-1].published_at,
+                        now_iso,  # Use run time as watermark
                     )
 
             # End-subscription loop
