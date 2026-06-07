@@ -12,7 +12,12 @@ from sortarr.api.models import (
     PlaylistResponse,
 )
 from sortarr.api.deps import get_state, require_youtube
-from sortarr.db.repository import pipeline as pl, ignore_lists as il, videos as v
+from sortarr.db.repository import (
+    pipeline as pl,
+    ignore_lists as il,
+    videos as v,
+    pipeline_runs as pr,
+)
 
 log = logging.getLogger("sortarr.api.pipelines")
 router = APIRouter()
@@ -249,4 +254,29 @@ async def get_video_by_id(video_id: str, request: Request):
         "duration_seconds": result.get("duration_seconds"),
         "route_rule": result.get("route_rule"),
         "pipeline_id": result.get("pipeline_id"),
+    }
+
+
+@router.get("/videos/{video_id}/runs")
+async def get_video_runs(video_id: str, request: Request):
+    """Get pipeline runs where a specific video appeared."""
+    state = _get_state(request)
+    runs = pr.get_runs_by_video_id(state.db_con, video_id, limit=50)
+    return {
+        "video_id": video_id,
+        "runs": [
+            {
+                "run_id": r.get("id"),
+                "started_at": r.get("started_at"),
+                "finished_at": r.get("finished_at"),
+                "status": r.get("status"),
+                "trigger": r.get("trigger"),
+                "videos_added": r.get("videos_added"),
+                "videos_skipped": r.get("videos_skipped"),
+                "errors": r.get("errors"),
+                "dry_run": bool(r.get("dry_run")),
+            }
+            for r in runs
+        ],
+        "total": len(runs),
     }

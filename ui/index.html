@@ -150,6 +150,7 @@ label { display: block; font-size: 0.875rem; color: var(--text2); margin-bottom:
   <a class="active" data-page="dashboard" href="#dashboard">Dashboard</a>
   <a data-page="subscriptions" href="#subscriptions">Subscriptions</a>
   <a data-page="pipelines" href="#pipelines">Pipelines</a>
+  <a data-page="videolookup" href="#videolookup">Video Lookup</a>
   <a data-page="config" href="#config">Config</a>
   <a data-page="runs" href="#runs">Pipeline Runs</a>
   <a data-page="stats" href="#stats">Stats</a>
@@ -183,6 +184,17 @@ label { display: block; font-size: 0.875rem; color: var(--text2); margin-bottom:
       <button id="videoSearchBtn" style="padding:0.5rem 1rem">Search</button>
     </div>
     <div id="videoSearchResult" style="display:none"></div>
+  </section>
+  <section id="videolookup" class="page">
+    <h2>Video Lookup</h2>
+    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem">
+      <input id="videoLookupInput" type="text" placeholder="Enter YouTube video ID (e.g. dQw4w9WgXcQ)" style="flex:1;min-width:300px;padding:0.5rem;border-radius:var(--radius);border:1px solid var(--surface2);background:var(--bg);color:var(--text)">
+      <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.875rem;color:var(--text2)">
+        <input type="checkbox" id="showInRuns"> Show in runs
+      </label>
+      <button id="videoLookupBtn" style="padding:0.5rem 1rem">Search</button>
+    </div>
+    <div id="videoLookupResult" style="display:none"></div>
   </section>
   <section id="subscriptions" class="page">
     <h2>Subscriptions</h2>
@@ -331,7 +343,7 @@ function escapeHtml(s) {
 }
 
 // ---- Routing ----
-const PAGES = ['dashboard','subscriptions','pipelines','config','runs','stats','auth'];
+const PAGES = ['dashboard','subscriptions','pipelines','videolookup','config','runs','stats','auth'];
 
 function navigate(page) {
   location.hash = '#' + page;
@@ -409,6 +421,22 @@ renderers.dashboard = async function() {
   } catch { /* cards stay as '-' */ }
 };
 
+// ---- Video Lookup renderer ----
+renderers.videolookup = async function() {
+  const input = document.getElementById('videoLookupInput');
+  const btn = document.getElementById('videoLookupBtn');
+  const resultDiv = document.getElementById('videoLookupResult');
+  const showInRuns = document.getElementById('showInRuns');
+
+  // Let the button click handler do the search
+  // Nothing to render on page load, just wire up Enter key
+  input?.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') btn.click();
+  });
+
+  if (!input || !btn || !resultDiv) return;
+};
+
 // ---- Trigger ----
 document.getElementById('triggerBtn')?.addEventListener('click', async function() {
   this.disabled = true; this.innerHTML = '<span class="spinner"></span>Running...';
@@ -439,36 +467,53 @@ document.getElementById('dryRunBtn')?.addEventListener('click', async function()
   }
 });
 
-// ---- Video Lookup ----
-document.getElementById('videoSearchBtn')?.addEventListener('click', async function() {
-  const input = document.getElementById('videoSearchInput');
-  const resultDiv = document.getElementById('videoSearchResult');
-  const videoId = input.value.trim();
+});
+
+// ---- Video Lookup (shared function) ----
+async function searchVideo(videoId, showRuns, resultDiv, btn) {
   if (!videoId) {
     showToast('Enter a YouTube video ID', 'warning');
     return;
   }
-  this.disabled = true; this.textContent = 'Searching...';
+  btn.disabled = true; btn.textContent = 'Searching...';
   resultDiv.style.display = 'none';
   resultDiv.innerHTML = '';
   try {
-    const data = await api('/api/videos/' + encodeURIComponent(videoId));
+    const [video, runs] = await Promise.all([
+      api('/api/videos/' + encodeURIComponent(videoId)),
+      showRuns ? api('/api/videos/' + encodeURIComponent(videoId) + '/runs') : null,
+    ]);
     resultDiv.style.display = 'block';
+    const runHtml = runs && runs.runs && runs.runs.length > 0
+      ? `<h4 style="margin:1rem 0 0.5rem;color:var(--accent)">Runs containing this video (${runs.total} total)</h4>` +
+        `<table style="width:100%;font-size:0.75rem;border-collapse:collapse">` +
+        `<thead><tr><th>Run</th><th>Started</th><th>Status</th><th>Trigger</th><th>Added</th><th>Skipped</th><th>Errors</th></tr></thead>` +
+        `<tbody>${runs.runs.map(r => `<tr>` +
+          `<td style="font-family:monospace"><a href="#run-detail-${r.run_id}" style="color:var(--accent)">${r.run_id}</a></td>` +
+          `<td style="font-size:0.7rem">${formatTime(r.started_at)}</td>` +
+          `<td>${statusBadge(r.status)}</td>` +
+          `<td>${r.trigger}${r.dry_run ? ' <span class="tag-dryrun">DRY</span>' : ''}</td>` +
+          `<td>${r.videos_added ?? '-'}</td>` +
+          `<td>${r.videos_skipped ?? '-'}</td>` +
+          `<td>${r.errors ?? '-'}</td>` +
+        `</tr>`).join('')}</tbody></table>`
+      : '';
     resultDiv.innerHTML = `
       <div class="card" style="margin-top:0.5rem">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
-          <h4 style="margin:0;color:var(--accent)">${escapeHtml(data.title || 'Unknown')}</h4>
-          <code style="font-size:0.75rem;color:var(--text2)">${escapeHtml(data.video_id)}</code>
+          <h4 style="margin:0;color:var(--accent)">${escapeHtml(video.title || 'Unknown')}</h4>
+          <code style="font-size:0.75rem;color:var(--text2)">${escapeHtml(video.video_id)}</code>
         </div>
         <table style="width:100%;font-size:0.8rem;border-collapse:collapse">
-          <tr><td style="color:var(--text2);padding:0.25rem 0">Pipeline</td><td style="text-align:right;font-family:monospace">${escapeHtml(data.pipeline_id || '—')}</td></tr>
-          <tr><td style="color:var(--text2);padding:0.25rem 0">Subscription</td><td style="text-align:right;font-family:monospace">${escapeHtml(data.subscription_id || '—')}</td></tr>
-          <tr><td style="color:var(--text2);padding:0.25rem 0">Playlist</td><td style="text-align:right;font-family:monospace">${escapeHtml(data.playlist_id || '—')}</td></tr>
-          <tr><td style="color:var(--text2);padding:0.25rem 0">Duration</td><td style="text-align:right">${data.duration_seconds ? Math.floor(data.duration_seconds/60)+'m '+(data.duration_seconds%60)+'s' : '—'}</td></tr>
-          <tr><td style="color:var(--text2);padding:0.25rem 0">Added</td><td style="text-align:right;font-family:monospace;font-size:0.7rem">${escapeHtml(data.timestamp || '—')}</td></tr>
-          <tr><td style="color:var(--text2);padding:0.25rem 0">Route Rule</td><td style="text-align:right;font-family:monospace;font-size:0.7rem">${escapeHtml(data.route_rule || '—')}</td></tr>
+          <tr><td style="color:var(--text2);padding:0.25rem 0">Pipeline</td><td style="text-align:right;font-family:monospace">${escapeHtml(video.pipeline_id || '—')}</td></tr>
+          <tr><td style="color:var(--text2);padding:0.25rem 0">Subscription</td><td style="text-align:right;font-family:monospace">${escapeHtml(video.subscription_id || '—')}</td></tr>
+          <tr><td style="color:var(--text2);padding:0.25rem 0">Playlist</td><td style="text-align:right;font-family:monospace">${escapeHtml(video.playlist_id || '—')}</td></tr>
+          <tr><td style="color:var(--text2);padding:0.25rem 0">Duration</td><td style="text-align:right">${video.duration_seconds ? Math.floor(video.duration_seconds/60)+'m '+(video.duration_seconds%60)+'s' : '—'}</td></tr>
+          <tr><td style="color:var(--text2);padding:0.25rem 0">Added</td><td style="text-align:right;font-family:monospace;font-size:0.7rem">${escapeHtml(video.timestamp || '—')}</td></tr>
+          <tr><td style="color:var(--text2);padding:0.25rem 0">Route Rule</td><td style="text-align:right;font-family:monospace;font-size:0.7rem">${escapeHtml(video.route_rule || '—')}</td></tr>
         </table>
         <p style="margin-top:0.5rem;color:var(--success);font-size:0.8rem">✓ Found in database</p>
+        ${runHtml}
       </div>
     `;
     showToast('Video found', 'success');
@@ -485,8 +530,37 @@ document.getElementById('videoSearchBtn')?.addEventListener('click', async funct
       showToast('Error: ' + e.message, 'error');
     }
   } finally {
-    this.disabled = false; this.textContent = 'Search';
+    btn.disabled = false; btn.textContent = 'Search';
   }
+}
+
+// ---- Dashboard Video Search ----
+document.getElementById('videoSearchBtn')?.addEventListener('click', async function() {
+  const input = document.getElementById('videoSearchInput');
+  const resultDiv = document.getElementById('videoSearchResult');
+  const videoId = input.value.trim();
+  if (!videoId) { showToast('Enter a YouTube video ID', 'warning'); return; }
+  await searchVideo(videoId, false, resultDiv, this);
+});
+
+// Allow Enter key in dashboard input
+document.getElementById('videoSearchInput')?.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') document.getElementById('videoSearchBtn').click();
+});
+
+// ---- Video Lookup page Search ----
+document.getElementById('videoLookupBtn')?.addEventListener('click', async function() {
+  const input = document.getElementById('videoLookupInput');
+  const resultDiv = document.getElementById('videoLookupResult');
+  const showRuns = document.getElementById('showInRuns')?.checked || false;
+  const videoId = input.value.trim();
+  if (!videoId) { showToast('Enter a YouTube video ID', 'warning'); return; }
+  await searchVideo(videoId, showRuns, resultDiv, this);
+});
+
+// Allow Enter key in videolookup input
+document.getElementById('videoLookupInput')?.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') document.getElementById('videoLookupBtn').click();
 });
 
 // Allow Enter key in input
