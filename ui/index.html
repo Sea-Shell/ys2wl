@@ -1698,15 +1698,21 @@ renderers.runDetail = async function(runId) {
         }
         html += '<div class="table-wrap"><table><thead><tr>' +
           '<th>Video</th><th>Channel</th><th>Action</th><th>Reason</th><th>Routed To</th>' +
-          '</tr></thead><tbody>' + videoDecisions.map(d =>
-            '<tr><td style="max-width:250px;overflow:hidden;text-overflow:ellipsis">' +
-            '<a href="https://www.youtube.com/watch?v=' + escapeHtml(d.video_id || '') + '" target="_blank" rel="noopener" style="color:var(--neon-cyan);text-shadow:0 0 4px var(--neon-cyan-glow);border-bottom:1px solid transparent;padding-bottom:1px" onmouseover="this.style.color=\'var(--neon-accent)\';this.style.textShadow=\'0 0 8px var(--neon-accent-glow)\';this.style.borderBottomColor=\'var(--neon-accent)\'" onmouseout="this.style.color=\'var(--neon-cyan)\';this.style.textShadow=\'0 0 4px var(--neon-cyan-glow)\';this.style.borderBottomColor=\'transparent\'">' + escapeHtml(d.title) + '</a></td>' +
-            '<td><a href="https://www.youtube.com/channel/' + escapeHtml(d.channel_id || d.subscription_id || '') + '" target="_blank" rel="noopener" style="color:var(--neon-cyan);text-shadow:0 0 4px var(--neon-cyan-glow);border-bottom:1px solid transparent;padding-bottom:1px" onmouseover="this.style.color=\'var(--neon-accent)\';this.style.textShadow=\'0 0 8px var(--neon-accent-glow)\';this.style.borderBottomColor=\'var(--neon-accent)\'" onmouseout="this.style.color=\'var(--neon-cyan)\';this.style.textShadow=\'0 0 4px var(--neon-cyan-glow)\';this.style.borderBottomColor=\'transparent\'">' + escapeHtml(d.subscription_title) + '</a></td>' +
-            '<td><span class="badge ' + (d.action === 'added' ? 'badge-completed' : d.action === 'error' ? 'badge-error' : 'badge-running') + '">' + d.action + '</span></td>' +
-            '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis">' + escapeHtml(d.reason_detail || d.reason || '-') + '</td>' +
-            '<td class="mono">' + escapeHtml(d.routed_to || '-') + '</td>' +
-            '</tr>'
-          ).join('') + '</tbody></table></div>';
+          '</tr></thead><tbody>' + videoDecisions.map(d => {
+            const isAdded = d.action === 'added';
+            const hasMatchInfo = isAdded && d.reason_detail && d.reason_detail.includes('pipeline=');
+            const actionBadgeClass = isAdded ? 'badge-completed' : d.action === 'error' ? 'badge-error' : 'badge-running';
+            const reasonContent = isAdded && d.reason_detail ? d.reason_detail : (d.reason || '-');
+            const reasonStyle = hasMatchInfo ? 'style="color:var(--neon-green);text-shadow:0 0 4px var(--neon-green-glow);font-weight:500"' : 'style="max-width:300px;overflow:hidden;text-overflow:ellipsis"';
+            const confirmedBadge = hasMatchInfo ? '<span class="badge badge-completed" style="margin-left:6px;font-size:0.625rem">✓ Confirmed</span>' : '';
+            return '<tr><td style="max-width:250px;overflow:hidden;text-overflow:ellipsis">' +
+              '<a href="https://www.youtube.com/watch?v=' + escapeHtml(d.video_id || '') + '" target="_blank" rel="noopener" style="color:var(--neon-cyan);text-shadow:0 0 4px var(--neon-cyan-glow);border-bottom:1px solid transparent;padding-bottom:1px" onmouseover="this.style.color=\'var(--neon-accent)\';this.style.textShadow=\'0 0 8px var(--neon-accent-glow)\';this.style.borderBottomColor=\'var(--neon-accent)\'" onmouseout="this.style.color=\'var(--neon-cyan)\';this.style.textShadow=\'0 0 4px var(--neon-cyan-glow)\';this.style.borderBottomColor=\'transparent\'">' + escapeHtml(d.title) + '</a></td>' +
+              '<td><a href="https://www.youtube.com/channel/' + escapeHtml(d.channel_id || d.subscription_id || '') + '" target="_blank" rel="noopener" style="color:var(--neon-cyan);text-shadow:0 0 4px var(--neon-cyan-glow);border-bottom:1px solid transparent;padding-bottom:1px" onmouseover="this.style.color=\'var(--neon-accent)\';this.style.textShadow=\'0 0 8px var(--neon-accent-glow)\';this.style.borderBottomColor=\'var(--neon-accent)\'" onmouseout="this.style.color=\'var(--neon-cyan)\';this.style.textShadow=\'0 0 4px var(--neon-cyan-glow)\';this.style.borderBottomColor=\'transparent\'">' + escapeHtml(d.subscription_title) + '</a></td>' +
+              '<td><span class="badge ' + actionBadgeClass + '">' + d.action + '</span>' + confirmedBadge + '</td>' +
+              '<td ' + reasonStyle + '>' + escapeHtml(reasonContent) + '</td>' +
+              '<td class="mono">' + escapeHtml(d.routed_to || '-') + '</td>' +
+              '</tr>';
+          }).join('') + '</tbody></table></div>';
         if (videoDecisions.length === 0) {
           html += '<p class="empty-state">No video decisions</p>';
         }
