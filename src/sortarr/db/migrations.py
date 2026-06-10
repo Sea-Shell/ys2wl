@@ -225,6 +225,21 @@ def init_db(db_path: str) -> bool:
         rows = con.execute("SELECT COUNT(*) as cnt FROM pipelines").fetchone()
         if rows["cnt"] == 0:
             _migrate_v1_rules(con)
+        # V6: playlist video tracking
+        con.executescript("""
+CREATE TABLE IF NOT EXISTS playlist_video_tracking (
+    video_id TEXT NOT NULL,
+    source_playlist_id TEXT NOT NULL,
+    counted INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (video_id, source_playlist_id)
+);
+""")
+        # V7: added_to_playlist_count on subscription
+        _run_migration_safe(
+            con,
+            "ALTER TABLE subscription ADD COLUMN added_to_playlist_count INTEGER NOT NULL DEFAULT 0",
+        )
         con.commit()
         con.close()
         return True

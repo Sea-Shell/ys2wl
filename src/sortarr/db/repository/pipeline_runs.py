@@ -15,6 +15,7 @@ __all__ = [
     "insert_run_decision",
     "update_pipeline_run_progress",
     "cleanup_old_decisions",
+    "get_runs_by_video_id",
 ]
 
 
@@ -183,3 +184,23 @@ def cleanup_old_decisions(con: sqlite3.Connection, days: int = 10) -> bool:
     except sqlite3.Error as err:
         log.error("Failed to cleanup old decisions: %s", err)
         return False
+
+
+def get_runs_by_video_id(
+    con: sqlite3.Connection, video_id: str, limit: int = 50
+) -> list[dict]:
+    """Get pipeline runs where a specific video appeared."""
+    cursor = con.execute(
+        """
+        SELECT DISTINCT pr.id, pr.started_at, pr.finished_at, pr.status, pr.trigger,
+               pr.subscriptions_processed, pr.subscriptions_skipped, pr.videos_added,
+               pr.videos_skipped, pr.errors, pr.dry_run
+        FROM pipeline_runs pr
+        JOIN pipeline_run_decisions prd ON pr.id = prd.run_id
+        WHERE prd.video_id = ?
+        ORDER BY pr.id DESC
+        LIMIT ?
+        """,
+        (video_id, limit),
+    )
+    return [dict(row) for row in cursor.fetchall()]

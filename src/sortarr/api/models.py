@@ -206,6 +206,7 @@ class SubscriptionStat(BaseModel):
     videos_added: int = 0
     last_added_at: Optional[str] = None
     status: str = "inactive"
+    added_to_playlist_count: int = 0
 
 
 class PlaylistResponse(BaseModel):

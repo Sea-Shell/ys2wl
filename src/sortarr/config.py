@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     published_after: Optional[str] = Field(default=None)
     no_webbrowser: bool = Field(default=False)
     public_url: str = Field(default="http://localhost:8080")
+    playlist_tracker_schedule: str = Field(default="0 3 * * *")
 
 
 def load_settings() -> Settings:
