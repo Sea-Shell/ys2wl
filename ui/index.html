@@ -344,8 +344,20 @@ tr:hover td { background: rgba(255,0,51,0.03); }
 tr:not(.activity-row):hover td:first-child { border-left: 2px solid var(--neon-accent); padding-left: calc(var(--space-3) - 2px); }
 td.mono { font-family: var(--font-mono); font-size: 0.75rem; }
 td.num { font-family: var(--font-mono); font-size: 0.75rem; text-align: right; }
-td .link { color: var(--blue); cursor: pointer; text-decoration: none; }
-td .link:hover { text-decoration: underline; }
+td .link {
+  color: var(--neon-cyan);
+  cursor: pointer;
+  text-decoration: none;
+  text-shadow: 0 0 4px var(--neon-cyan-glow);
+  transition: color .15s, text-shadow .15s, border-color .15s;
+  border-bottom: 1px solid transparent;
+  padding-bottom: 1px;
+}
+td .link:hover {
+  color: var(--neon-accent);
+  text-shadow: 0 0 8px var(--neon-accent-glow);
+  border-bottom-color: var(--neon-accent);
+}
 th.sortable { cursor: pointer; user-select: none; }
 th.sortable:hover { color: var(--text-secondary); }
 .badge {
@@ -859,7 +871,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: var(--sp
       <h2>Run Details</h2>
     </div>
     <div id="runDetailSummary"></div>
-    <p style="margin:var(--space-4) 0"><a href="#runs" style="color:var(--blue);cursor:pointer;text-decoration:none;font-size:0.875rem">&larr; Back to Runs</a></p>
+    <p style="margin:var(--space-4) 0"><a href="#runs" style="color:var(--neon-cyan);cursor:pointer;text-decoration:none;font-size:0.875rem;text-shadow:0 0 4px var(--neon-cyan-glow);border-bottom:1px solid transparent;padding-bottom:1px" onmouseover="this.style.color='var(--neon-accent)';this.style.textShadow='0 0 8px var(--neon-accent-glow)';this.style.borderBottomColor='var(--neon-accent)'" onmouseout="this.style.color='var(--neon-cyan)';this.style.textShadow='0 0 4px var(--neon-cyan-glow)';this.style.borderBottomColor='transparent'">&larr; Back to Runs</a></p>
     <div id="runDetailDecisions"><p class="loading">Loading...</p></div>
   </section>
 
@@ -1102,11 +1114,11 @@ async function searchVideo(videoId, showRuns, resultDiv, btn) {
     ]);
     resultDiv.style.display = 'block';
     const runHtml = runs && runs.runs && runs.runs.length > 0
-      ? '<h4 style="margin:var(--space-4) 0 var(--space-2);color:var(--blue)">Runs containing this video (' + runs.total + ' total)</h4>' +
+      ? '<h4 style="margin:var(--space-4) 0 var(--space-2);color:var(--neon-cyan);text-shadow:0 0 4px var(--neon-cyan-glow)">Runs containing this video (' + runs.total + ' total)</h4>' +
         '<div class="table-wrap"><table>' +
         '<thead><tr><th>Run</th><th>Started</th><th>Status</th><th>Trigger</th><th>Added</th><th>Skipped</th><th>Errors</th></tr></thead>' +
         '<tbody>' + runs.runs.map(r => '<tr>' +
-          '<td class="mono"><a href="#run-detail-' + r.run_id + '" style="color:var(--blue)">' + r.run_id + '</a></td>' +
+          '<td class="mono"><a href="#run-detail-' + r.run_id + '" style="color:var(--neon-cyan);text-shadow:0 0 4px var(--neon-cyan-glow);border-bottom:1px solid transparent;padding-bottom:1px" onmouseover="this.style.color=\'var(--neon-accent)\';this.style.textShadow=\'0 0 8px var(--neon-accent-glow)\';this.style.borderBottomColor=\'var(--neon-accent)\'" onmouseout="this.style.color=\'var(--neon-cyan)\';this.style.textShadow=\'0 0 4px var(--neon-cyan-glow)\';this.style.borderBottomColor=\'transparent\'">' + r.run_id + '</a></td>' +
           '<td style="font-size:0.7rem">' + formatTime(r.started_at) + '</td>' +
           '<td>' + statusBadge(r.status) + '</td>' +
           '<td>' + (r.trigger || '-') + (r.dry_run ? ' <span class="tag-dryrun">DRY</span>' : '') + '</td>' +
@@ -1680,7 +1692,7 @@ renderers.runDetail = async function(runId) {
           html += '<div style="margin-bottom:var(--space-4)"><h4 class="section-title">Subscription Skips</h4>' +
             subSkips.map(s =>
               '<div style="padding:var(--space-1) 0;border-bottom:1px solid var(--border)">' +
-              '<strong><a href="https://www.youtube.com/channel/' + escapeHtml(s.channel_id || s.subscription_id || '') + '" target="_blank" rel="noopener" style="color:var(--blue)">' + escapeHtml(s.title) + '</a></strong>' +
+              '<strong><a href="https://www.youtube.com/channel/' + escapeHtml(s.channel_id || s.subscription_id || '') + '" target="_blank" rel="noopener" style="color:var(--neon-cyan);text-shadow:0 0 4px var(--neon-cyan-glow);border-bottom:1px solid transparent;padding-bottom:1px" onmouseover="this.style.color=\'var(--neon-accent)\';this.style.textShadow=\'0 0 8px var(--neon-accent-glow)\';this.style.borderBottomColor=\'var(--neon-accent)\'" onmouseout="this.style.color=\'var(--neon-cyan)\';this.style.textShadow=\'0 0 4px var(--neon-cyan-glow)\';this.style.borderBottomColor=\'transparent\'">' + escapeHtml(s.title) + '</a></strong>' +
               ' &mdash; ' + escapeHtml(s.reason_detail || s.reason) + '</div>'
             ).join('') + '</div>';
         }
@@ -1688,8 +1700,8 @@ renderers.runDetail = async function(runId) {
           '<th>Video</th><th>Channel</th><th>Action</th><th>Reason</th><th>Routed To</th>' +
           '</tr></thead><tbody>' + videoDecisions.map(d =>
             '<tr><td style="max-width:250px;overflow:hidden;text-overflow:ellipsis">' +
-            '<a href="https://www.youtube.com/watch?v=' + escapeHtml(d.video_id || '') + '" target="_blank" rel="noopener" style="color:var(--blue)">' + escapeHtml(d.title) + '</a></td>' +
-            '<td><a href="https://www.youtube.com/channel/' + escapeHtml(d.channel_id || d.subscription_id || '') + '" target="_blank" rel="noopener" style="color:var(--blue)">' + escapeHtml(d.subscription_title) + '</a></td>' +
+            '<a href="https://www.youtube.com/watch?v=' + escapeHtml(d.video_id || '') + '" target="_blank" rel="noopener" style="color:var(--neon-cyan);text-shadow:0 0 4px var(--neon-cyan-glow);border-bottom:1px solid transparent;padding-bottom:1px" onmouseover="this.style.color=\'var(--neon-accent)\';this.style.textShadow=\'0 0 8px var(--neon-accent-glow)\';this.style.borderBottomColor=\'var(--neon-accent)\'" onmouseout="this.style.color=\'var(--neon-cyan)\';this.style.textShadow=\'0 0 4px var(--neon-cyan-glow)\';this.style.borderBottomColor=\'transparent\'">' + escapeHtml(d.title) + '</a></td>' +
+            '<td><a href="https://www.youtube.com/channel/' + escapeHtml(d.channel_id || d.subscription_id || '') + '" target="_blank" rel="noopener" style="color:var(--neon-cyan);text-shadow:0 0 4px var(--neon-cyan-glow);border-bottom:1px solid transparent;padding-bottom:1px" onmouseover="this.style.color=\'var(--neon-accent)\';this.style.textShadow=\'0 0 8px var(--neon-accent-glow)\';this.style.borderBottomColor=\'var(--neon-accent)\'" onmouseout="this.style.color=\'var(--neon-cyan)\';this.style.textShadow=\'0 0 4px var(--neon-cyan-glow)\';this.style.borderBottomColor=\'transparent\'">' + escapeHtml(d.subscription_title) + '</a></td>' +
             '<td><span class="badge ' + (d.action === 'added' ? 'badge-completed' : d.action === 'error' ? 'badge-error' : 'badge-running') + '">' + d.action + '</span></td>' +
             '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis">' + escapeHtml(d.reason_detail || d.reason || '-') + '</td>' +
             '<td class="mono">' + escapeHtml(d.routed_to || '-') + '</td>' +
