@@ -28,7 +28,7 @@ def test_process_video_new_match():
         None,
     ]
     tracker = PlaylistTracker(youtube, db, channel_id="UC123")
-    result = tracker._process_video("vid1", "UC123", "PL99")
+    result = tracker._process_video("vid1", "PL99")
     assert result is True
 
 
@@ -37,7 +37,7 @@ def test_process_video_already_counted():
     db = Mock()
     db.execute.return_value.fetchone.return_value = {"counted": 1}
     tracker = PlaylistTracker(youtube, db, channel_id="UC123")
-    result = tracker._process_video("vid1", "UC123", "PL99")
+    result = tracker._process_video("vid1", "PL99")
     assert result is False
 
 
@@ -50,7 +50,7 @@ def test_process_video_not_in_videos_table():
         None,
     ]
     tracker = PlaylistTracker(youtube, db, channel_id="UC123")
-    result = tracker._process_video("vid1", "UC123", "PL99")
+    result = tracker._process_video("vid1", "PL99")
     assert result is False
 
 
@@ -98,7 +98,7 @@ def test_upgrade_from_counted_0_to_1():
     ]
 
     tracker = PlaylistTracker(youtube, db, channel_id="UC123")
-    result1 = tracker._process_video("vid1", "UC123", "PL99")
+    result1 = tracker._process_video("vid1", "PL99")
     assert result1 is False
 
     db.execute.return_value.fetchone.side_effect = [
@@ -106,5 +106,5 @@ def test_upgrade_from_counted_0_to_1():
         {"subscriptionId": "sub123"},
     ]
 
-    result2 = tracker._process_video("vid1", "UC123", "PL99")
+    result2 = tracker._process_video("vid1", "PL99")
     assert result2 is True

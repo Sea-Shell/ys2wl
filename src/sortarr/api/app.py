@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
@@ -12,6 +13,7 @@ from sortarr.core.youtube import YouTubeAPIClient
 from sortarr.core.auth import load_credentials
 from sortarr.core.scheduler import PipelineScheduler
 from sortarr.core.pipeline_runner import execute_pipeline
+from sortarr.core.playlist_tracker import PlaylistTracker
 from sortarr.db.migrations import init_db
 from sortarr.db.repository import config as repo
 from sortarr.api.routes import (
@@ -20,6 +22,7 @@ from sortarr.api.routes import (
     rules,
     pipeline as pipeline_routes,
     pipelines as pipelines_routes,
+    playlist_tracker as playlist_tracker_routes,
     subscriptions,
     stats as stats_routes,
 )
@@ -74,6 +77,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator:
     # Overlay DB config onto settings (DB wins)
     for key in [
         "schedule",
+        "playlist_tracker_schedule",
         "compare_distance",
         "credentials_file",
         "reprocess_days",
@@ -106,6 +110,8 @@ async def lifespan(app: FastAPI) -> AsyncIterator:
 
     # --- SCHEDULER WIRING ---
     # Only start scheduler if a cron is set and credentials are valid
+    playlist_tracker_cron = getattr(state.settings, "playlist_tracker_schedule", None)
+
     if (
         getattr(state.settings, "schedule", None)
         and state.youtube is not None
@@ -116,7 +122,47 @@ async def lifespan(app: FastAPI) -> AsyncIterator:
         async def pipeline_callback():
             await execute_pipeline(state, trigger="auto")
 
-        state.scheduler = PipelineScheduler(state.settings.schedule, pipeline_callback)
+        async def playlist_tracker_callback():
+            channel = state.db_con.execute("SELECT id FROM channel LIMIT 1").fetchone()
+            cid = channel["id"] if channel else None
+            if not cid:
+                channels = state.youtube.get_channel_id()
+                if channels:
+                    cid = channels[0].id
+            if not cid:
+                log.warning("Cannot run playlist tracker — no channel ID")
+                return
+            import sqlite3
+
+            def _run():
+                tcon = sqlite3.connect(state.settings.database_file)
+                tcon.row_factory = sqlite3.Row
+                client = YouTubeAPIClient(credentials=state.credentials)
+                try:
+                    tracker = PlaylistTracker(client, tcon, cid)
+                    result = tracker.run()
+                    log.info("Playlist tracker result: %s", result)
+                    return result
+                finally:
+                    client.close()
+                    tcon.close()
+
+            await asyncio.to_thread(_run)
+
+        state.scheduler = PipelineScheduler(
+            state.settings.schedule,
+            pipeline_callback,
+            playlist_tracker_cron=(
+                playlist_tracker_cron
+                if playlist_tracker_cron and playlist_tracker_cron.strip() != ""
+                else None
+            ),
+            playlist_tracker_fn=(
+                playlist_tracker_callback
+                if playlist_tracker_cron and playlist_tracker_cron.strip() != ""
+                else None
+            ),
+        )
         state.scheduler.start()
         log.info(f"PipelineScheduler started with cron: {state.settings.schedule}")
     else:
@@ -151,6 +197,11 @@ def create_app() -> FastAPI:
     app.include_router(subscriptions.router, prefix="/api", tags=["subscriptions"])
     app.include_router(stats_routes.router, prefix="/api", tags=["stats"])
     app.include_router(auth_routes.router, prefix="/api", tags=["auth"])
+    app.include_router(
+        playlist_tracker_routes.router,
+        prefix="/api",
+        tags=["playlist-tracker"],
+    )
 
     metrics_app = make_asgi_app()
     app.mount("/metrics", metrics_app)

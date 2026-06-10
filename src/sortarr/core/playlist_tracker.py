@@ -66,9 +66,7 @@ class PlaylistTracker:
         )
         self.db_con.commit()
 
-    def _process_video(
-        self, video_id: str, channel_id: str, source_playlist_id: str
-    ) -> bool:
+    def _process_video(self, video_id: str, source_playlist_id: str) -> bool:
         now = datetime.now(timezone.utc).isoformat()
 
         existing = self.db_con.execute(
@@ -107,7 +105,7 @@ class PlaylistTracker:
 
         if video:
             self.db_con.execute(
-                "INSERT INTO playlist_video_tracking (video_id, source_playlist_id, counted, created_at) VALUES (?, ?, 1, ?)",
+                "INSERT OR IGNORE INTO playlist_video_tracking (video_id, source_playlist_id, counted, created_at) VALUES (?, ?, 1, ?)",
                 (video_id, source_playlist_id, now),
             )
             self._increment_count(video["subscriptionId"], video_id, source_playlist_id)
@@ -117,7 +115,7 @@ class PlaylistTracker:
             return True
         else:
             self.db_con.execute(
-                "INSERT INTO playlist_video_tracking (video_id, source_playlist_id, counted, created_at) VALUES (?, ?, 0, ?)",
+                "INSERT OR IGNORE INTO playlist_video_tracking (video_id, source_playlist_id, counted, created_at) VALUES (?, ?, 0, ?)",
                 (video_id, source_playlist_id, now),
             )
             self.db_con.commit()
@@ -156,9 +154,7 @@ class PlaylistTracker:
             for item in items:
                 videos_found += 1
                 try:
-                    if self._process_video(
-                        item["video_id"], item["channel_id"], pl["id"]
-                    ):
+                    if self._process_video(item["video_id"], pl["id"]):
                         videos_newly_counted += 1
                         if item["channel_id"]:
                             subscriptions_set.add(item["channel_id"])
