@@ -42,7 +42,7 @@ async def test_index_has_dashboard_section(client):
 @pytest.mark.asyncio
 async def test_index_has_dark_theme(client):
     resp = await client.get("/ui/index.html")
-    assert "--bg" in resp.text or "#0f172a" in resp.text
+    assert "--canvas" in resp.text or "#0c0c0e" in resp.text
 
 
 @pytest.mark.asyncio
