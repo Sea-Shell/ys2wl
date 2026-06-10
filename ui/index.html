@@ -405,6 +405,7 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: var(--sp
   <a data-page="videolookup" href="#videolookup"><span class="nav-icon">&#128269;</span><span class="nav-text">Video Lookup</span></a>
   <a data-page="runs" href="#runs"><span class="nav-icon">&#8635;</span><span class="nav-text">Runs</span></a>
   <a data-page="stats" href="#stats"><span class="nav-icon">&#9774;</span><span class="nav-text">Stats</span></a>
+  <a data-page="ignorelists" href="#ignorelists"><span class="nav-icon">&#9888;</span><span class="nav-text">Ignore Lists</span></a>
   <a data-page="config" href="#config"><span class="nav-icon">&#9881;</span><span class="nav-text">Config</span></a>
   <a data-page="auth" href="#auth"><span class="nav-icon">&#9673;</span><span class="nav-text">Auth</span></a>
 </nav>
@@ -544,11 +545,13 @@ hr.divider { border: none; border-top: 1px solid var(--border); margin: var(--sp
     <div class="config-tabs">
       <button class="config-tab active" data-tab="runtime">Runtime</button>
       <button class="config-tab" data-tab="credentials">Credentials</button>
-      <button class="config-tab" data-tab="ignores">Ignore Lists</button>
     </div>
     <div id="configRuntime" class="config-pane"></div>
     <div id="configCredentials" class="config-pane" style="display:none"></div>
-    <div id="configIgnores" class="config-pane" style="display:none"></div>
+  </section>
+  <section id="ignorelists" class="page">
+    <h2>Ignore Lists</h2>
+    <div id="ignorelistsPage"></div>
   </section>
 
   <section id="runs" class="page">
@@ -658,7 +661,7 @@ function statusBadge(status) {
   return '<span class="badge badge-running">' + status + '</span>';
 }
 
-const PAGES = ['dashboard','subscriptions','pipelines','videolookup','config','runs','stats','auth'];
+const PAGES = ['dashboard','subscriptions','pipelines','videolookup','config','runs','stats','ignorelists','auth'];
 
 function navigate(page) {
   location.hash = '#' + page;
@@ -1067,7 +1070,7 @@ function renderIgnoreListCheckboxes(attached) {
   const container = document.getElementById('pipelineIgnoreLists');
   const lists = pipelineIgnoreListCache;
   if (lists.length === 0) {
-    container.innerHTML = '<p style="color:var(--text-tertiary);font-size:0.8125rem">No ignore lists available. Create them in Config first.</p>';
+    container.innerHTML = '<p style="color:var(--text-tertiary);font-size:0.8125rem">No ignore lists available. Create them in Ignore Lists first.</p>';
     return;
   }
   container.innerHTML = lists.map(l =>
@@ -1212,8 +1215,8 @@ renderers.configCredentials = async function() {
   } catch { container.innerHTML = '<p class="error-state">Failed to load</p>'; }
 };
 
-renderers.configIgnores = async function() {
-  const container = document.getElementById('configIgnores');
+renderers.ignorelists = async function() {
+  const container = document.getElementById('ignorelistsPage');
   container.innerHTML = '<p class="loading">Loading...</p>';
   try {
     const lists = await api('/api/ignore-lists');
@@ -1242,7 +1245,7 @@ renderers.configIgnores = async function() {
         ) + '</div></div>'
       ).join('') + '</div>';
 
-    async function refresh() { await renderers.configIgnores(); }
+    async function refresh() { await renderers.ignorelists(); }
 
     document.getElementById('addListBtn').onclick = async function() {
       const name = document.getElementById('newListName').value.trim();
@@ -1301,7 +1304,6 @@ renderers.configIgnores = async function() {
 renderers.config = async function() {
   renderers.configRuntime();
   renderers.configCredentials();
-  renderers.configIgnores();
   document.querySelectorAll('.config-tab[data-tab]').forEach(btn => {
     btn.onclick = function() {
       document.querySelectorAll('.config-tab').forEach(b => b.classList.remove('active'));
