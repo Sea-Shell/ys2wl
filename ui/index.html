@@ -4,251 +4,544 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>sortarr</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #0f172a;
-  --surface: #1e293b;
-  --surface2: #334155;
-  --text: #e2e8f0;
-  --text2: #94a3b8;
-  --accent: #38bdf8;
-  --accent-hover: #7dd3fc;
-  --success: #22c55e;
-  --warning: #eab308;
-  --error: #ef4444;
-  --sidebar: 220px;
-  --radius: 8px;
-  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --canvas: #0c0c0e;
+  --surface-1: #161618;
+  --surface-2: #1e1e22;
+  --surface-3: #28282d;
+  --text-primary: #e8e6e3;
+  --text-secondary: #9a9490;
+  --text-tertiary: #6b6562;
+  --text-muted: #4a4542;
+  --accent: #ff0033;
+  --accent-hover: #ff3355;
+  --accent-muted: rgba(255,0,51,0.12);
+  --amber: #e68a00;
+  --amber-muted: rgba(230,138,0,0.12);
+  --green: #00e676;
+  --green-muted: rgba(0,230,118,0.12);
+  --red: #ff1744;
+  --red-muted: rgba(255,23,68,0.12);
+  --blue: #448aff;
+  --blue-muted: rgba(68,138,255,0.12);
+  --data: #7b8ba3;
+  --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --radius: 4px;
+  --border: rgba(255,255,255,0.06);
+  --border-hover: rgba(255,255,255,0.12);
+  --border-focus: rgba(255,0,51,0.5);
+  --nav-height: 48px;
+  --status-height: 32px;
 }
-* { margin: 0; padding: 0; box-sizing: border-box; }
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 body {
-  font-family: var(--font);
-  background: var(--bg);
-  color: var(--text);
-  display: flex;
+  font-family: var(--font-ui);
+  background: var(--canvas);
+  color: var(--text-primary);
   min-height: 100vh;
 }
-.sidebar {
-  width: var(--sidebar);
-  background: var(--surface);
-  padding: 1.5rem 0;
+::selection { background: var(--accent-muted); color: var(--text-primary); }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-tertiary); }
+.topnav {
+  position: fixed; top: 0; left: 0; right: 0;
+  height: var(--nav-height);
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border);
   display: flex;
-  flex-direction: column;
-  position: fixed;
-  top: 0;
-  left: 0;
-  height: 100vh;
-}
-.sidebar h1 {
-  font-size: 1.25rem;
-  font-weight: 700;
-  padding: 0 1.25rem 1.5rem;
-  color: var(--accent);
-}
-.sidebar a {
-  display: block;
-  padding: 0.625rem 1.25rem;
-  color: var(--text2);
-  text-decoration: none;
-  font-size: 0.875rem;
-  transition: background .15s, color .15s;
-  cursor: pointer;
-}
-.sidebar a:hover,
-.sidebar a.active {
-  background: var(--surface2);
-  color: var(--text);
-}
-.main {
-  margin-left: var(--sidebar);
-  flex: 1;
-  padding: 1.5rem 2rem;
-}
-.topbar {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-bottom: 2rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid var(--surface2);
-  font-size: 0.875rem;
-  color: var(--text2);
+  padding: 0 var(--space-4);
+  z-index: 100;
+  gap: var(--space-1);
 }
-.health-dot {
-  display: inline-block;
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--success);
-  margin-right: 0.5rem;
+.topnav-logo {
+  font-size: 1rem; font-weight: 700;
+  color: var(--accent); letter-spacing: -0.02em;
+  margin-right: var(--space-3);
+  flex-shrink: 0;
+}
+.topnav a {
+  display: flex; align-items: center; gap: 6px;
+  padding: var(--space-1) var(--space-3);
+  color: var(--text-tertiary);
+  text-decoration: none; font-size: 0.8125rem; font-weight: 500;
+  border-radius: var(--radius);
+  transition: color .15s, background .15s;
+  cursor: pointer; white-space: nowrap;
+}
+.topnav a:hover { color: var(--text-secondary); background: var(--surface-2); }
+.topnav a.active { color: var(--text-primary); background: var(--surface-3); }
+.topnav a .nav-icon { font-size: 1rem; line-height: 1; }
+.statusbar {
+  position: fixed; top: var(--nav-height); left: 0; right: 0;
+  height: var(--status-height);
+  display: flex; align-items: center;
+  padding: 0 var(--space-4);
+  font-size: 0.75rem; color: var(--text-tertiary);
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border);
+  z-index: 99;
+  gap: var(--space-3);
+}
+.statusbar .health { display: flex; align-items: center; gap: 6px; }
+.statusbar .health-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--green);
+}
+.statusbar .health-dot.error { background: var(--red); }
+.statusbar .next-run { margin-left: auto; font-size: 0.6875rem; }
+.main {
+  margin-top: calc(var(--nav-height) + var(--status-height));
+  padding: var(--space-5);
+  max-width: 1400px;
 }
 .page { display: none; }
 .page.active { display: block; }
-.page h2 { font-size: 1.5rem; margin-bottom: 1rem; }
+.page-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: var(--space-5);
+}
+.page-header h2 {
+  font-size: 1.25rem; font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.page-header .subtitle {
+  font-size: 0.8125rem; color: var(--text-tertiary);
+  font-weight: 400;
+}
 .card {
-  background: var(--surface);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 1.25rem;
-  margin-bottom: 1rem;
+  padding: var(--space-4);
 }
-.card h3 { font-size: 0.875rem; color: var(--text2); margin-bottom: 0.25rem; }
-.card .value { font-size: 1.5rem; font-weight: 700; }
-button, .btn {
-  background: var(--accent);
-  color: #0f172a;
-  border: none;
-  padding: 0.5rem 1rem;
+.card-hover:hover { border-color: var(--border-hover); }
+.card-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: var(--space-3);
+}
+.card-header h3 { font-size: 0.8125rem; font-weight: 500; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; }
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+.stat-card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
   border-radius: var(--radius);
-  font-weight: 600;
-  font-size: 0.875rem;
+  padding: var(--space-4);
+}
+.stat-card .stat-label {
+  font-size: 0.6875rem; font-weight: 500;
+  color: var(--text-tertiary); text-transform: uppercase;
+  letter-spacing: 0.06em; margin-bottom: var(--space-1);
+}
+.stat-card .stat-value {
+  font-family: var(--font-mono);
+  font-size: 1.5rem; font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+.stat-card .stat-value.small { font-size: 0.875rem; }
+.flow-viz {
+  display: flex; align-items: center; gap: 0;
+  padding: var(--space-5);
+  margin-bottom: var(--space-5);
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow-x: auto;
+}
+.flow-node {
+  display: flex; flex-direction: column; align-items: center;
+  gap: var(--space-2); min-width: 100px;
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  position: relative;
+}
+.flow-node .node-icon { font-size: 1.25rem; line-height: 1; }
+.flow-node .node-label { font-size: 0.6875rem; font-weight: 500; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; }
+.flow-node .node-count { font-family: var(--font-mono); font-size: 1.25rem; font-weight: 600; color: var(--text-primary); }
+.flow-node.active { border-color: var(--accent-muted); background: var(--accent-muted); }
+.flow-node.active .node-label { color: var(--accent); }
+.flow-arrow {
+  display: flex; align-items: center;
+  padding: 0 var(--space-2);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: var(--space-1) var(--space-4);
+  font-family: var(--font-ui);
+  font-size: 0.8125rem; font-weight: 500;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
   cursor: pointer;
-  transition: background .15s;
+  transition: background .15s, border-color .15s, opacity .15s;
+  line-height: 1.4;
 }
-button:hover { background: var(--accent-hover); }
-button:disabled { opacity: 0.5; cursor: not-allowed; }
-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-th { text-align: left; padding: 0.5rem; color: var(--text2); border-bottom: 1px solid var(--surface2); }
-td { padding: 0.5rem; border-bottom: 1px solid var(--surface2); }
-tr:hover td { background: var(--surface2); }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.btn-primary:hover:not(:disabled) { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn-secondary { background: var(--surface-2); color: var(--text-secondary); border-color: var(--border); }
+.btn-secondary:hover:not(:disabled) { background: var(--surface-3); color: var(--text-primary); }
+.btn-ghost { background: transparent; color: var(--text-tertiary); }
+.btn-ghost:hover:not(:disabled) { background: var(--surface-2); color: var(--text-secondary); }
+.btn-danger { background: var(--red-muted); color: var(--red); border-color: transparent; }
+.btn-danger:hover:not(:disabled) { background: var(--red); color: #fff; }
+.btn-sm { padding: 2px var(--space-2); font-size: 0.75rem; }
+.btn-icon { padding: var(--space-1); line-height: 1; }
+.table-wrap { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); }
+table { width: 100%; border-collapse: collapse; font-size: 0.8125rem; }
+thead { position: sticky; top: 0; z-index: 1; }
+th {
+  text-align: left; padding: var(--space-2) var(--space-3);
+  font-weight: 500; font-size: 0.6875rem; color: var(--text-tertiary);
+  text-transform: uppercase; letter-spacing: 0.05em;
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border);
+}
+td { padding: var(--space-2) var(--space-3); border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(255,255,255,0.02); }
+td.mono { font-family: var(--font-mono); font-size: 0.75rem; }
+td.num { font-family: var(--font-mono); font-size: 0.75rem; text-align: right; }
+td .link { color: var(--blue); cursor: pointer; text-decoration: none; }
+td .link:hover { text-decoration: underline; }
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: var(--text-secondary); }
 .badge {
-  display: inline-block; padding: 0.125rem 0.5rem;
-  border-radius: 999px; font-size: 0.75rem; font-weight: 600;
+  display: inline-flex; align-items: center;
+  padding: 1px 6px;
+  border-radius: var(--radius);
+  font-size: 0.6875rem; font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
-.badge-ok { background: var(--success); color: #0f172a; }
-.badge-fail { background: var(--error); color: #fff; }
-.badge-run { background: var(--warning); color: #0f172a; }
-.badge-playlist { background: var(--accent); color: var(--bg); border-radius: 999px; padding: 0.1rem 0.5rem; font-size: 0.75rem; font-weight: 600; margin-left: 0.5rem; white-space: nowrap; }
-.tag-dryrun { background: var(--surface2); color: var(--accent); font-size: 0.65rem; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 4px; border: 1px solid var(--accent); }
-input, select {
-  background: var(--bg); color: var(--text); border: 1px solid var(--surface2);
-  padding: 0.5rem; border-radius: var(--radius); font-size: 0.875rem; width: 100%;
+.badge-completed, .badge-ok { background: var(--green-muted); color: var(--green); }
+.badge-running, .badge-run { background: var(--amber-muted); color: var(--amber); }
+.badge-failed, .badge-error { background: var(--red-muted); color: var(--red); }
+.badge-info { background: var(--blue-muted); color: var(--blue); }
+.badge-accent { background: var(--accent-muted); color: var(--accent); }
+.tag-dryrun {
+  display: inline-flex; align-items: center;
+  font-family: var(--font-mono); font-size: 0.625rem; font-weight: 600;
+  padding: 1px 4px; border-radius: 2px;
+  background: var(--amber-muted); color: var(--amber);
+  letter-spacing: 0.03em; margin-left: 4px;
 }
-label { display: block; font-size: 0.875rem; color: var(--text2); margin-bottom: 0.25rem; }
-.form-group { margin-bottom: 1rem; }
+.form-group { margin-bottom: var(--space-4); }
+.form-group label {
+  display: block;
+  font-size: 0.75rem; font-weight: 500;
+  color: var(--text-tertiary);
+  margin-bottom: var(--space-1);
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+input, select, textarea {
+  font-family: var(--font-ui);
+  background: var(--canvas);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  font-size: 0.8125rem;
+  width: 100%;
+  transition: border-color .15s;
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}
+input::placeholder { color: var(--text-muted); }
+input[type="checkbox"], input[type="radio"] { width: auto; }
+select { cursor: pointer; }
+textarea { font-family: var(--font-mono); font-size: 0.75rem; resize: vertical; }
+.form-row { display: flex; gap: var(--space-3); }
+.form-row > * { flex: 1; }
+.checkbox-label {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  cursor: pointer; font-size: 0.8125rem; color: var(--text-secondary);
+}
+.checkbox-label input[type="checkbox"] { width: auto; }
+.modal-overlay {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 200;
+  align-items: flex-start; justify-content: center;
+  overflow-y: auto; padding: var(--space-6);
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 560px; max-width: 100%;
+  margin: auto;
+  padding: var(--space-5);
+}
+.modal h3 { font-size: 1rem; font-weight: 600; margin-bottom: var(--space-4); }
+.modal-actions {
+  display: flex; gap: var(--space-2);
+  justify-content: flex-end;
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
 .toast {
-  position: fixed; top: 1rem; right: 1rem; padding: 0.75rem 1rem;
-  border-radius: var(--radius); font-size: 0.875rem; font-weight: 600;
-  z-index: 1000; display: none;
+  position: fixed; top: calc(var(--nav-height) + var(--status-height) + var(--space-3));
+  right: var(--space-4); z-index: 300;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius);
+  font-size: 0.8125rem; font-weight: 500;
+  display: none;
+  border: 1px solid var(--border);
 }
-.toast.error { background: var(--error); color: #fff; display: block; }
-.toast.success { background: var(--success); color: #0f172a; display: block; }
+.toast.show { display: block; }
+.toast.error { background: var(--red-muted); color: var(--red); border-color: rgba(255,23,68,0.2); }
+.toast.success { background: var(--green-muted); color: var(--green); border-color: rgba(0,230,118,0.2); }
+.toast.warning { background: var(--amber-muted); color: var(--amber); border-color: rgba(230,138,0,0.2); }
 .spinner {
-  display: inline-block; width: 16px; height: 16px;
-  border: 2px solid var(--surface2); border-top-color: var(--accent);
-  border-radius: 50%; animation: spin .6s linear infinite;
-  vertical-align: middle; margin-right: 0.5rem;
+  display: inline-block;
+  width: 14px; height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin .6s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.config-tab { background:var(--surface2); color:var(--text); border:none; padding:0.5rem 1rem; border-radius:var(--radius); font-weight:600; font-size:0.875rem; cursor:pointer; }
-.config-tab.active { background:var(--accent); color:#0f172a; }
-.config-pane { max-width:520px; }
+.config-tabs {
+  display: flex; gap: var(--space-1);
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--border);
+}
+.config-tab {
+  font-family: var(--font-ui);
+  padding: var(--space-2) var(--space-4);
+  font-size: 0.8125rem; font-weight: 500;
+  background: transparent; color: var(--text-tertiary);
+  border: none; border-radius: var(--radius);
+  cursor: pointer;
+  transition: color .15s, background .15s;
+}
+.config-tab:hover { color: var(--text-secondary); background: var(--surface-2); }
+.config-tab.active { color: var(--text-primary); background: var(--surface-3); }
+.config-pane { display: block; max-width: 520px; }
+.empty-state { padding: var(--space-6); text-align: center; color: var(--text-tertiary); font-size: 0.875rem; }
+.empty-state p { margin-bottom: var(--space-2); }
+.loading { color: var(--text-tertiary); font-size: 0.875rem; }
+.error-state { color: var(--red); font-size: 0.875rem; }
+.activity-table { font-size: 0.75rem; }
+.activity-table th { background: var(--surface-2); }
+.entry-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--surface-2);
+  padding: 2px 6px; border-radius: var(--radius);
+  font-size: 0.75rem; color: var(--text-secondary);
+  margin: 2px 4px 2px 0;
+}
+.entry-tag .del-entry {
+  background: none; border: none;
+  color: var(--text-muted); cursor: pointer;
+  font-size: 0.875rem; line-height: 1; padding: 0 2px;
+}
+.entry-tag .del-entry:hover { color: var(--red); }
+hr.divider { border: none; border-top: 1px solid var(--border); margin: var(--space-5) 0; }
+.auth-card-ok { border-left: 3px solid var(--green); }
+.auth-card-fail { border-left: 3px solid var(--red); }
+.section-title {
+  font-size: 0.8125rem; font-weight: 600; color: var(--text-secondary);
+  margin-bottom: var(--space-3);
+}
+.selector-row {
+  display: flex; gap: var(--space-2); margin-bottom: var(--space-2); align-items: center;
+}
+.selector-row select, .selector-row input { padding: var(--space-1) var(--space-2); font-size: 0.75rem; }
+@media (max-width: 768px) {
+  .topnav { overflow-x: auto; gap: 0; }
+  .topnav a { padding: var(--space-1) var(--space-2); font-size: 0.75rem; }
+  .topnav a .nav-text { display: none; }
+  .main { padding: var(--space-3); }
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .flow-viz { padding: var(--space-3); }
+  .flow-node { min-width: 70px; padding: var(--space-2); }
+  .flow-node .node-count { font-size: 1rem; }
+  .form-row { flex-direction: column; }
+  .modal { padding: var(--space-4); }
+}
+@media (max-width: 480px) {
+  .stat-grid { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
 
-<nav class="sidebar" id="sidebar">
-  <h1>sortarr</h1>
-  <a class="active" data-page="dashboard" href="#dashboard">Dashboard</a>
-  <a data-page="subscriptions" href="#subscriptions">Subscriptions</a>
-  <a data-page="pipelines" href="#pipelines">Pipelines</a>
-  <a data-page="videolookup" href="#videolookup">Video Lookup</a>
-  <a data-page="config" href="#config">Config</a>
-  <a data-page="runs" href="#runs">Pipeline Runs</a>
-  <a data-page="stats" href="#stats">Stats</a>
-  <a data-page="auth" href="#auth">Auth</a>
+<nav class="topnav" id="topnav">
+  <span class="topnav-logo">sortarr</span>
+  <a class="active" data-page="dashboard" href="#dashboard"><span class="nav-icon">&#9632;</span><span class="nav-text">Dashboard</span></a>
+  <a data-page="subscriptions" href="#subscriptions"><span class="nav-icon">&#9776;</span><span class="nav-text">Subscriptions</span></a>
+  <a data-page="pipelines" href="#pipelines"><span class="nav-icon">&#8594;</span><span class="nav-text">Pipelines</span></a>
+  <a data-page="videolookup" href="#videolookup"><span class="nav-icon">&#128269;</span><span class="nav-text">Video Lookup</span></a>
+  <a data-page="runs" href="#runs"><span class="nav-icon">&#8635;</span><span class="nav-text">Runs</span></a>
+  <a data-page="stats" href="#stats"><span class="nav-icon">&#9774;</span><span class="nav-text">Stats</span></a>
+  <a data-page="config" href="#config"><span class="nav-icon">&#9881;</span><span class="nav-text">Config</span></a>
+  <a data-page="auth" href="#auth"><span class="nav-icon">&#9673;</span><span class="nav-text">Auth</span></a>
 </nav>
 
+<div class="statusbar">
+  <span class="health">
+    <span class="health-dot" id="healthDot"></span>
+    <span id="healthText">loading...</span>
+  </span>
+  <span class="next-run" id="nextRunText"></span>
+</div>
+
 <div class="main">
-  <div class="topbar">
-    <span><span class="health-dot" id="healthDot"></span><span id="healthText">loading...</span></span>
-    <span id="nextRunText" style="font-size:0.75rem"></span>
-  </div>
 
   <section id="dashboard" class="page active">
-    <h2>Dashboard</h2>
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem">
-      <div class="card"><h3>Subscriptions</h3><div class="value" id="statSubs">-</div></div>
-      <div class="card"><h3>Pipelines</h3><div class="value" id="statPipelines">-</div></div>
-      <div class="card"><h3>Last Run</h3><div class="value" id="statLastRun">-</div></div>
-      <div class="card"><h3>Videos Added</h3><div class="value" id="statVideosAdded">-</div></div>
+    <div class="page-header">
+      <h2>Dashboard</h2>
+      <span class="subtitle">System overview</span>
     </div>
-    <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
-      <button id="triggerBtn">▶ Run Pipeline</button>
-      <button id="dryRunBtn" style="background:var(--surface2);color:var(--text)">🧪 Dry Run</button>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-label">Subscriptions</div><div class="stat-value" id="statSubs">-</div></div>
+      <div class="stat-card"><div class="stat-label">Pipelines</div><div class="stat-value" id="statPipelines">-</div></div>
+      <div class="stat-card"><div class="stat-label">Last Run</div><div class="stat-value small" id="statLastRun">-</div></div>
+      <div class="stat-card"><div class="stat-label">Videos Added</div><div class="stat-value" id="statVideosAdded">-</div></div>
     </div>
-    <div id="triggerResult" style="margin-top:0.75rem"></div>
 
-    <hr style="border:none;border-top:1px solid var(--surface2);margin:1.5rem 0">
-    <h3 style="font-size:1rem;color:var(--text2);margin-bottom:0.75rem">Video Lookup</h3>
-    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem">
-      <input id="videoSearchInput" type="text" placeholder="Enter YouTube video ID (e.g. dQw4w9WgXcQ)" style="flex:1;min-width:300px;padding:0.5rem;border-radius:var(--radius);border:1px solid var(--surface2);background:var(--bg);color:var(--text)">
-      <button id="videoSearchBtn" style="padding:0.5rem 1rem">Search</button>
+    <div class="flow-viz" id="flowViz">
+      <div class="flow-node active" id="flowSubs">
+        <span class="node-icon">&#9776;</span>
+        <span class="node-count" id="flowSubsCount">-</span>
+        <span class="node-label">Subscriptions</span>
+      </div>
+      <span class="flow-arrow">&#8594;</span>
+      <div class="flow-node" id="flowPipes">
+        <span class="node-icon">&#8594;</span>
+        <span class="node-count" id="flowPipesCount">-</span>
+        <span class="node-label">Pipelines</span>
+      </div>
+      <span class="flow-arrow">&#8594;</span>
+      <div class="flow-node" id="flowRouted">
+        <span class="node-icon">&#9632;</span>
+        <span class="node-count" id="flowRoutedCount">-</span>
+        <span class="node-label">Videos Routed</span>
+      </div>
+      <span class="flow-arrow">&#8594;</span>
+      <div class="flow-node" id="flowPlaylists">
+        <span class="node-icon">&#9774;</span>
+        <span class="node-count" id="flowPlaylistsCount">-</span>
+        <span class="node-label">Playlists</span>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:var(--space-2);flex-wrap:wrap">
+      <button id="triggerBtn" class="btn btn-primary">&#9654; Run Pipeline</button>
+      <button id="dryRunBtn" class="btn btn-secondary">&#9678; Dry Run</button>
+    </div>
+    <div id="triggerResult" style="margin-top:var(--space-3)"></div>
+
+    <hr class="divider">
+    <h3 class="section-title">Video Lookup</h3>
+    <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;margin-bottom:var(--space-4)">
+      <input id="videoSearchInput" type="text" placeholder="Enter YouTube video ID (e.g. dQw4w9WgXcQ)" style="flex:1;min-width:280px">
+      <button id="videoSearchBtn" class="btn btn-primary">Search</button>
     </div>
     <div id="videoSearchResult" style="display:none"></div>
   </section>
+
   <section id="videolookup" class="page">
-    <h2>Video Lookup</h2>
-    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem">
-      <input id="videoLookupInput" type="text" placeholder="Enter YouTube video ID (e.g. dQw4w9WgXcQ)" style="flex:1;min-width:300px;padding:0.5rem;border-radius:var(--radius);border:1px solid var(--surface2);background:var(--bg);color:var(--text)">
-      <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.875rem;color:var(--text2)">
+    <div class="page-header">
+      <h2>Video Lookup</h2>
+    </div>
+    <div style="display:flex;gap:var(--space-2);flex-wrap:wrap;margin-bottom:var(--space-4)">
+      <input id="videoLookupInput" type="text" placeholder="Enter YouTube video ID (e.g. dQw4w9WgXcQ)" style="flex:1;min-width:280px">
+      <label class="checkbox-label">
         <input type="checkbox" id="showInRuns"> Show in runs
       </label>
-      <button id="videoLookupBtn" style="padding:0.5rem 1rem">Search</button>
+      <button id="videoLookupBtn" class="btn btn-primary">Search</button>
     </div>
     <div id="videoLookupResult" style="display:none"></div>
   </section>
+
   <section id="subscriptions" class="page">
-    <h2>Subscriptions</h2>
-    <input id="subSearch" placeholder="Filter channels..." style="max-width:300px;margin-bottom:1rem">
+    <div class="page-header">
+      <h2>Subscriptions</h2>
+    </div>
+    <input id="subSearch" placeholder="Filter channels..." style="max-width:300px;margin-bottom:var(--space-4)">
     <div id="subList"></div>
   </section>
+
   <section id="pipelines" class="page">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-      <h2 style="margin:0">Pipelines</h2>
-      <button id="addPipelineBtn">+ Add Pipeline</button>
+    <div class="page-header">
+      <h2>Pipelines</h2>
+      <button id="addPipelineBtn" class="btn btn-primary">+ Add Pipeline</button>
     </div>
     <div id="pipelinesList"></div>
-    <div id="dryRunResult" style="margin-top:1rem"></div>
-    <div id="pipelineModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:999;
-         align-items:center;justify-content:center;overflow-y:auto">
-      <div style="background:var(--surface);padding:2rem;border-radius:var(--radius);width:560px;max-width:90vw;margin:2rem auto">
-        <h3 id="pipelineModalTitle" style="margin-bottom:1rem">Add Pipeline</h3>
+    <div id="dryRunResult" style="margin-top:var(--space-4)"></div>
+
+    <div id="pipelineModal" class="modal-overlay">
+      <div class="modal">
+        <h3 id="pipelineModalTitle">Add Pipeline</h3>
         <input type="hidden" id="pipelineId">
         <div class="form-group"><label>Name</label><input id="pipelineName"></div>
         <div class="form-group"><label>Subscription Scope</label>
           <select id="pipelineScope"><option value="all">All Subscriptions</option><option value="selected">Selected Only</option></select></div>
-        <div style="display:flex;gap:1rem">
-          <div class="form-group" style="flex:1"><label>Min Duration</label><input id="pipelineMinDuration" type="text" value="0" placeholder="e.g. 75 or 2m or 1h"></div>
-          <div class="form-group" style="flex:1"><label>Max Duration</label><input id="pipelineMaxDuration" type="text" value="0" placeholder="e.g. 480 or 8m or 1h"></div>
+        <div class="form-row">
+          <div class="form-group"><label>Min Duration</label><input id="pipelineMinDuration" type="text" value="0" placeholder="e.g. 75 or 2m or 1h"></div>
+          <div class="form-group"><label>Max Duration</label><input id="pipelineMaxDuration" type="text" value="0" placeholder="e.g. 480 or 8m or 1h"></div>
         </div>
         <div class="form-group"><label>Destination Playlist</label>
-          <select id="pipelineDestPlaylist" style="width:100%"><option value="">— Select playlist —</option></select></div>
-        <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">
-          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.875rem;color:var(--text2)">
-            <input type="checkbox" id="pipelineCheckDb" style="width:auto"> Check DB exists</label>
-          <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.875rem;color:var(--text2)">
-            <input type="checkbox" id="pipelineCheckTitle" style="width:auto"> Title similarity</label>
+          <select id="pipelineDestPlaylist"><option value="">— Select playlist —</option></select></div>
+        <div style="display:flex;gap:var(--space-4);flex-wrap:wrap;margin-bottom:var(--space-4)">
+          <label class="checkbox-label"><input type="checkbox" id="pipelineCheckDb"> Check DB exists</label>
+          <label class="checkbox-label"><input type="checkbox" id="pipelineCheckTitle"> Title similarity</label>
         </div>
         <div class="form-group" id="pipelineDistanceGroup" style="display:none">
           <label>Compare Distance</label><input id="pipelineDistance" type="number" value="80" min="0" max="100">
         </div>
-        <hr style="border:none;border-top:1px solid var(--surface2);margin:1rem 0">
-        <h4 style="font-size:0.875rem;color:var(--text2);margin-bottom:0.5rem">Selectors</h4>
+        <hr class="divider">
+        <h4 class="section-title">Selectors</h4>
         <div id="pipelineSelectors"></div>
-        <button id="addSelectorBtn" style="background:var(--surface2);color:var(--text);padding:0.25rem 0.5rem;font-size:0.75rem;margin-bottom:1rem">+ Add Selector</button>
-        <hr style="border:none;border-top:1px solid var(--surface2);margin:1rem 0">
-        <h4 style="font-size:0.875rem;color:var(--text2);margin-bottom:0.5rem">Attached Ignore Lists</h4>
+        <button id="addSelectorBtn" class="btn btn-ghost btn-sm" style="margin-bottom:var(--space-4)">+ Add Selector</button>
+        <hr class="divider">
+        <h4 class="section-title">Attached Ignore Lists</h4>
         <div id="pipelineIgnoreLists"></div>
-        <div style="display:flex;gap:0.5rem;justify-content:flex-end;margin-top:1rem">
-          <button id="pipelineCancel" style="background:var(--surface2);color:var(--text)">Cancel</button>
-          <button id="pipelineSave">Save</button>
+        <div class="modal-actions">
+          <button id="pipelineCancel" class="btn btn-secondary">Cancel</button>
+          <button id="pipelineSave" class="btn btn-primary">Save</button>
         </div>
       </div>
     </div>
   </section>
+
   <section id="config" class="page">
-    <h2>Config</h2>
-    <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem">
+    <div class="page-header">
+      <h2>Config</h2>
+    </div>
+    <div class="config-tabs">
       <button class="config-tab active" data-tab="runtime">Runtime</button>
       <button class="config-tab" data-tab="credentials">Credentials</button>
       <button class="config-tab" data-tab="ignores">Ignore Lists</button>
@@ -257,38 +550,53 @@ label { display: block; font-size: 0.875rem; color: var(--text2); margin-bottom:
     <div id="configCredentials" class="config-pane" style="display:none"></div>
     <div id="configIgnores" class="config-pane" style="display:none"></div>
   </section>
+
   <section id="runs" class="page">
-    <h2>Pipeline Runs</h2>
+    <div class="page-header">
+      <h2>Pipeline Runs</h2>
+    </div>
     <div id="runsList"></div>
   </section>
+
   <section id="run-detail" class="page">
-    <h2>Run Details</h2>
+    <div class="page-header">
+      <h2>Run Details</h2>
+    </div>
     <div id="runDetailSummary"></div>
-    <p><a href="#runs" style="color:var(--accent);cursor:pointer">&larr; Back to Runs</a></p>
-    <div id="runDetailDecisions"><p style="color:var(--text2)">Loading...</p></div>
+    <p style="margin:var(--space-4) 0"><a href="#runs" style="color:var(--blue);cursor:pointer;text-decoration:none;font-size:0.875rem">&larr; Back to Runs</a></p>
+    <div id="runDetailDecisions"><p class="loading">Loading...</p></div>
   </section>
+
   <section id="stats" class="page">
-    <h2>Stats</h2>
+    <div class="page-header">
+      <h2>Stats</h2>
+    </div>
     <div id="statsTable"></div>
   </section>
+
   <section id="auth" class="page">
-    <h2>Authentication</h2>
+    <div class="page-header">
+      <h2>Authentication</h2>
+    </div>
     <div id="authStatus"></div>
   </section>
+
 </div>
 
 <div id="toast" class="toast"></div>
 
 <script>
-// ---- API wrapper ----
 async function api(path, opts = {}) {
   const res = await fetch(path, {
     ...opts,
     headers: { 'Content-Type': 'application/json', ...opts.headers },
   });
   if (!res.ok) {
-    const body = await res.text();
-    throw new Error(`${res.status}: ${body}`);
+    let body;
+    try { body = await res.text(); } catch { body = res.statusText; }
+    const err = new Error(body || `${res.status}: ${res.statusText}`);
+    err.status = res.status;
+    throw err;
   }
   if (res.status === 204) return null;
   return res.json();
@@ -296,7 +604,7 @@ async function api(path, opts = {}) {
 
 function showToast(msg, type = 'error') {
   const t = document.getElementById('toast');
-  t.textContent = msg; t.className = `toast ${type}`;
+  t.textContent = msg; t.className = `toast ${type} show`;
   setTimeout(() => { t.className = 'toast'; }, 4000);
 }
 
@@ -343,7 +651,13 @@ function escapeHtml(s) {
   d.textContent = String(s); return d.innerHTML;
 }
 
-// ---- Routing ----
+function statusBadge(status) {
+  if (!status) return '<span class="badge badge-running">-</span>';
+  if (status === 'completed' || status === 'success') return '<span class="badge badge-completed">completed</span>';
+  if (status === 'failed' || status === 'completed_with_errors') return '<span class="badge badge-error">' + status.replace(/_/g,' ') + '</span>';
+  return '<span class="badge badge-running">' + status + '</span>';
+}
+
 const PAGES = ['dashboard','subscriptions','pipelines','videolookup','config','runs','stats','auth'];
 
 function navigate(page) {
@@ -353,10 +667,10 @@ function navigate(page) {
 function renderPage(page) {
   if (window._runDetailTimeout) { clearTimeout(window._runDetailTimeout); window._runDetailTimeout = null; }
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+  document.querySelectorAll('.topnav a').forEach(a => a.classList.remove('active'));
   const el = document.getElementById(page);
   if (el) el.classList.add('active');
-  const link = document.querySelector(`.sidebar a[data-page="${page}"]`);
+  const link = document.querySelector('.topnav a[data-page="' + page + '"]');
   if (link) link.classList.add('active');
   if (typeof renderers[page] === 'function') renderers[page]();
 }
@@ -366,7 +680,7 @@ window.addEventListener('hashchange', () => {
   const runMatch = hash.match(/^run-detail-(\d+)$/);
   if (runMatch) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.sidebar a').forEach(a => a.classList.remove('active'));
+    document.querySelectorAll('.topnav a').forEach(a => a.classList.remove('active'));
     document.getElementById('run-detail').classList.add('active');
     renderers.runDetail(parseInt(runMatch[1]));
   } else if (PAGES.includes(hash)) {
@@ -376,11 +690,10 @@ window.addEventListener('hashchange', () => {
   }
 });
 
-// ---- Health check ----
 async function updateHealth() {
   try {
     const data = await api('/api/health');
-    document.getElementById('healthDot').style.background = 'var(--success)';
+    document.getElementById('healthDot').className = 'health-dot';
     document.getElementById('healthText').textContent = 'healthy';
     const nextEl = document.getElementById('nextRunText');
     if (data.next_scheduled_run) {
@@ -393,54 +706,58 @@ async function updateHealth() {
       const fmt = diff > 0
         ? (h > 0 ? h+'h ' : '') + m+'m ' + s+'s'
         : 'now';
-      nextEl.textContent = 'Next automatic run: ' + formatTime(next) + ' (' + fmt + ')';
+      nextEl.textContent = 'Next run: ' + formatTime(next) + ' (' + fmt + ')';
     } else {
       nextEl.textContent = '';
     }
   } catch {
-    document.getElementById('healthDot').style.background = 'var(--error)';
+    document.getElementById('healthDot').className = 'health-dot error';
     document.getElementById('healthText').textContent = 'unreachable';
   }
 }
 
-// ---- Dashboard renderer ----
 const renderers = {};
+
 renderers.dashboard = async function() {
   try {
-    const [subs, pipelines, runs] = await Promise.all([
+    const [subs, pipelines, runs, playlists] = await Promise.all([
       api('/api/subscriptions'),
       api('/api/pipelines'),
       api('/api/pipeline/runs'),
+      api('/api/playlists'),
     ]);
-    document.getElementById('statSubs').textContent = Array.isArray(subs) ? subs.length : '-';
-    document.getElementById('statPipelines').textContent = Array.isArray(pipelines) ? pipelines.length : '-';
+    const subCount = Array.isArray(subs) ? subs.length : 0;
+    const pipeCount = Array.isArray(pipelines) ? pipelines.length : 0;
+    document.getElementById('statSubs').textContent = subCount || '-';
+    document.getElementById('statPipelines').textContent = pipeCount || '-';
     if (Array.isArray(runs) && runs.length > 0) {
       const last = runs[0];
       document.getElementById('statLastRun').textContent = last.status || '-';
       document.getElementById('statVideosAdded').textContent = last.videos_added ?? '-';
     }
+    document.getElementById('flowSubsCount').textContent = subCount;
+    document.getElementById('flowPipesCount').textContent = pipeCount;
+    let totalRouted = 0;
+    if (Array.isArray(runs)) {
+      totalRouted = runs.reduce((sum, r) => sum + (r.videos_added || 0), 0);
+    }
+    document.getElementById('flowRoutedCount').textContent = totalRouted || 0;
+    document.getElementById('flowPlaylistsCount').textContent = Array.isArray(playlists) ? playlists.length : 0;
   } catch { /* cards stay as '-' */ }
 };
 
-// ---- Video Lookup renderer ----
 renderers.videolookup = async function() {
   const input = document.getElementById('videoLookupInput');
   const btn = document.getElementById('videoLookupBtn');
   const resultDiv = document.getElementById('videoLookupResult');
-  const showInRuns = document.getElementById('showInRuns');
-
-  // Let the button click handler do the search
-  // Nothing to render on page load, just wire up Enter key
   input?.addEventListener('keydown', function(e) {
     if (e.key === 'Enter') btn.click();
   });
-
   if (!input || !btn || !resultDiv) return;
 };
 
-// ---- Trigger ----
 document.getElementById('triggerBtn')?.addEventListener('click', async function() {
-  this.disabled = true; this.innerHTML = '<span class="spinner"></span>Running...';
+  this.disabled = true; this.innerHTML = '<span class="spinner"></span> Running...';
   document.getElementById('triggerResult').innerHTML = '';
   try {
     const data = await api('/api/pipeline/trigger', { method: 'POST' });
@@ -448,29 +765,26 @@ document.getElementById('triggerBtn')?.addEventListener('click', async function(
     renderers.dashboard();
   } catch (e) {
     document.getElementById('triggerResult').innerHTML =
-      '<span style="color:var(--error)">' + e.message + '</span>';
+      '<span style="color:var(--red)">' + escapeHtml(e.message) + '</span>';
   } finally {
-    this.disabled = false; this.textContent = '▶ Run Pipeline';
+    this.disabled = false; this.textContent = '\u25B6 Run Pipeline';
   }
 });
 
 document.getElementById('dryRunBtn')?.addEventListener('click', async function() {
-  this.disabled = true; this.innerHTML = '<span class="spinner"></span>Dry-running...';
+  this.disabled = true; this.innerHTML = '<span class="spinner"></span> Dry-running...';
   document.getElementById('triggerResult').innerHTML = '';
   try {
     const data = await api('/api/pipeline/trigger?dry_run=true', { method: 'POST' });
     showToast('Dry-run complete - Run #' + data.run_id, 'success');
   } catch (e) {
     document.getElementById('triggerResult').innerHTML =
-      '<span style="color:var(--error)">' + e.message + '</span>';
+      '<span style="color:var(--red)">' + escapeHtml(e.message) + '</span>';
   } finally {
-    this.disabled = false; this.textContent = '🧪 Dry Run';
+    this.disabled = false; this.textContent = '\u25CE Dry Run';
   }
 });
 
-});
-
-// ---- Video Lookup (shared function) ----
 async function searchVideo(videoId, showRuns, resultDiv, btn) {
   if (!videoId) {
     showToast('Enter a YouTube video ID', 'warning');
@@ -486,46 +800,44 @@ async function searchVideo(videoId, showRuns, resultDiv, btn) {
     ]);
     resultDiv.style.display = 'block';
     const runHtml = runs && runs.runs && runs.runs.length > 0
-      ? `<h4 style="margin:1rem 0 0.5rem;color:var(--accent)">Runs containing this video (${runs.total} total)</h4>` +
-        `<table style="width:100%;font-size:0.75rem;border-collapse:collapse">` +
-        `<thead><tr><th>Run</th><th>Started</th><th>Status</th><th>Trigger</th><th>Added</th><th>Skipped</th><th>Errors</th></tr></thead>` +
-        `<tbody>${runs.runs.map(r => `<tr>` +
-          `<td style="font-family:monospace"><a href="#run-detail-${r.run_id}" style="color:var(--accent)">${r.run_id}</a></td>` +
-          `<td style="font-size:0.7rem">${formatTime(r.started_at)}</td>` +
-          `<td>${statusBadge(r.status)}</td>` +
-          `<td>${r.trigger}${r.dry_run ? ' <span class="tag-dryrun">DRY</span>' : ''}</td>` +
-          `<td>${r.videos_added ?? '-'}</td>` +
-          `<td>${r.videos_skipped ?? '-'}</td>` +
-          `<td>${r.errors ?? '-'}</td>` +
-        `</tr>`).join('')}</tbody></table>`
+      ? '<h4 style="margin:var(--space-4) 0 var(--space-2);color:var(--blue)">Runs containing this video (' + runs.total + ' total)</h4>' +
+        '<div class="table-wrap"><table>' +
+        '<thead><tr><th>Run</th><th>Started</th><th>Status</th><th>Trigger</th><th>Added</th><th>Skipped</th><th>Errors</th></tr></thead>' +
+        '<tbody>' + runs.runs.map(r => '<tr>' +
+          '<td class="mono"><a href="#run-detail-' + r.run_id + '" style="color:var(--blue)">' + r.run_id + '</a></td>' +
+          '<td style="font-size:0.7rem">' + formatTime(r.started_at) + '</td>' +
+          '<td>' + statusBadge(r.status) + '</td>' +
+          '<td>' + (r.trigger || '-') + (r.dry_run ? ' <span class="tag-dryrun">DRY</span>' : '') + '</td>' +
+          '<td class="num">' + (r.videos_added ?? '-') + '</td>' +
+          '<td class="num">' + (r.videos_skipped ?? '-') + '</td>' +
+          '<td class="num">' + (r.errors ?? '-') + '</td>' +
+        '</tr>').join('') + '</tbody></table></div>'
       : '';
-    resultDiv.innerHTML = `
-      <div class="card" style="margin-top:0.5rem">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
-          <h4 style="margin:0;color:var(--accent)">${escapeHtml(video.title || 'Unknown')}</h4>
-          <code style="font-size:0.75rem;color:var(--text2)">${escapeHtml(video.video_id)}</code>
-        </div>
-        <table style="width:100%;font-size:0.8rem;border-collapse:collapse">
-          <tr><td style="color:var(--text2);padding:0.25rem 0">Pipeline</td><td style="text-align:right;font-family:monospace">${escapeHtml(video.pipeline_id || '—')}</td></tr>
-          <tr><td style="color:var(--text2);padding:0.25rem 0">Subscription</td><td style="text-align:right;font-family:monospace">${escapeHtml(video.subscription_id || '—')}</td></tr>
-          <tr><td style="color:var(--text2);padding:0.25rem 0">Playlist</td><td style="text-align:right;font-family:monospace">${escapeHtml(video.playlist_id || '—')}</td></tr>
-          <tr><td style="color:var(--text2);padding:0.25rem 0">Duration</td><td style="text-align:right">${video.duration_seconds ? Math.floor(video.duration_seconds/60)+'m '+(video.duration_seconds%60)+'s' : '—'}</td></tr>
-          <tr><td style="color:var(--text2);padding:0.25rem 0">Added</td><td style="text-align:right;font-family:monospace;font-size:0.7rem">${escapeHtml(video.timestamp || '—')}</td></tr>
-          <tr><td style="color:var(--text2);padding:0.25rem 0">Route Rule</td><td style="text-align:right;font-family:monospace;font-size:0.7rem">${escapeHtml(video.route_rule || '—')}</td></tr>
-        </table>
-        <p style="margin-top:0.5rem;color:var(--success);font-size:0.8rem">✓ Found in database</p>
-        ${runHtml}
-      </div>
-    `;
+    resultDiv.innerHTML = '' +
+      '<div class="card" style="margin-top:var(--space-2)">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3)">' +
+          '<h4 style="margin:0;color:var(--text-primary);font-size:0.9375rem">' + escapeHtml(video.title || 'Unknown') + '</h4>' +
+          '<code style="font-family:var(--font-mono);font-size:0.6875rem;color:var(--text-tertiary)">' + escapeHtml(video.video_id) + '</code>' +
+        '</div>' +
+        '<table style="width:100%;font-size:0.8rem">' +
+          '<tr><td style="color:var(--text-tertiary);padding:var(--space-1) 0">Pipeline</td><td class="mono" style="text-align:right">' + escapeHtml(video.pipeline_id || '\u2014') + '</td></tr>' +
+          '<tr><td style="color:var(--text-tertiary);padding:var(--space-1) 0">Subscription</td><td class="mono" style="text-align:right">' + escapeHtml(video.subscription_id || '\u2014') + '</td></tr>' +
+          '<tr><td style="color:var(--text-tertiary);padding:var(--space-1) 0">Playlist</td><td class="mono" style="text-align:right">' + escapeHtml(video.playlist_id || '\u2014') + '</td></tr>' +
+          '<tr><td style="color:var(--text-tertiary);padding:var(--space-1) 0">Duration</td><td style="text-align:right;font-family:var(--font-mono)">' + (video.duration_seconds ? Math.floor(video.duration_seconds/60)+'m '+(video.duration_seconds%60)+'s' : '\u2014') + '</td></tr>' +
+          '<tr><td style="color:var(--text-tertiary);padding:var(--space-1) 0">Added</td><td class="mono" style="text-align:right;font-size:0.7rem">' + escapeHtml(video.timestamp || '\u2014') + '</td></tr>' +
+          '<tr><td style="color:var(--text-tertiary);padding:var(--space-1) 0">Route Rule</td><td class="mono" style="text-align:right;font-size:0.7rem">' + escapeHtml(video.route_rule || '\u2014') + '</td></tr>' +
+        '</table>' +
+        '<p style="margin-top:var(--space-2);color:var(--green);font-size:0.8rem">\u2713 Found in database</p>' +
+        runHtml +
+      '</div>';
     showToast('Video found', 'success');
   } catch (e) {
     if (e.status === 404 || e.message?.includes('404')) {
       resultDiv.style.display = 'block';
-      resultDiv.innerHTML = `
-        <div class="card" style="margin-top:0.5rem;border:1px solid var(--error)">
-          <p style="color:var(--error);margin:0">Video <code>${escapeHtml(videoId)}</code> not found in database</p>
-        </div>
-      `;
+      resultDiv.innerHTML = '' +
+        '<div class="card" style="margin-top:var(--space-2);border-color:var(--red-muted)">' +
+          '<p style="color:var(--red);margin:0">Video <code>' + escapeHtml(videoId) + '</code> not found in database</p>' +
+        '</div>';
       showToast('Video not found', 'warning');
     } else {
       showToast('Error: ' + e.message, 'error');
@@ -535,7 +847,6 @@ async function searchVideo(videoId, showRuns, resultDiv, btn) {
   }
 }
 
-// ---- Dashboard Video Search ----
 document.getElementById('videoSearchBtn')?.addEventListener('click', async function() {
   const input = document.getElementById('videoSearchInput');
   const resultDiv = document.getElementById('videoSearchResult');
@@ -543,13 +854,10 @@ document.getElementById('videoSearchBtn')?.addEventListener('click', async funct
   if (!videoId) { showToast('Enter a YouTube video ID', 'warning'); return; }
   await searchVideo(videoId, false, resultDiv, this);
 });
-
-// Allow Enter key in dashboard input
 document.getElementById('videoSearchInput')?.addEventListener('keydown', function(e) {
   if (e.key === 'Enter') document.getElementById('videoSearchBtn').click();
 });
 
-// ---- Video Lookup page Search ----
 document.getElementById('videoLookupBtn')?.addEventListener('click', async function() {
   const input = document.getElementById('videoLookupInput');
   const resultDiv = document.getElementById('videoLookupResult');
@@ -558,27 +866,26 @@ document.getElementById('videoLookupBtn')?.addEventListener('click', async funct
   if (!videoId) { showToast('Enter a YouTube video ID', 'warning'); return; }
   await searchVideo(videoId, showRuns, resultDiv, this);
 });
-
-// Allow Enter key in videolookup input
 document.getElementById('videoLookupInput')?.addEventListener('keydown', function(e) {
   if (e.key === 'Enter') document.getElementById('videoLookupBtn').click();
 });
 
-// Allow Enter key in input
-document.getElementById('videoSearchInput')?.addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') document.getElementById('videoSearchBtn').click();
-});
-
-// ---- Subscriptions renderer ----
 renderers.subscriptions = async function() {
   const container = document.getElementById('subList');
-  container.innerHTML = '<p style="color:var(--text2)">Loading...</p>';
+  container.innerHTML = '<p class="loading">Loading...</p>';
   try {
     const subs = await api('/api/subscriptions');
-    container.innerHTML = `<table><thead><tr><th>Channel</th><th>Channel ID</th></tr></thead>
-      <tbody>${Array.isArray(subs) ? subs.map(s => `<tr data-cid="${escapeHtml(s.channel_id)}" class="sub-row" style="cursor:pointer">
-        <td>${escapeHtml(s.title)}${s.added_to_playlist_count > 0 ? `<span class="badge badge-playlist" title="Videos in other playlists">📋 ${s.added_to_playlist_count}</span>` : ''}</td><td style="color:var(--text2);font-size:0.75rem">${escapeHtml(s.channel_id)}</td>
-      </tr>`).join('') : ''}</tbody></table>`;
+    container.innerHTML =
+      '<div class="table-wrap"><table><thead><tr><th>Channel</th><th>Channel ID</th></tr></thead>' +
+      '<tbody>' + (Array.isArray(subs) ? subs.map(s =>
+        '<tr data-cid="' + escapeHtml(s.channel_id) + '" class="sub-row" style="cursor:pointer">' +
+        '<td>' + escapeHtml(s.title) +
+        (s.added_to_playlist_count > 0
+          ? ' <span class="badge badge-info" title="Videos in other playlists">\uD83D\uDCCB ' + s.added_to_playlist_count + '</span>'
+          : '') +
+        '</td><td class="mono" style="color:var(--text-tertiary);font-size:0.6875rem">' + escapeHtml(s.channel_id) + '</td>' +
+        '</tr>'
+      ).join('') : '') + '</tbody></table></div>';
     document.getElementById('subSearch').oninput = function() {
       const q = this.value.toLowerCase();
       document.querySelectorAll('.sub-row').forEach(r => {
@@ -595,21 +902,20 @@ renderers.subscriptions = async function() {
         try {
           const acts = await api('/api/subscriptions/' + encodeURIComponent(cid) + '/activity');
           const row = document.createElement('tr'); row.className = 'activity-row';
-          row.innerHTML = `<td colspan="2" style="padding:0.5rem 1rem">
-            <table style="font-size:0.75rem">
-              <thead><tr><th>Video</th><th>Type</th><th>Published</th></tr></thead>
-              <tbody>${Array.isArray(acts) ? acts.map(a => `<tr>
-                <td>${escapeHtml(a.title)}</td><td>${a.video_type}</td><td>${formatTime(a.published_at)}</td>
-              </tr>`).join('') : ''}</tbody></table>
-          </td>`;
+          row.innerHTML = '<td colspan="2" style="padding:var(--space-2) var(--space-3)">' +
+            '<div class="table-wrap"><table class="activity-table">' +
+            '<thead><tr><th>Video</th><th>Type</th><th>Published</th></tr></thead>' +
+            '<tbody>' + (Array.isArray(acts) ? acts.map(a =>
+              '<tr><td>' + escapeHtml(a.title) + '</td><td>' + a.video_type + '</td><td>' + formatTime(a.published_at) + '</td></tr>'
+            ).join('') : '') + '</tbody></table></div>' +
+            '</td>';
           this.parentNode.insertBefore(row, this.nextSibling);
         } catch { showToast('Failed to load activity'); }
       });
     });
-  } catch { container.innerHTML = '<p style="color:var(--error)">Failed to load subscriptions</p>'; }
+  } catch { container.innerHTML = '<p class="error-state">Failed to load subscriptions</p>'; }
 };
 
-// ---- Pipelines renderer + modal ----
 let pipelineIgnoreListCache = [];
 
 async function loadPipelineIgnoreLists() {
@@ -620,27 +926,30 @@ async function loadPipelineIgnoreLists() {
 
 renderers.pipelines = async function() {
   const container = document.getElementById('pipelinesList');
-  container.innerHTML = '<p style="color:var(--text2)">Loading...</p>';
+  container.innerHTML = '<p class="loading">Loading...</p>';
   try {
     const pipelines = await api('/api/pipelines');
     await loadPipelineIgnoreLists();
     if (!Array.isArray(pipelines) || pipelines.length === 0) {
-      container.innerHTML = '<p style="color:var(--text2)">No pipelines configured</p>'; return;
+      container.innerHTML = '<p class="empty-state">No pipelines configured</p>'; return;
     }
-    container.innerHTML = `<table><thead><tr>
-      <th>Name</th><th>Scope</th><th>Duration</th><th>Selectors</th><th>Mode</th><th>Destination</th><th>Enabled</th><th></th>
-    </tr></thead><tbody>${pipelines.map(p => `<tr>
-      <td><strong>${escapeHtml(p.name)}</strong></td>
-      <td>${p.subscription_scope}</td>
-      <td style="font-size:0.75rem">${formatDuration(p.duration_min_seconds)} / ${formatDuration(p.duration_max_seconds)}</td>
-      <td style="font-size:0.75rem">${(p.selectors || []).length} selector(s)</td>
-      <td style="font-size:0.75rem">${p.selector_mode}</td>
-      <td style="font-size:0.75rem;color:var(--text2)">${escapeHtml(p.destination_playlist_id)}</td>
-      <td><input type="checkbox" ${p.enabled ? 'checked' : ''} data-pid="${p.id}" class="toggle-pipeline"></td>
-      <td><button class="dryrun-pipeline" data-pid="${p.id}" style="background:var(--surface2);color:var(--text);padding:0.25rem 0.5rem;font-size:0.75rem">🧪 Dry Run</button>
-      <button class="edit-pipeline" data-pid="${p.id}" style="background:var(--surface2);color:var(--text);padding:0.25rem 0.5rem;font-size:0.75rem">Edit</button>
-      <button class="del-pipeline" data-pid="${p.id}" style="background:var(--error);color:#fff;padding:0.25rem 0.5rem;font-size:0.75rem">Del</button></td>
-    </tr>`).join('')}</tbody></table>`;
+    container.innerHTML =
+      '<div class="table-wrap"><table><thead><tr>' +
+      '<th>Name</th><th>Scope</th><th>Duration</th><th>Selectors</th><th>Mode</th><th>Destination</th><th>Enabled</th><th></th>' +
+      '</tr></thead><tbody>' + pipelines.map(p =>
+        '<tr><td><strong>' + escapeHtml(p.name) + '</strong></td>' +
+        '<td>' + p.subscription_scope + '</td>' +
+        '<td class="mono" style="font-size:0.6875rem">' + formatDuration(p.duration_min_seconds) + ' / ' + formatDuration(p.duration_max_seconds) + '</td>' +
+        '<td style="font-size:0.75rem">' + (p.selectors || []).length + ' selector(s)</td>' +
+        '<td style="font-size:0.75rem">' + p.selector_mode + '</td>' +
+        '<td class="mono" style="font-size:0.6875rem;color:var(--text-tertiary)">' + escapeHtml(p.destination_playlist_id) + '</td>' +
+        '<td><input type="checkbox" ' + (p.enabled ? 'checked' : '') + ' data-pid="' + p.id + '" class="toggle-pipeline"></td>' +
+        '<td style="white-space:nowrap">' +
+        '<button class="dryrun-pipeline btn btn-ghost btn-sm" data-pid="' + p.id + '">\u25CE Dry Run</button> ' +
+        '<button class="edit-pipeline btn btn-ghost btn-sm" data-pid="' + p.id + '">Edit</button> ' +
+        '<button class="del-pipeline btn btn-danger btn-sm" data-pid="' + p.id + '">Del</button>' +
+        '</td></tr>'
+      ).join('') + '</tbody></table></div>';
 
     document.querySelectorAll('.toggle-pipeline').forEach(cb => {
       cb.addEventListener('change', async function() {
@@ -676,11 +985,11 @@ renderers.pipelines = async function() {
         } catch (e) {
           showToast('Dry run failed: ' + e.message, 'error');
         } finally {
-          this.disabled = false; this.textContent = '🧪 Dry Run';
+          this.disabled = false; this.textContent = '\u25CE Dry Run';
         }
       });
     });
-  } catch { container.innerHTML = '<p style="color:var(--error)">Failed to load pipelines</p>'; }
+  } catch { container.innerHTML = '<p class="error-state">Failed to load pipelines</p>'; }
 };
 
 function openPipelineModal(pipeline) {
@@ -696,12 +1005,11 @@ function openPipelineModal(pipeline) {
   document.getElementById('pipelineDistance').value = pipeline ? (pipeline.compare_distance || 80) : 80;
   document.getElementById('pipelineDistanceGroup').style.display = document.getElementById('pipelineCheckTitle').checked ? 'block' : 'none';
 
-  // Fetch playlists async — modal not blocked, dropdown shows throbber
   const sel = document.getElementById('pipelineDestPlaylist');
-  sel.innerHTML = '<option value="">⏳ Loading...</option>';
+  sel.innerHTML = '<option value="">\u23F3 Loading...</option>';
   sel.disabled = true;
   api('/api/playlists').then(playlists => {
-    sel.innerHTML = '<option value="">— Select playlist —</option>';
+    sel.innerHTML = '<option value="">\u2014 Select playlist \u2014</option>';
     (playlists || []).forEach(p => {
       const opt = document.createElement('option');
       opt.value = p.id;
@@ -713,43 +1021,43 @@ function openPipelineModal(pipeline) {
     }
     sel.disabled = false;
   }).catch(() => {
-    sel.innerHTML = '<option value="">— Failed to load —</option>';
+    sel.innerHTML = '<option value="">\u2014 Failed to load \u2014</option>';
     sel.disabled = false;
   });
 
-  // Selectors
   const selectors = pipeline ? (pipeline.selectors || []) : [];
   renderSelectorRows(selectors);
 
-  // Ignore lists
   const attached = pipeline ? (pipeline.ignore_list_ids || []) : [];
   renderIgnoreListCheckboxes(attached);
 
-  modal.style.display = 'flex';
+  modal.classList.add('open');
 }
 
 function renderSelectorRows(selectors) {
   const container = document.getElementById('pipelineSelectors');
-  container.innerHTML = selectors.map((s, i) => `
-    <div class="selector-row" style="display:flex;gap:0.5rem;margin-bottom:0.5rem;align-items:center">
-      ${i > 0 ? `<select class="sel-combine" style="width:auto;padding:0.25rem;font-size:0.75rem">
-        <option value="AND" ${(s.combine_operator||'AND') === 'AND' ? 'selected' : ''}>AND</option>
-        <option value="OR" ${(s.combine_operator||'AND') === 'OR' ? 'selected' : ''}>OR</option>
-      </select>` : ''}
-      <select class="sel-field" style="flex:1;width:auto;padding:0.25rem;font-size:0.75rem">
-        <option value="title" ${s.field === 'title' ? 'selected' : ''}>Title</option>
-        <option value="channel_title" ${s.field === 'channel_title' ? 'selected' : ''}>Channel Title</option>
-        <option value="description" ${s.field === 'description' ? 'selected' : ''}>Description</option>
-      </select>
-      <select class="sel-operator" style="flex:1;width:auto;padding:0.25rem;font-size:0.75rem">
-        <option value="contains" ${s.operator === 'contains' ? 'selected' : ''}>contains</option>
-        <option value="regex" ${s.operator === 'regex' ? 'selected' : ''}>regex</option>
-        <option value="equals" ${s.operator === 'equals' ? 'selected' : ''}>equals</option>
-      </select>
-      <input class="sel-pattern" value="${escapeHtml(s.pattern)}" placeholder="pattern" style="flex:2;padding:0.25rem;font-size:0.75rem">
-      <button class="del-selector" style="background:var(--error);color:#fff;border:none;padding:0.25rem 0.5rem;border-radius:4px;cursor:pointer;font-size:0.75rem">X</button>
-    </div>
-  `).join('') || '<p style="color:var(--text2);font-size:0.875rem">No selectors</p>';
+  container.innerHTML = selectors.map((s, i) =>
+    '<div class="selector-row">' +
+    (i > 0
+      ? '<select class="sel-combine" style="width:auto;padding:var(--space-1) var(--space-2);font-size:0.75rem">' +
+        '<option value="AND"' + ((s.combine_operator||'AND') === 'AND' ? ' selected' : '') + '>AND</option>' +
+        '<option value="OR"' + ((s.combine_operator||'AND') === 'OR' ? ' selected' : '') + '>OR</option>' +
+        '</select>'
+      : '') +
+    '<select class="sel-field" style="flex:1;padding:var(--space-1) var(--space-2);font-size:0.75rem">' +
+    '<option value="title"' + (s.field === 'title' ? ' selected' : '') + '>Title</option>' +
+    '<option value="channel_title"' + (s.field === 'channel_title' ? ' selected' : '') + '>Channel Title</option>' +
+    '<option value="description"' + (s.field === 'description' ? ' selected' : '') + '>Description</option>' +
+    '</select>' +
+    '<select class="sel-operator" style="flex:1;padding:var(--space-1) var(--space-2);font-size:0.75rem">' +
+    '<option value="contains"' + (s.operator === 'contains' ? ' selected' : '') + '>contains</option>' +
+    '<option value="regex"' + (s.operator === 'regex' ? ' selected' : '') + '>regex</option>' +
+    '<option value="equals"' + (s.operator === 'equals' ? ' selected' : '') + '>equals</option>' +
+    '</select>' +
+    '<input class="sel-pattern" value="' + escapeHtml(s.pattern) + '" placeholder="pattern" style="flex:2;padding:var(--space-1) var(--space-2);font-size:0.75rem">' +
+    '<button class="del-selector btn btn-danger btn-sm">X</button>' +
+    '</div>'
+  ).join('') || '<p style="color:var(--text-tertiary);font-size:0.875rem">No selectors</p>';
   document.querySelectorAll('.del-selector').forEach(btn => {
     btn.onclick = function() { this.closest('.selector-row').remove(); };
   });
@@ -759,20 +1067,20 @@ function renderIgnoreListCheckboxes(attached) {
   const container = document.getElementById('pipelineIgnoreLists');
   const lists = pipelineIgnoreListCache;
   if (lists.length === 0) {
-    container.innerHTML = '<p style="color:var(--text2);font-size:0.875rem">No ignore lists available. Create them in Config first.</p>';
+    container.innerHTML = '<p style="color:var(--text-tertiary);font-size:0.8125rem">No ignore lists available. Create them in Config first.</p>';
     return;
   }
-  container.innerHTML = lists.map(l => `
-    <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;font-size:0.875rem;color:var(--text2);margin-bottom:0.25rem">
-      <input type="checkbox" class="ignore-list-cb" data-lid="${l.id}" ${attached.includes(l.id) ? 'checked' : ''} style="width:auto">
-      ${escapeHtml(l.name)} <span class="badge" style="font-size:0.625rem;background:var(--surface2);color:var(--text2)">${l.list_type}</span>
-    </label>
-  `).join('');
+  container.innerHTML = lists.map(l =>
+    '<label class="checkbox-label" style="margin-bottom:var(--space-1);display:flex">' +
+    '<input type="checkbox" class="ignore-list-cb" data-lid="' + l.id + '"' + (attached.includes(l.id) ? ' checked' : '') + '>' +
+    escapeHtml(l.name) + ' <span class="badge badge-running" style="margin-left:4px;font-size:0.625rem">' + l.list_type + '</span>' +
+    '</label>'
+  ).join('');
 }
 
 document.getElementById('addPipelineBtn')?.addEventListener('click', () => openPipelineModal(null));
 document.getElementById('pipelineCancel')?.addEventListener('click', () => {
-  document.getElementById('pipelineModal').style.display = 'none';
+  document.getElementById('pipelineModal').classList.remove('open');
 });
 document.getElementById('addSelectorBtn')?.addEventListener('click', function() {
   const container = document.getElementById('pipelineSelectors');
@@ -780,24 +1088,15 @@ document.getElementById('addSelectorBtn')?.addEventListener('click', function() 
   if (empty) empty.remove();
   const div = document.createElement('div');
   div.className = 'selector-row';
-  div.style.cssText = 'display:flex;gap:0.5rem;margin-bottom:0.5rem;align-items:center';
-  div.innerHTML = `
-    <select class="sel-combine" style="width:auto;padding:0.25rem;font-size:0.75rem">
-      <option value="AND">AND</option>
-      <option value="OR">OR</option>
-    </select>
-    <select class="sel-field" style="flex:1;width:auto;padding:0.25rem;font-size:0.75rem">
-      <option value="title">Title</option>
-      <option value="channel_title">Channel Title</option>
-      <option value="description">Description</option>
-    </select>
-    <select class="sel-operator" style="flex:1;width:auto;padding:0.25rem;font-size:0.75rem">
-      <option value="contains">contains</option>
-      <option value="regex">regex</option>
-      <option value="equals">equals</option>
-    </select>
-    <input class="sel-pattern" value="" placeholder="pattern" style="flex:2;padding:0.25rem;font-size:0.75rem">
-    <button class="del-selector" style="background:var(--error);color:#fff;border:none;padding:0.25rem 0.5rem;border-radius:4px;cursor:pointer;font-size:0.75rem">X</button>`;
+  div.innerHTML =
+    '<select class="sel-combine" style="width:auto;padding:var(--space-1) var(--space-2);font-size:0.75rem">' +
+    '<option value="AND">AND</option><option value="OR">OR</option></select>' +
+    '<select class="sel-field" style="flex:1;padding:var(--space-1) var(--space-2);font-size:0.75rem">' +
+    '<option value="title">Title</option><option value="channel_title">Channel Title</option><option value="description">Description</option></select>' +
+    '<select class="sel-operator" style="flex:1;padding:var(--space-1) var(--space-2);font-size:0.75rem">' +
+    '<option value="contains">contains</option><option value="regex">regex</option><option value="equals">equals</option></select>' +
+    '<input class="sel-pattern" value="" placeholder="pattern" style="flex:2;padding:var(--space-1) var(--space-2);font-size:0.75rem">' +
+    '<button class="del-selector btn btn-danger btn-sm">X</button>';
   container.appendChild(div);
   div.querySelector('.del-selector').onclick = function() { div.remove(); };
 });
@@ -834,7 +1133,6 @@ document.getElementById('pipelineSave')?.addEventListener('click', async functio
       pipeline = await api('/api/pipelines', { method: 'POST', body: JSON.stringify(body) });
       showToast('Pipeline created', 'success');
     }
-    // Save selectors + ignore lists
     const pid = pipeline ? pipeline.id : id;
     await api('/api/pipelines/' + pid + '/selectors', {
       method: 'PUT', body: JSON.stringify({ selectors }),
@@ -842,15 +1140,14 @@ document.getElementById('pipelineSave')?.addEventListener('click', async functio
     await api('/api/pipelines/' + pid + '/ignore-lists', {
       method: 'PUT', body: JSON.stringify({ ignore_list_ids: ignoreListIds }),
     });
-    document.getElementById('pipelineModal').style.display = 'none';
+    document.getElementById('pipelineModal').classList.remove('open');
     renderers.pipelines();
   } catch (e) { showToast('Save failed: ' + e.message); }
 });
 
-// ---- Config renderers ----
 renderers.configRuntime = async function() {
   const container = document.getElementById('configRuntime');
-  container.innerHTML = '<p style="color:var(--text2)">Loading...</p>';
+  container.innerHTML = '<p class="loading">Loading...</p>';
   try {
     const cfg = await api('/api/config');
     const fields = [
@@ -869,12 +1166,12 @@ renderers.configRuntime = async function() {
     ];
     container.innerHTML = fields.map(([key, label, type]) =>
       type === 'checkbox'
-        ? `<div class="form-group"><label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
-            <input type="checkbox" id="cfg_${key}" ${cfg[key] ? 'checked' : ''} style="width:auto">
-            ${label}</label></div>`
-        : `<div class="form-group"><label>${label}</label>
-            <input type="${type}" id="cfg_${key}" value="${escapeHtml(String(cfg[key] ?? ''))}"></div>`
-    ).join('') + '<button id="configSaveRuntime" style="margin-top:0.5rem">Save Config</button>';
+        ? '<div class="form-group"><label class="checkbox-label" style="display:flex">' +
+          '<input type="checkbox" id="cfg_' + key + '"' + (cfg[key] ? ' checked' : '') + '>' +
+          label + '</label></div>'
+        : '<div class="form-group"><label>' + label + '</label>' +
+          '<input type="' + type + '" id="cfg_' + key + '" value="' + escapeHtml(String(cfg[key] ?? '')) + '"></div>'
+    ).join('') + '<button id="configSaveRuntime" class="btn btn-primary" style="margin-top:var(--space-2)">Save Config</button>';
     document.getElementById('configSaveRuntime').onclick = async function() {
       const body = {};
       fields.forEach(([key]) => {
@@ -890,19 +1187,19 @@ renderers.configRuntime = async function() {
         showToast('Config saved', 'success');
       } catch (e) { showToast('Save failed: ' + e.message); }
     };
-  } catch { container.innerHTML = '<p style="color:var(--error)">Failed to load config</p>'; }
+  } catch { container.innerHTML = '<p class="error-state">Failed to load config</p>'; }
 };
 
 renderers.configCredentials = async function() {
   const container = document.getElementById('configCredentials');
-  container.innerHTML = '<p style="color:var(--text2)">Loading...</p>';
+  container.innerHTML = '<p class="loading">Loading...</p>';
   try {
     const cfg = await api('/api/config');
-    container.innerHTML = `
-      <div class="card"><h3>Client Secret JSON</h3>
-      <p style="color:var(--text2);font-size:0.75rem;margin-bottom:0.5rem">Paste the contents of your Google OAuth client_secret.json file here.</p>
-      <textarea id="cfg_credentials_file" rows="12" style="font-family:monospace;font-size:0.75rem;width:100%;background:var(--bg);color:var(--text);border:1px solid var(--surface2);padding:0.5rem;border-radius:var(--radius)">${escapeHtml(cfg.credentials_file || '')}</textarea>
-      <button id="saveCredentialsBtn" style="margin-top:0.75rem">Save Credentials</button></div>`;
+    container.innerHTML =
+      '<div class="card"><div class="card-header"><h3>Client Secret JSON</h3></div>' +
+      '<p style="color:var(--text-tertiary);font-size:0.75rem;margin-bottom:var(--space-3)">Paste the contents of your Google OAuth client_secret.json file here.</p>' +
+      '<textarea id="cfg_credentials_file" rows="12" style="width:100%">' + escapeHtml(cfg.credentials_file || '') + '</textarea>' +
+      '<button id="saveCredentialsBtn" class="btn btn-primary" style="margin-top:var(--space-3)">Save Credentials</button></div>';
     document.getElementById('saveCredentialsBtn').onclick = async () => {
       try {
         await api('/api/config', {
@@ -912,42 +1209,38 @@ renderers.configCredentials = async function() {
         showToast('Credentials saved', 'success');
       } catch (e) { showToast('Save failed: ' + e.message); }
     };
-  } catch { container.innerHTML = '<p style="color:var(--error)">Failed to load</p>'; }
+  } catch { container.innerHTML = '<p class="error-state">Failed to load</p>'; }
 };
 
 renderers.configIgnores = async function() {
   const container = document.getElementById('configIgnores');
-  container.innerHTML = '<p style="color:var(--text2)">Loading...</p>';
+  container.innerHTML = '<p class="loading">Loading...</p>';
   try {
     const lists = await api('/api/ignore-lists');
-    container.innerHTML = `
-      <div style="display:flex;gap:0.5rem;margin-bottom:1rem">
-        <input id="newListName" placeholder="List name..." style="flex:1">
-        <select id="newListType" style="width:auto">
-          <option value="word">Word</option>
-          <option value="video">Video ID</option>
-          <option value="subscription">Subscription</option>
-        </select>
-        <button id="addListBtn">Create</button>
-      </div>
-      <div id="ignoreListsContainer">${lists.map(l => `
-        <div class="card" style="margin-bottom:0.75rem">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
-            <span><strong>${escapeHtml(l.name)}</strong> <span class="badge" style="background:var(--surface2);color:var(--text2);font-size:0.625rem">${l.list_type}</span></span>
-            <button class="del-ignore-list" data-lid="${l.id}" style="background:var(--error);color:#fff;padding:0.25rem 0.5rem;font-size:0.75rem;border:none;border-radius:4px;cursor:pointer">Delete</button>
-          </div>
-          <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem">
-            <input class="new-entry-input" data-lid="${l.id}" placeholder="Add entry..." style="flex:1;font-size:0.75rem;padding:0.25rem">
-            <button class="add-entry-btn" data-lid="${l.id}" style="background:var(--accent);color:#0f172a;border:none;padding:0.25rem 0.5rem;border-radius:4px;cursor:pointer;font-size:0.75rem">Add</button>
-          </div>
-          <div class="entry-list" data-lid="${l.id}">${l.entries.length === 0 ? '<span style="color:var(--text2);font-size:0.75rem">No entries</span>' : l.entries.map(e => `
-            <span style="display:inline-block;background:var(--bg);padding:0.125rem 0.5rem;border-radius:4px;font-size:0.75rem;margin:0.125rem 0.25rem">
-              ${escapeHtml(e)}
-              <button class="del-entry" data-lid="${l.id}" data-value="${escapeHtml(e)}" style="background:none;border:none;color:var(--error);cursor:pointer;font-size:0.75rem;padding:0 0.25rem">&times;</button>
-            </span>
-          `).join('')}</div>
-        </div>
-      `).join('')}</div>`;
+    container.innerHTML =
+      '<div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-4)">' +
+      '<input id="newListName" placeholder="List name..." style="flex:1">' +
+      '<select id="newListType" style="width:auto">' +
+      '<option value="word">Word</option><option value="video">Video ID</option><option value="subscription">Subscription</option>' +
+      '</select>' +
+      '<button id="addListBtn" class="btn btn-primary">Create</button></div>' +
+      '<div id="ignoreListsContainer">' + lists.map(l =>
+        '<div class="card" style="margin-bottom:var(--space-3)">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-3)">' +
+        '<span><strong>' + escapeHtml(l.name) + '</strong> <span class="badge badge-running" style="font-size:0.625rem">' + l.list_type + '</span></span>' +
+        '<button class="del-ignore-list btn btn-danger btn-sm" data-lid="' + l.id + '">Delete</button></div>' +
+        '<div style="display:flex;gap:var(--space-2);margin-bottom:var(--space-2)">' +
+        '<input class="new-entry-input" data-lid="' + l.id + '" placeholder="Add entry..." style="flex:1;font-size:0.75rem">' +
+        '<button class="add-entry-btn btn btn-primary btn-sm" data-lid="' + l.id + '">Add</button></div>' +
+        '<div class="entry-list" data-lid="' + l.id + '">' +
+        (l.entries.length === 0
+          ? '<span style="color:var(--text-tertiary);font-size:0.75rem">No entries</span>'
+          : l.entries.map(e =>
+              '<span class="entry-tag">' + escapeHtml(e) +
+              '<button class="del-entry" data-lid="' + l.id + '" data-value="' + escapeHtml(e) + '">&times;</button></span>'
+            ).join('')
+        ) + '</div></div>'
+      ).join('') + '</div>';
 
     async function refresh() { await renderers.configIgnores(); }
 
@@ -977,11 +1270,11 @@ renderers.configIgnores = async function() {
     container.querySelectorAll('.add-entry-btn').forEach(btn => {
       btn.onclick = async function() {
         const lid = this.dataset.lid;
-        const input = container.querySelector(`.new-entry-input[data-lid="${lid}"]`);
+        const input = container.querySelector('.new-entry-input[data-lid="' + lid + '"]');
         const value = input.value.trim();
         if (!value) return;
         try {
-          await api(`/api/ignore-lists/${lid}/entries`, { method: 'POST', body: JSON.stringify({ value }) });
+          await api('/api/ignore-lists/' + lid + '/entries', { method: 'POST', body: JSON.stringify({ value }) });
           await refresh();
           showToast('Entry added', 'success');
         } catch (e) { showToast('Add failed: ' + e.message); }
@@ -993,16 +1286,16 @@ renderers.configIgnores = async function() {
         const lid = this.dataset.lid;
         const value = this.dataset.value;
         try {
-          const entries = await api(`/api/ignore-lists/${lid}/entries`);
+          const entries = await api('/api/ignore-lists/' + lid + '/entries');
           const entry = entries.find(e => e.value === value);
           if (!entry) { showToast('Entry not found', 'error'); return; }
-          await api(`/api/ignore-lists/${lid}/entries/${entry.id}`, { method: 'DELETE' });
+          await api('/api/ignore-lists/' + lid + '/entries/' + entry.id, { method: 'DELETE' });
           await refresh();
           showToast('Entry deleted', 'success');
         } catch (e) { showToast('Delete failed: ' + e.message); }
       };
     });
-  } catch { container.innerHTML = '<p style="color:var(--error)">Failed to load ignore lists</p>'; }
+  } catch { container.innerHTML = '<p class="error-state">Failed to load ignore lists</p>'; }
 };
 
 renderers.config = async function() {
@@ -1020,36 +1313,31 @@ renderers.config = async function() {
   });
 };
 
-function statusBadge(status) {
-  if (!status) return '<span class="badge badge-run">-</span>';
-  if (status === 'completed' || status === 'success') return '<span class="badge badge-ok">completed</span>';
-  if (status === 'failed' || status === 'completed_with_errors') return '<span class="badge badge-fail">' + status.replace(/_/g,' ') + '</span>';
-  return '<span class="badge badge-run">' + status + '</span>';
-}
-
-// ---- Pipeline Runs renderer ----
 renderers.runs = async function() {
   const container = document.getElementById('runsList');
-  container.innerHTML = '<p style="color:var(--text2)">Loading...</p>';
+  container.innerHTML = '<p class="loading">Loading...</p>';
   try {
     const runs = await api('/api/pipeline/runs');
     if (!Array.isArray(runs) || runs.length === 0) {
-      container.innerHTML = '<p style="color:var(--text2)">No runs yet</p>'; return;
+      container.innerHTML = '<p class="empty-state">No runs yet</p>'; return;
     }
-    container.innerHTML = `<table><thead><tr>
-      <th>ID</th><th>Started</th><th>Status</th><th>Trigger</th><th>Subs Proc</th><th>Subs Skip</th><th>Added</th><th>Vid Skip</th><th>Errors</th><th></th>
-    </tr></thead><tbody>${runs.map(r => `<tr style="cursor:pointer" onclick="location.hash='#run-detail-${r.id}'">
-      <td>${r.id}</td>
-      <td style="font-size:0.75rem;color:var(--text2)">${formatTime(r.started_at)}</td>
-      <td>${statusBadge(r.status)}</td>
-      <td>${r.trigger || '-'}${r.dry_run ? ' <span class="tag-dryrun">DRY</span>' : ''}</td>
-      <td>${r.subscriptions_processed ?? '-'}</td>
-      <td>${r.subscriptions_skipped ?? '-'}</td>
-      <td>${r.videos_added ?? '-'}</td>
-      <td>${r.videos_skipped ?? '-'}</td>
-      <td>${r.errors ?? '-'}</td>
-    </tr>`).join('')}</tbody></table>`;
-  } catch { container.innerHTML = '<p style="color:var(--error)">Failed to load runs</p>'; }
+    container.innerHTML =
+      '<div class="table-wrap"><table><thead><tr>' +
+      '<th>ID</th><th>Started</th><th>Status</th><th>Trigger</th><th>Subs Proc</th><th>Subs Skip</th><th>Added</th><th>Vid Skip</th><th>Errors</th><th></th>' +
+      '</tr></thead><tbody>' + runs.map(r =>
+        '<tr style="cursor:pointer" onclick="location.hash=\'#run-detail-' + r.id + '\'">' +
+        '<td class="mono">' + r.id + '</td>' +
+        '<td style="font-size:0.75rem;color:var(--text-tertiary)">' + formatTime(r.started_at) + '</td>' +
+        '<td>' + statusBadge(r.status) + '</td>' +
+        '<td>' + (r.trigger || '-') + (r.dry_run ? ' <span class="tag-dryrun">DRY</span>' : '') + '</td>' +
+        '<td class="num">' + (r.subscriptions_processed ?? '-') + '</td>' +
+        '<td class="num">' + (r.subscriptions_skipped ?? '-') + '</td>' +
+        '<td class="num">' + (r.videos_added ?? '-') + '</td>' +
+        '<td class="num">' + (r.videos_skipped ?? '-') + '</td>' +
+        '<td class="num">' + (r.errors ?? '-') + '</td>' +
+        '</tr>'
+      ).join('') + '</tbody></table></div>';
+  } catch { container.innerHTML = '<p class="error-state">Failed to load runs</p>'; }
 };
 
 renderers.runDetail = async function(runId) {
@@ -1057,7 +1345,7 @@ renderers.runDetail = async function(runId) {
   const gen = ++window._runDetailGen || (window._runDetailGen = 1);
   const summaryEl = document.getElementById('runDetailSummary');
   const decisionsEl = document.getElementById('runDetailDecisions');
-  decisionsEl.innerHTML = '<p style="color:var(--text2)">Loading...</p>';
+  decisionsEl.innerHTML = '<p class="loading">Loading...</p>';
   async function _load() {
     if (window._runDetailGen !== gen) return;
     try {
@@ -1066,21 +1354,21 @@ renderers.runDetail = async function(runId) {
         api('/api/pipeline/runs/' + runId + '/decisions'),
       ]);
       if (window._runDetailGen !== gen) return;
-      summaryEl.innerHTML = `<div class="card" style="margin-bottom:1rem">
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.5rem">
-          <div><strong>Run #${run.id}${run.dry_run ? ' <span class="tag-dryrun">DRY RUN</span>' : ''}</strong></div>
-          <div>Status: ${statusBadge(run.status)}</div>
-          <div>Started: <span style="color:var(--text2);font-size:0.75rem">${formatTime(run.started_at)}</span></div>
-          <div>Finished: <span style="color:var(--text2);font-size:0.75rem">${formatTime(run.finished_at)}</span></div>
-          <div>Subs Processed: ${run.subscriptions_processed ?? '-'}</div>
-          <div>Subs Skipped: ${run.subscriptions_skipped ?? '-'}</div>
-          <div>Videos Added: ${run.videos_added ?? '-'}</div>
-          <div>Videos Skipped: ${run.videos_skipped ?? '-'}</div>
-          <div>Errors: ${run.errors ?? '-'}</div>
-        </div>
-      </div>`;
+      summaryEl.innerHTML =
+        '<div class="card" style="margin-bottom:var(--space-4)">' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:var(--space-3)">' +
+        '<div><strong>Run #' + run.id + (run.dry_run ? ' <span class="tag-dryrun">DRY RUN</span>' : '') + '</strong></div>' +
+        '<div>Status: ' + statusBadge(run.status) + '</div>' +
+        '<div>Started: <span style="color:var(--text-tertiary);font-size:0.75rem">' + formatTime(run.started_at) + '</span></div>' +
+        '<div>Finished: <span style="color:var(--text-tertiary);font-size:0.75rem">' + formatTime(run.finished_at) + '</span></div>' +
+        '<div>Subs Processed: ' + (run.subscriptions_processed ?? '-') + '</div>' +
+        '<div>Subs Skipped: ' + (run.subscriptions_skipped ?? '-') + '</div>' +
+        '<div>Videos Added: ' + (run.videos_added ?? '-') + '</div>' +
+        '<div>Videos Skipped: ' + (run.videos_skipped ?? '-') + '</div>' +
+        '<div>Errors: ' + (run.errors ?? '-') + '</div>' +
+        '</div></div>';
       if (!Array.isArray(decisions) || decisions.length === 0) {
-        decisionsEl.innerHTML = '<p style="color:var(--text2)">No decisions yet...</p>';
+        decisionsEl.innerHTML = '<p class="loading">No decisions yet...</p>';
       } else {
         const videoDecisions = decisions.filter(d => d.action !== 'subscription_skipped');
         const subSkips = decisions.filter(d => d.action === 'subscription_skipped');
@@ -1088,21 +1376,28 @@ renderers.runDetail = async function(runId) {
         videoDecisions.forEach(d => { if (d.action === 'added') counts.added++; else if (d.action === 'error') counts.error++; else counts.skipped++; });
         let html = '';
         if (subSkips.length) {
-          html += `<div style="margin-bottom:1rem"><h4>Subscription Skips</h4>${subSkips.map(s => `<div style="padding:0.25rem 0;border-bottom:1px solid var(--border)"><strong><a href="https://www.youtube.com/channel/${escapeHtml(s.channel_id || s.subscription_id || '')}" target="_blank" rel="noopener" style="color:var(--accent)">${escapeHtml(s.title)}</a></strong> &mdash; ${escapeHtml(s.reason_detail || s.reason)}</div>`).join('')}</div>`;
+          html += '<div style="margin-bottom:var(--space-4)"><h4 class="section-title">Subscription Skips</h4>' +
+            subSkips.map(s =>
+              '<div style="padding:var(--space-1) 0;border-bottom:1px solid var(--border)">' +
+              '<strong><a href="https://www.youtube.com/channel/' + escapeHtml(s.channel_id || s.subscription_id || '') + '" target="_blank" rel="noopener" style="color:var(--blue)">' + escapeHtml(s.title) + '</a></strong>' +
+              ' &mdash; ' + escapeHtml(s.reason_detail || s.reason) + '</div>'
+            ).join('') + '</div>';
         }
-        html += `<table><thead><tr>
-          <th>Video</th><th>Channel</th><th>Action</th><th>Reason</th><th>Routed To</th>
-        </tr></thead><tbody>${videoDecisions.map(d => `<tr>
-          <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis"><a href="https://www.youtube.com/watch?v=${escapeHtml(d.video_id || '')}" target="_blank" rel="noopener" style="color:var(--accent)">${escapeHtml(d.title)}</a></td>
-          <td><a href="https://www.youtube.com/channel/${escapeHtml(d.channel_id || d.subscription_id || '')}" target="_blank" rel="noopener" style="color:var(--accent)">${escapeHtml(d.subscription_title)}</a></td>
-          <td><span class="badge ${d.action === 'added' ? 'badge-ok' : d.action === 'error' ? 'badge-fail' : 'badge-run'}">${d.action}</span></td>
-          <td style="max-width:300px;overflow:hidden;text-overflow:ellipsis">${escapeHtml(d.reason_detail || d.reason || '-')}</td>
-          <td>${escapeHtml(d.routed_to || '-')}</td>
-        </tr>`).join('')}</tbody></table>`;
+        html += '<div class="table-wrap"><table><thead><tr>' +
+          '<th>Video</th><th>Channel</th><th>Action</th><th>Reason</th><th>Routed To</th>' +
+          '</tr></thead><tbody>' + videoDecisions.map(d =>
+            '<tr><td style="max-width:250px;overflow:hidden;text-overflow:ellipsis">' +
+            '<a href="https://www.youtube.com/watch?v=' + escapeHtml(d.video_id || '') + '" target="_blank" rel="noopener" style="color:var(--blue)">' + escapeHtml(d.title) + '</a></td>' +
+            '<td><a href="https://www.youtube.com/channel/' + escapeHtml(d.channel_id || d.subscription_id || '') + '" target="_blank" rel="noopener" style="color:var(--blue)">' + escapeHtml(d.subscription_title) + '</a></td>' +
+            '<td><span class="badge ' + (d.action === 'added' ? 'badge-completed' : d.action === 'error' ? 'badge-error' : 'badge-running') + '">' + d.action + '</span></td>' +
+            '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis">' + escapeHtml(d.reason_detail || d.reason || '-') + '</td>' +
+            '<td class="mono">' + escapeHtml(d.routed_to || '-') + '</td>' +
+            '</tr>'
+          ).join('') + '</tbody></table></div>';
         if (videoDecisions.length === 0) {
-          html += '<p style="color:var(--text2)">No video decisions</p>';
+          html += '<p class="empty-state">No video decisions</p>';
         }
-        html += `<p style="color:var(--text2);font-size:0.75rem">${decisions.length} decision(s) &mdash; subs skipped: ${counts.sub_skipped}, added: ${counts.added}, videos skipped: ${counts.skipped}, errors: ${counts.error}</p>`;
+        html += '<p style="color:var(--text-tertiary);font-size:0.75rem;margin-top:var(--space-2)">' + decisions.length + ' decision(s) &mdash; subs skipped: ' + counts.sub_skipped + ', added: ' + counts.added + ', videos skipped: ' + counts.skipped + ', errors: ' + counts.error + '</p>';
         decisionsEl.innerHTML = html;
       }
       if (window._runDetailGen !== gen) return;
@@ -1110,7 +1405,7 @@ renderers.runDetail = async function(runId) {
         window._runDetailTimeout = setTimeout(window._loadRunDetail, 2000);
       }
     } catch (e) {
-      decisionsEl.innerHTML = '<p style="color:var(--error)">Failed to load run details: ' + e.message + '</p>';
+      decisionsEl.innerHTML = '<p class="error-state">Failed to load run details: ' + escapeHtml(e.message) + '</p>';
       if (window._runDetailGen === gen) {
         window._runDetailTimeout = setTimeout(window._loadRunDetail, 2000);
       }
@@ -1122,11 +1417,11 @@ renderers.runDetail = async function(runId) {
 
 renderers.stats = async function() {
   const container = document.getElementById('statsTable');
-  container.innerHTML = '<p style="color:var(--text2)">Loading...</p>';
+  container.innerHTML = '<p class="loading">Loading...</p>';
   try {
     const data = await api('/api/stats/subscriptions');
     if (!Array.isArray(data) || data.length === 0) {
-      container.innerHTML = '<p style="color:var(--text2)">No data yet</p>'; return;
+      container.innerHTML = '<p class="empty-state">No data yet</p>'; return;
     }
     let sortCol = 'videos_added';
     let sortDir = 'desc';
@@ -1146,51 +1441,52 @@ renderers.stats = async function() {
         return 0;
       });
       const arrow = (col) => sortCol === col ? (sortDir === 'asc' ? ' \u2191' : ' \u2193') : '';
-      const statusClass = (s) => s === 'active' ? 'badge-ok' : s === 'ignored' ? 'badge-run' : '';
-      container.innerHTML = `<table><thead><tr>
-        <th style="cursor:pointer" onclick="setStatsSort('subscription_title')">Subscription${arrow('subscription_title')}</th>
-        <th style="cursor:pointer" onclick="setStatsSort('videos_added')">Videos Added${arrow('videos_added')}</th>
-        <th style="cursor:pointer" onclick="setStatsSort('added_to_playlist_count')">In Playlists${arrow('added_to_playlist_count')}</th>
-        <th style="cursor:pointer" onclick="setStatsSort('last_added_at')">Last Added${arrow('last_added_at')}</th>
-        <th style="cursor:pointer" onclick="setStatsSort('status')">Status${arrow('status')}</th>
-      </tr></thead><tbody>${sorted.map(d => `<tr>
-        <td>${escapeHtml(d.subscription_title)}</td>
-        <td>${d.videos_added}</td>
-        <td>${d.added_to_playlist_count || 0}</td>
-        <td style="font-size:0.75rem;color:var(--text2)">${formatTime(d.last_added_at)}</td>
-        <td><span class="badge ${statusClass(d.status)}">${d.status}</span></td>
-      </tr>`).join('')}</tbody></table>
-      <p style="color:var(--text2);font-size:0.75rem">${data.length} subscription(s)</p>`;
+      const statusClass = (s) => s === 'active' ? 'badge-completed' : s === 'ignored' ? 'badge-running' : '';
+      container.innerHTML =
+        '<div class="table-wrap"><table><thead><tr>' +
+        '<th class="sortable" onclick="setStatsSort(\'subscription_title\')">Subscription' + arrow('subscription_title') + '</th>' +
+        '<th class="sortable" onclick="setStatsSort(\'videos_added\')">Videos Added' + arrow('videos_added') + '</th>' +
+        '<th class="sortable" onclick="setStatsSort(\'added_to_playlist_count\')">In Playlists' + arrow('added_to_playlist_count') + '</th>' +
+        '<th class="sortable" onclick="setStatsSort(\'last_added_at\')">Last Added' + arrow('last_added_at') + '</th>' +
+        '<th class="sortable" onclick="setStatsSort(\'status\')">Status' + arrow('status') + '</th>' +
+        '</tr></thead><tbody>' + sorted.map(d =>
+          '<tr><td>' + escapeHtml(d.subscription_title) + '</td>' +
+          '<td class="num">' + d.videos_added + '</td>' +
+          '<td class="num">' + (d.added_to_playlist_count || 0) + '</td>' +
+          '<td style="font-size:0.75rem;color:var(--text-tertiary)" class="mono">' + formatTime(d.last_added_at) + '</td>' +
+          '<td><span class="badge ' + statusClass(d.status) + '">' + d.status + '</span></td>' +
+          '</tr>'
+        ).join('') + '</tbody></table></div>' +
+        '<p style="color:var(--text-tertiary);font-size:0.75rem;margin-top:var(--space-2)">' + data.length + ' subscription(s)</p>';
     }
     renderTable();
-  } catch (e) { container.innerHTML = '<p style="color:var(--error)">Failed to load stats: ' + e.message + '</p>'; }
+  } catch (e) { container.innerHTML = '<p class="error-state">Failed to load stats: ' + escapeHtml(e.message) + '</p>'; }
 };
 
-// ---- Auth renderer ----
 renderers.auth = async function() {
   const container = document.getElementById('authStatus');
-  container.innerHTML = '<p style="color:var(--text2)">Checking...</p>';
+  container.innerHTML = '<p class="loading">Checking...</p>';
   try {
     const status = await api('/api/auth/status');
     if (status.authenticated) {
-      container.innerHTML = `
-        <div class="card" style="border-left:4px solid var(--success)">
-          <h3>✅ Authenticated</h3>
-          <p style="color:var(--text2);margin-top:0.5rem">Expires: ${formatTime(status.expires_at)}</p>
-        </div>
-        <button id="reauthBtn" style="margin-top:0.5rem;background:var(--surface2);color:var(--text)">Re-authenticate</button>`;
+      container.innerHTML =
+        '<div class="card auth-card-ok">' +
+        '<h3 style="margin-bottom:var(--space-1)">\u2705 Authenticated</h3>' +
+        '<p style="color:var(--text-tertiary)">Expires: ' + formatTime(status.expires_at) + '</p>' +
+        '</div>' +
+        '<button id="reauthBtn" class="btn btn-secondary" style="margin-top:var(--space-3)">Re-authenticate</button>';
       document.getElementById('reauthBtn')?.addEventListener('click', startAuthFlow);
     } else {
-      container.innerHTML = `
-        <div class="card" style="border-left:4px solid var(--error)">
-          <h3>❌ Not Authenticated</h3>
-          <p style="color:var(--text2);margin-top:0.5rem">Authenticate with Google to enable YouTube API access.</p>
-        </div>
-        <button id="authBtn" style="margin-top:0.5rem">Authenticate with Google</button>`;
+      container.innerHTML =
+        '<div class="card auth-card-fail">' +
+        '<h3 style="margin-bottom:var(--space-1)">\u274C Not Authenticated</h3>' +
+        '<p style="color:var(--text-tertiary)">Authenticate with Google to enable YouTube API access.</p>' +
+        '</div>' +
+        '<button id="authBtn" class="btn btn-primary" style="margin-top:var(--space-3)">Authenticate with Google</button>';
       document.getElementById('authBtn')?.addEventListener('click', startAuthFlow);
     }
   } catch {
-    container.innerHTML = '<p style="color:var(--error)">Failed to check auth status</p>';
+    container.innerHTML = '<p class="error-state">Failed to check auth status</p>';
   }
 };
 
@@ -1198,21 +1494,20 @@ async function startAuthFlow() {
   try {
     const data = await api('/api/auth/login');
     window.open(data.authorization_url, '_blank');
-    document.getElementById('authStatus').innerHTML = `
-      <div class="card">
-        <h3 style="margin-bottom:0.5rem">Google Authorization</h3>
-        <p style="color:var(--text2)">Opened Google consent page in a new tab.</p>
-        <p style="color:var(--text2);margin-top:0.5rem">After authorizing, you will be redirected back to this app.</p>
-        <button id="checkAuthBtn" style="margin-top:1rem">Check Auth Status</button>
-      </div>`;
+    document.getElementById('authStatus').innerHTML =
+      '<div class="card">' +
+      '<h3 style="margin-bottom:var(--space-2)">Google Authorization</h3>' +
+      '<p style="color:var(--text-secondary);font-size:0.875rem">Opened Google consent page in a new tab.</p>' +
+      '<p style="color:var(--text-tertiary);font-size:0.8125rem;margin-top:var(--space-1)">After authorizing, you will be redirected back to this app.</p>' +
+      '<button id="checkAuthBtn" class="btn btn-primary" style="margin-top:var(--space-4)">Check Auth Status</button>' +
+      '</div>';
     document.getElementById('checkAuthBtn')?.addEventListener('click', () => renderers.auth());
   } catch (e) {
     document.getElementById('authStatus').innerHTML =
-      '<p style="color:var(--error)">Failed: ' + e.message + '</p>';
+      '<p class="error-state">Failed: ' + escapeHtml(e.message) + '</p>';
   }
 }
 
-// ---- Init ----
 if (!location.hash) navigate('dashboard');
 renderPage(location.hash.slice(1) || 'dashboard');
 updateHealth();
