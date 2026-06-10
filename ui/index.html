@@ -117,6 +117,7 @@ tr:hover td { background: var(--surface2); }
 .badge-ok { background: var(--success); color: #0f172a; }
 .badge-fail { background: var(--error); color: #fff; }
 .badge-run { background: var(--warning); color: #0f172a; }
+.badge-playlist { background: var(--accent); color: var(--bg); border-radius: 999px; padding: 0.1rem 0.5rem; font-size: 0.75rem; font-weight: 600; margin-left: 0.5rem; white-space: nowrap; }
 .tag-dryrun { background: var(--surface2); color: var(--accent); font-size: 0.65rem; font-weight: 700; padding: 0.1rem 0.4rem; border-radius: 4px; border: 1px solid var(--accent); }
 input, select {
   background: var(--bg); color: var(--text); border: 1px solid var(--surface2);
@@ -576,7 +577,7 @@ renderers.subscriptions = async function() {
     const subs = await api('/api/subscriptions');
     container.innerHTML = `<table><thead><tr><th>Channel</th><th>Channel ID</th></tr></thead>
       <tbody>${Array.isArray(subs) ? subs.map(s => `<tr data-cid="${escapeHtml(s.channel_id)}" class="sub-row" style="cursor:pointer">
-        <td>${escapeHtml(s.title)}</td><td style="color:var(--text2);font-size:0.75rem">${escapeHtml(s.channel_id)}</td>
+        <td>${escapeHtml(s.title)}${s.added_to_playlist_count > 0 ? `<span class="badge badge-playlist" title="Videos in other playlists">📋 ${s.added_to_playlist_count}</span>` : ''}</td><td style="color:var(--text2);font-size:0.75rem">${escapeHtml(s.channel_id)}</td>
       </tr>`).join('') : ''}</tbody></table>`;
     document.getElementById('subSearch').oninput = function() {
       const q = this.value.toLowerCase();
@@ -1149,11 +1150,13 @@ renderers.stats = async function() {
       container.innerHTML = `<table><thead><tr>
         <th style="cursor:pointer" onclick="setStatsSort('subscription_title')">Subscription${arrow('subscription_title')}</th>
         <th style="cursor:pointer" onclick="setStatsSort('videos_added')">Videos Added${arrow('videos_added')}</th>
+        <th style="cursor:pointer" onclick="setStatsSort('added_to_playlist_count')">In Playlists${arrow('added_to_playlist_count')}</th>
         <th style="cursor:pointer" onclick="setStatsSort('last_added_at')">Last Added${arrow('last_added_at')}</th>
         <th style="cursor:pointer" onclick="setStatsSort('status')">Status${arrow('status')}</th>
       </tr></thead><tbody>${sorted.map(d => `<tr>
         <td>${escapeHtml(d.subscription_title)}</td>
         <td>${d.videos_added}</td>
+        <td>${d.added_to_playlist_count || 0}</td>
         <td style="font-size:0.75rem;color:var(--text2)">${formatTime(d.last_added_at)}</td>
         <td><span class="badge ${statusClass(d.status)}">${d.status}</span></td>
       </tr>`).join('')}</tbody></table>
