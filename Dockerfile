@@ -1,5 +1,5 @@
 FROM ghcr.io/astral-sh/uv:0.6@sha256:4a6c9444b126bd325fba904bff796bf91fb777bf6148d60109c4cb1de2ffc497 AS uv
-FROM python:3.14-slim@sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97 AS builder
+FROM python:3.14-slim@sha256:3fa9f1158b0d8b5029c357770bd522e7955546ffc5db885d8b366ec4a687afd4 AS builder
 
 COPY --from=uv /uv /uvx /bin/
 
@@ -12,7 +12,7 @@ COPY src/ src/
 COPY ui/ ui/
 RUN uv sync --frozen --no-group dev
 
-FROM python:3.14-slim@sha256:c845af9399020c7e562969a13689e929074a10fd057acd1b1fad06a2fb068e97 AS runtime
+FROM python:3.14-slim@sha256:3fa9f1158b0d8b5029c357770bd522e7955546ffc5db885d8b366ec4a687afd4 AS runtime
 
 ARG UID=1000
 ARG GID=1000
