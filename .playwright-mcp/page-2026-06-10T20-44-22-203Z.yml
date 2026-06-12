@@ -1,0 +1,74 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e3]: sortarr
+    - link "■" [ref=e4] [cursor=pointer]:
+      - /url: "#dashboard"
+      - generic [ref=e5]: ■
+    - link "☰" [ref=e6] [cursor=pointer]:
+      - /url: "#subscriptions"
+      - generic [ref=e7]: ☰
+    - link "→" [ref=e8] [cursor=pointer]:
+      - /url: "#pipelines"
+      - generic [ref=e9]: →
+    - link "🔍" [ref=e10] [cursor=pointer]:
+      - /url: "#videolookup"
+      - generic [ref=e11]: 🔍
+    - link "↻" [ref=e12] [cursor=pointer]:
+      - /url: "#runs"
+      - generic [ref=e13]: ↻
+    - link "☮" [ref=e14] [cursor=pointer]:
+      - /url: "#stats"
+      - generic [ref=e15]: ☮
+    - link "⚠" [ref=e16] [cursor=pointer]:
+      - /url: "#ignorelists"
+      - generic [ref=e17]: ⚠
+    - link "⚙" [ref=e18] [cursor=pointer]:
+      - /url: "#config"
+      - generic [ref=e19]: ⚙
+    - link "◉" [ref=e20] [cursor=pointer]:
+      - /url: "#auth"
+      - generic [ref=e21]: ◉
+  - generic [ref=e25]: unreachable
+  - generic [ref=e29]:
+    - generic [ref=e30]:
+      - heading "Dashboard" [level=2] [ref=e31]
+      - generic [ref=e32]: System overview
+    - generic [ref=e33]:
+      - generic [ref=e34]:
+        - generic [ref=e35]: Subscriptions
+        - generic [ref=e36]: "-"
+      - generic [ref=e37]:
+        - generic [ref=e38]: Pipelines
+        - generic [ref=e39]: "-"
+      - generic [ref=e40]:
+        - generic [ref=e41]: Last Run
+        - generic [ref=e42]: "-"
+      - generic [ref=e43]:
+        - generic [ref=e44]: Videos Added
+        - generic [ref=e45]: "-"
+    - generic [ref=e46]:
+      - generic [ref=e47]:
+        - generic [ref=e48]: ☰
+        - generic [ref=e49]: "-"
+        - generic [ref=e50]: Subscriptions
+      - generic [ref=e51]:
+        - generic [ref=e52]: →
+        - generic [ref=e53]: "-"
+        - generic [ref=e54]: Pipelines
+      - generic [ref=e55]:
+        - generic [ref=e56]: ■
+        - generic [ref=e57]: "-"
+        - generic [ref=e58]: Videos Routed
+      - generic [ref=e59]:
+        - generic [ref=e60]: ☮
+        - generic [ref=e61]: "-"
+        - generic [ref=e62]: Playlists
+    - generic [ref=e63]:
+      - button "▶ Run Pipeline" [ref=e64] [cursor=pointer]
+      - button "◎ Dry Run" [ref=e65] [cursor=pointer]
+    - generic [ref=e79]: "<!DOCTYPE HTML> <html lang=\"en\"> <head> <meta charset=\"utf-8\"> <title>Error response</title> </head> <body> <h1>Error response</h1> <p>Error code: 501</p> <p>Message: Unsupported method ('POST').</p> <p>Error code explanation: 501 - Server does not support this operation.</p> </body> </html>"
+    - separator [ref=e66]
+    - heading "Video Lookup" [level=3] [ref=e67]
+    - generic [ref=e68]:
+      - textbox "Enter YouTube video ID (e.g. dQw4w9WgXcQ)" [ref=e69]
+      - button "Search" [ref=e70] [cursor=pointer]

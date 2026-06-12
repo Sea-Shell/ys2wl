@@ -1,0 +1,43 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e3]: sortarr
+    - link "■ Dashboard" [ref=e4] [cursor=pointer]:
+      - /url: "#dashboard"
+      - generic [ref=e5]: ■
+      - generic [ref=e6]: Dashboard
+    - link "☰ Subscriptions" [ref=e7] [cursor=pointer]:
+      - /url: "#subscriptions"
+      - generic [ref=e8]: ☰
+      - generic [ref=e9]: Subscriptions
+    - link "→ Pipelines" [ref=e10] [cursor=pointer]:
+      - /url: "#pipelines"
+      - generic [ref=e11]: →
+      - generic [ref=e12]: Pipelines
+    - link "🔍 Video Lookup" [ref=e13] [cursor=pointer]:
+      - /url: "#videolookup"
+      - generic [ref=e14]: 🔍
+      - generic [ref=e15]: Video Lookup
+    - link "↻ Runs" [ref=e16] [cursor=pointer]:
+      - /url: "#runs"
+      - generic [ref=e17]: ↻
+      - generic [ref=e18]: Runs
+    - link "☮ Stats" [ref=e19] [cursor=pointer]:
+      - /url: "#stats"
+      - generic [ref=e20]: ☮
+      - generic [ref=e21]: Stats
+    - link "⚠ Ignore Lists" [ref=e22] [cursor=pointer]:
+      - /url: "#ignorelists"
+      - generic [ref=e23]: ⚠
+      - generic [ref=e24]: Ignore Lists
+    - link "⚙ Config" [ref=e25] [cursor=pointer]:
+      - /url: "#config"
+      - generic [ref=e26]: ⚙
+      - generic [ref=e27]: Config
+    - link "◉ Auth" [ref=e28] [cursor=pointer]:
+      - /url: "#auth"
+      - generic [ref=e29]: ◉
+      - generic [ref=e30]: Auth
+  - generic [ref=e34]: unreachable
+  - generic [ref=e85]:
+    - heading "Pipeline Runs" [level=2] [ref=e87]
+    - paragraph [ref=e89]: Failed to load runs

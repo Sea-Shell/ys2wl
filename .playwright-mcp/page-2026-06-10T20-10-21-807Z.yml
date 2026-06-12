@@ -1,0 +1,37 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e3]: sortarr
+    - link "■" [ref=e83] [cursor=pointer]:
+      - /url: "#dashboard"
+      - generic [ref=e5]: ■
+    - link "☰" [ref=e84] [cursor=pointer]:
+      - /url: "#subscriptions"
+      - generic [ref=e8]: ☰
+    - link "→" [ref=e85] [cursor=pointer]:
+      - /url: "#pipelines"
+      - generic [ref=e11]: →
+    - link "🔍" [ref=e86] [cursor=pointer]:
+      - /url: "#videolookup"
+      - generic [ref=e14]: 🔍
+    - link "↻" [ref=e87] [cursor=pointer]:
+      - /url: "#runs"
+      - generic [ref=e17]: ↻
+    - link "☮" [ref=e88] [cursor=pointer]:
+      - /url: "#stats"
+      - generic [ref=e20]: ☮
+    - link "⚠" [ref=e89] [cursor=pointer]:
+      - /url: "#ignorelists"
+      - generic [ref=e23]: ⚠
+    - link "⚙" [ref=e90] [cursor=pointer]:
+      - /url: "#config"
+      - generic [ref=e26]: ⚙
+    - link "◉" [ref=e91] [cursor=pointer]:
+      - /url: "#auth"
+      - generic [ref=e29]: ◉
+  - generic [ref=e34]: unreachable
+  - generic [ref=e99]:
+    - heading "Config" [level=2] [ref=e101]
+    - generic [ref=e102]:
+      - button "Runtime" [ref=e103] [cursor=pointer]
+      - button "Credentials" [ref=e104] [cursor=pointer]
+    - paragraph [ref=e106]: Failed to load config

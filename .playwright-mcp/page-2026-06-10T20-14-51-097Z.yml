@@ -1,0 +1,76 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e3]: sortarr
+    - link "■" [ref=e83] [cursor=pointer]:
+      - /url: "#dashboard"
+      - generic [ref=e5]: ■
+    - link "☰" [ref=e84] [cursor=pointer]:
+      - /url: "#subscriptions"
+      - generic [ref=e8]: ☰
+    - link "→" [ref=e85] [cursor=pointer]:
+      - /url: "#pipelines"
+      - generic [ref=e11]: →
+    - link "🔍" [ref=e86] [cursor=pointer]:
+      - /url: "#videolookup"
+      - generic [ref=e14]: 🔍
+    - link "↻" [ref=e87] [cursor=pointer]:
+      - /url: "#runs"
+      - generic [ref=e17]: ↻
+    - link "☮" [ref=e88] [cursor=pointer]:
+      - /url: "#stats"
+      - generic [ref=e20]: ☮
+    - link "⚠" [ref=e89] [cursor=pointer]:
+      - /url: "#ignorelists"
+      - generic [ref=e23]: ⚠
+    - link "⚙" [ref=e90] [cursor=pointer]:
+      - /url: "#config"
+      - generic [ref=e26]: ⚙
+    - link "◉" [ref=e91] [cursor=pointer]:
+      - /url: "#auth"
+      - generic [ref=e29]: ◉
+  - generic [ref=e34]: unreachable
+  - generic [ref=e38]:
+    - generic [ref=e39]:
+      - heading "Dashboard" [level=2] [ref=e40]
+      - generic [ref=e41]: System overview
+    - generic [ref=e42]:
+      - generic [ref=e43]:
+        - generic [ref=e44]: Subscriptions
+        - generic [ref=e45]: "-"
+      - generic [ref=e46]:
+        - generic [ref=e47]: Pipelines
+        - generic [ref=e48]: "-"
+      - generic [ref=e49]:
+        - generic [ref=e50]: Last Run
+        - generic [ref=e51]: "-"
+      - generic [ref=e52]:
+        - generic [ref=e53]: Videos Added
+        - generic [ref=e54]: "-"
+    - generic [ref=e55]:
+      - generic [ref=e56]:
+        - generic [ref=e57]: ☰
+        - generic [ref=e58]: "-"
+        - generic [ref=e59]: Subscriptions
+      - generic [ref=e60]: →
+      - generic [ref=e61]:
+        - generic [ref=e62]: →
+        - generic [ref=e63]: "-"
+        - generic [ref=e64]: Pipelines
+      - generic [ref=e65]: →
+      - generic [ref=e66]:
+        - generic [ref=e67]: ■
+        - generic [ref=e68]: "-"
+        - generic [ref=e69]: Videos Routed
+      - generic [ref=e70]: →
+      - generic [ref=e71]:
+        - generic [ref=e72]: ☮
+        - generic [ref=e73]: "-"
+        - generic [ref=e74]: Playlists
+    - generic [ref=e75]:
+      - button "▶ Run Pipeline" [ref=e76] [cursor=pointer]
+      - button "◎ Dry Run" [ref=e77] [cursor=pointer]
+    - separator [ref=e78]
+    - heading "Video Lookup" [level=3] [ref=e79]
+    - generic [ref=e80]:
+      - textbox "Enter YouTube video ID (e.g. dQw4w9WgXcQ)" [ref=e81]
+      - button "Search" [ref=e82] [cursor=pointer]
