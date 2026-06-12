@@ -17,3 +17,5 @@ docs/superpowers/
 .opencode/
 graphify-out
 .worktrees
+node_modules/
+.playwright-mcp/
