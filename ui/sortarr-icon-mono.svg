@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="vig" cx="50%" cy="44%" r="70%">
+      <stop offset="0%" stop-color="#15151a"/>
+      <stop offset="100%" stop-color="#0c0c0e"/>
+    </radialGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.02"/>
+    </linearGradient>
+    <clipPath id="hexclip"><polygon points="687.0,512.0 599.5,663.6 424.5,663.6 337.0,512.0 424.5,360.4 599.5,360.4"/></clipPath>
+    
+  </defs>
+
+  
+
+  <!-- green outputs (drawn first so the glass gate overlays the junction) -->
+  <g fill="none" stroke="#ffffff" stroke-width="58"
+     stroke-linecap="round" stroke-linejoin="round">
+    <path d="M600,512 L735,337 L895,337"/>
+    <path d="M600,512 L895,512"/>
+    <path d="M600,512 L735,687 L895,687"/>
+  </g>
+
+  <!-- cyan input -->
+  <path d="M120,512 L405,512" fill="none" stroke="#ffffff" stroke-width="66"
+        stroke-linecap="round"/>
+
+  <!-- glassmorphism hexagon junction -->
+  
+  
+  <polygon points="687.0,512.0 599.5,663.6 424.5,663.6 337.0,512.0 424.5,360.4 599.5,360.4" fill="none" stroke="#ffffff" stroke-width="8"
+           stroke-linejoin="round"/>
+
+  <!-- red neon core / heartbeat pulse -->
+  <path d="M512,408 L512,616" fill="none" stroke="#ffffff" stroke-width="42"
+        stroke-linecap="round"/>
+</svg>

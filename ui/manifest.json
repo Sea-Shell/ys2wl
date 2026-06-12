@@ -8,15 +8,22 @@
   "theme_color": "#ff0033",
   "icons": [
     {
-      "src": "icon.svg",
+      "src": "sortarr-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
     },
     {
-      "src": "favicon.svg",
-      "sizes": "32x32",
-      "type": "image/svg+xml"
+      "src": "sortarr-icon-transparent.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "sortarr-icon-mono.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
   ]
 }
