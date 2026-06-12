@@ -1,0 +1,22 @@
+{
+  "name": "sortarr",
+  "short_name": "sortarr",
+  "description": "YouTube Subscription to Watch Later - Route videos to playlists",
+  "start_url": "/ui",
+  "display": "standalone",
+  "background_color": "#0c0c0e",
+  "theme_color": "#ff0033",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "favicon.svg",
+      "sizes": "32x32",
+      "type": "image/svg+xml"
+    }
+  ]
+}
