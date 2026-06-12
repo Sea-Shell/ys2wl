@@ -113,7 +113,31 @@ async def execute_pipeline(state, trigger="manual", dry_run=False, pipeline_id=N
                     else:
                         r = decision
                         if r.added:
-                            action, reason, reason_detail = "added", None, None
+                            action, reason = "added", "matched"
+                            pipeline_name = getattr(r, "pipeline_name", None)
+                            rule_name = (
+                                getattr(r.route_result, "rule_name", None)
+                                if r.route_result
+                                else None
+                            )
+                            playlist_title = (
+                                getattr(r.route_result, "playlist_title", None)
+                                if r.route_result
+                                else None
+                            )
+                            pipeline_id = getattr(r, "pipeline_id", None)
+                            detail_parts = []
+                            if pipeline_name:
+                                detail_parts.append(f"pipeline={pipeline_name}")
+                            if pipeline_id:
+                                detail_parts.append(f"pipeline_id={pipeline_id}")
+                            if rule_name:
+                                detail_parts.append(f"rule={rule_name}")
+                            if playlist_title:
+                                detail_parts.append(f"playlist={playlist_title}")
+                            reason_detail = (
+                                " | ".join(detail_parts) if detail_parts else None
+                            )
                         elif r.error:
                             action, reason, reason_detail = (
                                 "error",

@@ -1685,8 +1685,11 @@ renderers.runDetail = async function(runId) {
       } else {
         const videoDecisions = decisions.filter(d => d.action !== 'subscription_skipped');
         const subSkips = decisions.filter(d => d.action === 'subscription_skipped');
-        const counts = { added: 0, skipped: 0, error: 0, sub_skipped: subSkips.length };
-        videoDecisions.forEach(d => { if (d.action === 'added') counts.added++; else if (d.action === 'error') counts.error++; else counts.skipped++; });
+        const added = videoDecisions.filter(d => d.action === 'added');
+        const skipped = videoDecisions.filter(d => d.action === 'skipped');
+        const errors = videoDecisions.filter(d => d.action === 'error');
+        const counts = { added: added.length, skipped: skipped.length, error: errors.length, sub_skipped: subSkips.length };
+
         let html = '';
         if (subSkips.length) {
           html += '<div style="margin-bottom:var(--space-4)"><h4 class="section-title">Subscription Skips</h4>' +
@@ -1696,21 +1699,75 @@ renderers.runDetail = async function(runId) {
               ' &mdash; ' + escapeHtml(s.reason_detail || s.reason) + '</div>'
             ).join('') + '</div>';
         }
-        html += '<div class="table-wrap"><table><thead><tr>' +
-          '<th>Video</th><th>Channel</th><th>Action</th><th>Reason</th><th>Routed To</th>' +
-          '</tr></thead><tbody>' + videoDecisions.map(d =>
-            '<tr><td style="max-width:250px;overflow:hidden;text-overflow:ellipsis">' +
-            '<a href="https://www.youtube.com/watch?v=' + escapeHtml(d.video_id || '') + '" target="_blank" rel="noopener" style="color:var(--neon-cyan);text-shadow:0 0 4px var(--neon-cyan-glow);border-bottom:1px solid transparent;padding-bottom:1px" onmouseover="this.style.color=\'var(--neon-accent)\';this.style.textShadow=\'0 0 8px var(--neon-accent-glow)\';this.style.borderBottomColor=\'var(--neon-accent)\'" onmouseout="this.style.color=\'var(--neon-cyan)\';this.style.textShadow=\'0 0 4px var(--neon-cyan-glow)\';this.style.borderBottomColor=\'transparent\'">' + escapeHtml(d.title) + '</a></td>' +
-            '<td><a href="https://www.youtube.com/channel/' + escapeHtml(d.channel_id || d.subscription_id || '') + '" target="_blank" rel="noopener" style="color:var(--neon-cyan);text-shadow:0 0 4px var(--neon-cyan-glow);border-bottom:1px solid transparent;padding-bottom:1px" onmouseover="this.style.color=\'var(--neon-accent)\';this.style.textShadow=\'0 0 8px var(--neon-accent-glow)\';this.style.borderBottomColor=\'var(--neon-accent)\'" onmouseout="this.style.color=\'var(--neon-cyan)\';this.style.textShadow=\'0 0 4px var(--neon-cyan-glow)\';this.style.borderBottomColor=\'transparent\'">' + escapeHtml(d.subscription_title) + '</a></td>' +
-            '<td><span class="badge ' + (d.action === 'added' ? 'badge-completed' : d.action === 'error' ? 'badge-error' : 'badge-running') + '">' + d.action + '</span></td>' +
-            '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis">' + escapeHtml(d.reason_detail || d.reason || '-') + '</td>' +
-            '<td class="mono">' + escapeHtml(d.routed_to || '-') + '</td>' +
-            '</tr>'
-          ).join('') + '</tbody></table></div>';
-        if (videoDecisions.length === 0) {
-          html += '<p class="empty-state">No video decisions</p>';
+
+        // Added tracks - center of attention
+        html += '<div style="margin-bottom:var(--space-4)">';
+        if (added.length > 0) {
+          html += '<h4 class="section-title" style="display:flex;align-items:center;gap:var(--space-2)">' +
+            '<span style="color:var(--neon-green);text-shadow:0 0 8px var(--neon-green-glow)">✦</span>' +
+            'Added to Playlist <span class="badge badge-completed" style="font-size:0.625rem;padding:1px 6px">' + added.length + '</span>' +
+            '</h4>';
+          html += '<div class="table-wrap"><table><thead><tr>' +
+            '<th>Video</th><th>Channel</th><th>Routed To</th><th>Match Details</th>' +
+            '</tr></thead><tbody>' + added.map(d => {
+              const hasMatchInfo = d.reason_detail && d.reason_detail.includes('pipeline=');
+              const reasonContent = d.reason_detail ? d.reason_detail : (d.reason || '-');
+              const reasonStyle = hasMatchInfo ? 'style="color:var(--neon-green);text-shadow:0 0 4px var(--neon-green-glow);font-weight:500"' : '';
+              const confirmedBadge = hasMatchInfo ? '<span class="badge badge-completed" style="margin-left:6px;font-size:0.625rem">✓ Confirmed</span>' : '';
+              return '<tr style="background:rgba(0,230,118,0.03)">' +
+                '<td style="max-width:250px;overflow:hidden;text-overflow:ellipsis">' +
+                  '<a href="https://www.youtube.com/watch?v=' + escapeHtml(d.video_id || '') + '" target="_blank" rel="noopener" style="color:var(--neon-cyan);text-shadow:0 0 4px var(--neon-cyan-glow);border-bottom:1px solid transparent;padding-bottom:1px" onmouseover="this.style.color=\'var(--neon-accent)\';this.style.textShadow=\'0 0 8px var(--neon-accent-glow)\';this.style.borderBottomColor=\'var(--neon-accent)\'" onmouseout="this.style.color=\'var(--neon-cyan)\';this.style.textShadow=\'0 0 4px var(--neon-cyan-glow)\';this.style.borderBottomColor=\'transparent\'">' + escapeHtml(d.title) + '</a></td>' +
+                '<td><a href="https://www.youtube.com/channel/' + escapeHtml(d.channel_id || d.subscription_id || '') + '" target="_blank" rel="noopener" style="color:var(--neon-cyan);text-shadow:0 0 4px var(--neon-cyan-glow);border-bottom:1px solid transparent;padding-bottom:1px" onmouseover="this.style.color=\'var(--neon-accent)\';this.style.textShadow=\'0 0 8px var(--neon-accent-glow)\';this.style.borderBottomColor=\'var(--neon-accent)\'" onmouseout="this.style.color=\'var(--neon-cyan)\';this.style.textShadow=\'0 0 4px var(--neon-cyan-glow)\';this.style.borderBottomColor=\'transparent\'">' + escapeHtml(d.subscription_title) + '</a></td>' +
+                '<td class="mono">' + escapeHtml(d.routed_to || '-') + '</td>' +
+                '<td ' + reasonStyle + '>' + escapeHtml(reasonContent) + confirmedBadge + '</td>' +
+                '</tr>';
+            }).join('') + '</tbody></table></div>';
+        } else {
+          html += '<p class="empty-state" style="color:var(--text-tertiary)">No videos added</p>';
         }
-        html += '<p style="color:var(--text-tertiary);font-size:0.75rem;margin-top:var(--space-2)">' + decisions.length + ' decision(s) &mdash; subs skipped: ' + counts.sub_skipped + ', added: ' + counts.added + ', videos skipped: ' + counts.skipped + ', errors: ' + counts.error + '</p>';
+        html += '</div>';
+
+        // Skipped videos - hidden in expandable section
+        const hiddenCount = skipped.length + errors.length;
+        if (hiddenCount > 0) {
+          const hiddenId = 'hidden-decisions-' + runId;
+          html += '<details style="margin-top:var(--space-3);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">' +
+            '<summary style="padding:var(--space-3);cursor:pointer;background:var(--surface-2);display:flex;align-items:center;justify-content:space-between;font-weight:500;color:var(--text-secondary)">' +
+              '<span>Show ' + hiddenCount + ' skipped/error video' + (hiddenCount !== 1 ? 's' : '') + '</span>' +
+              '<span style="font-family:var(--font-mono);font-size:0.6875rem;color:var(--text-tertiary)">▼</span>' +
+            '</summary>' +
+            '<div style="padding:var(--space-2) 0">' +
+              '<div class="table-wrap" style="border:none;margin:0"><table><thead><tr>' +
+                '<th>Video</th><th>Channel</th><th>Action</th><th>Reason</th><th>Routed To</th>' +
+                '</tr></thead><tbody>' +
+                skipped.map(d => '<tr>' +
+                  '<td style="max-width:250px;overflow:hidden;text-overflow:ellipsis">' +
+                    '<a href="https://www.youtube.com/watch?v=' + escapeHtml(d.video_id || '') + '" target="_blank" rel="noopener" style="color:var(--neon-cyan);text-shadow:0 0 4px var(--neon-cyan-glow);border-bottom:1px solid transparent;padding-bottom:1px">' + escapeHtml(d.title) + '</a></td>' +
+                  '<td><a href="https://www.youtube.com/channel/' + escapeHtml(d.channel_id || d.subscription_id || '') + '" target="_blank" rel="noopener" style="color:var(--neon-cyan);text-shadow:0 0 4px var(--neon-cyan-glow);border-bottom:1px solid transparent;padding-bottom:1px">' + escapeHtml(d.subscription_title) + '</a></td>' +
+                  '<td><span class="badge badge-running">skipped</span></td>' +
+                  '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;color:var(--text-tertiary)">' + escapeHtml(d.reason_detail || d.reason || '-') + '</td>' +
+                  '<td class="mono">' + escapeHtml(d.routed_to || '-') + '</td>' +
+                  '</tr>').join('') +
+                errors.map(d => '<tr style="background:rgba(255,23,68,0.03)">' +
+                  '<td style="max-width:250px;overflow:hidden;text-overflow:ellipsis">' +
+                    '<a href="https://www.youtube.com/watch?v=' + escapeHtml(d.video_id || '') + '" target="_blank" rel="noopener" style="color:var(--neon-cyan);text-shadow:0 0 4px var(--neon-cyan-glow);border-bottom:1px solid transparent;padding-bottom:1px">' + escapeHtml(d.title) + '</a></td>' +
+                  '<td><a href="https://www.youtube.com/channel/' + escapeHtml(d.channel_id || d.subscription_id || '') + '" target="_blank" rel="noopener" style="color:var(--neon-cyan);text-shadow:0 0 4px var(--neon-cyan-glow);border-bottom:1px solid transparent;padding-bottom:1px">' + escapeHtml(d.subscription_title) + '</a></td>' +
+                  '<td><span class="badge badge-error">error</span></td>' +
+                  '<td style="max-width:300px;overflow:hidden;text-overflow:ellipsis;color:var(--red)">' + escapeHtml(d.reason_detail || d.reason || '-') + '</td>' +
+                  '<td class="mono">' + escapeHtml(d.routed_to || '-') + '</td>' +
+                  '</tr>').join('') +
+                '</tbody></table></div>' +
+            '</div>' +
+            '</details>';
+        }
+
+        html += '<p style="color:var(--text-tertiary);font-size:0.75rem;margin-top:var(--space-2)">' +
+          'Total: ' + decisions.length + ' decision(s) &mdash; ' +
+          'subs skipped: ' + counts.sub_skipped + ' | ' +
+          '<span style="color:var(--neon-green);font-weight:600">added: ' + counts.added + '</span> | ' +
+          '<span style="color:var(--text-tertiary)">skipped: ' + counts.skipped + '</span> | ' +
+          '<span style="color:var(--red)">errors: ' + counts.error + '</span>' +
+          '</p>';
         decisionsEl.innerHTML = html;
       }
       if (window._runDetailGen !== gen) return;
